@@ -9,13 +9,13 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.byimthejuan.asistentedecocina",
+      "bundleIdentifier": "com.hyd.asistentedecocina",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.byimthejuan.asistentedecocina",
+      "package": "com.hyd.asistentedecocina",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -42,6 +42,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bb407ae4-12fa-4083-a348-93651c504ffd"
+      }
+    },
+    "owner": "hyd-co"
   }
 }
