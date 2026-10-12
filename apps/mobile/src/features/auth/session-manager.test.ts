@@ -92,6 +92,7 @@ describe('session manager', () => {
     });
 
     it.each([
+      ['unavailable', 'unavailable'],
       ['play-services', 'play-services'],
       ['unknown', 'unknown'],
       ['in-progress', 'cancelled'],

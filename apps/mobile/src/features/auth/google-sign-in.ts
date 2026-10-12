@@ -1,36 +1,49 @@
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
-
-import { env } from '@/config/app-env';
+import { getEnv } from '@/config/app-env';
 
 export type GoogleSignInResult =
   | { type: 'success'; idToken: string }
   | { type: 'cancelled' }
-  | { type: 'error'; reason: 'play-services' | 'in-progress' | 'unknown' };
+  | { type: 'error'; reason: 'unavailable' | 'play-services' | 'in-progress' | 'unknown' };
+
+type GoogleSignInModule = typeof import('@react-native-google-signin/google-signin');
 
 let configured = false;
 
-function configure(): void {
-  if (configured) {
-    return;
+// The library looks up its native module as soon as it is imported and throws
+// when the binary does not include it, as in Expo Go. Loading it on demand
+// keeps the rest of the app working there; `null` means it is not available.
+function loadGoogleSignIn(): GoogleSignInModule | null {
+  let library: GoogleSignInModule;
+  try {
+    // A static import would run at startup, and `import()` is not transformed
+    // the same way by Metro and Jest.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    library = require('@react-native-google-signin/google-signin');
+  } catch {
+    return null;
   }
-  // The web client ID makes Google issue an ID token whose audience is the
-  // backend, which is where the token is verified.
-  GoogleSignin.configure({
-    webClientId: env.googleWebClientId,
-    iosClientId: env.googleIosClientId,
-  });
-  configured = true;
+  if (!configured) {
+    const env = getEnv();
+    // The web client ID makes Google issue an ID token whose audience is the
+    // backend, which is where the token is verified.
+    library.GoogleSignin.configure({
+      webClientId: env.googleWebClientId,
+      iosClientId: env.googleIosClientId,
+    });
+    configured = true;
+  }
+  return library;
 }
 
 /** Shows the native account picker and returns the Google ID token. */
 export async function requestGoogleIdToken(): Promise<GoogleSignInResult> {
+  const library = loadGoogleSignIn();
+  if (!library) {
+    return { type: 'error', reason: 'unavailable' };
+  }
+  const { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } = library;
+
   try {
-    configure();
     // Android only; resolves immediately on iOS.
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const response = await GoogleSignin.signIn();
@@ -58,6 +71,6 @@ export async function requestGoogleIdToken(): Promise<GoogleSignInResult> {
 
 /** Forgets the Google account on the device so the next sign-in asks again. */
 export async function signOutFromGoogle(): Promise<void> {
-  configure();
-  await GoogleSignin.signOut();
+  const library = loadGoogleSignIn();
+  await library?.GoogleSignin.signOut();
 }

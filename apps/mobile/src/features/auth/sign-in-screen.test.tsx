@@ -132,6 +132,17 @@ describe('SignInScreen', () => {
     );
   });
 
+  it('explains that Google sign-in is not part of the running binary', async () => {
+    const fake = createFakeSession();
+    fake.google.requestGoogleIdToken.mockResolvedValue({ type: 'error', reason: 'unavailable' });
+    await renderScreen(fake);
+
+    await user.press(await screen.findByRole('button', { name: 'Continuar con Google' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Expo Go.*development build/);
+    expect(fake.api.signInWithGoogle).not.toHaveBeenCalled();
+  });
+
   it('clears the previous error when the user tries again', async () => {
     const fake = createFakeSession();
     fake.api.signInWithGoogle.mockRejectedValueOnce(new NetworkError());

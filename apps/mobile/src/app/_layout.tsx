@@ -4,6 +4,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { ConfigurationErrorScreen } from '@/components/configuration-error-screen';
+import { envError } from '@/config/app-env';
 import { SessionProvider, useSession } from '@/features/auth/session-provider';
 
 SplashScreen.preventAutoHideAsync();
@@ -30,10 +32,21 @@ function RootNavigator() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+
+  if (envError) {
+    return (
+      <ThemeProvider value={theme}>
+        <AnimatedSplashOverlay />
+        <ConfigurationErrorScreen message={envError} />
+      </ThemeProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <ThemeProvider value={theme}>
           <AnimatedSplashOverlay />
           <RootNavigator />
         </ThemeProvider>

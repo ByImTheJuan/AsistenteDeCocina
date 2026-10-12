@@ -1,4 +1,4 @@
-import { env } from '@/config/app-env';
+import { getEnv } from '@/config/app-env';
 
 /** The API answered with an error status. */
 export class ApiError extends Error {
@@ -42,7 +42,7 @@ export async function apiRequest(
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let response: Response;
   try {
-    response = await fetch(`${env.apiUrl}${path}`, {
+    response = await fetch(`${getEnv().apiUrl}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),

@@ -16,6 +16,7 @@ export type SessionState =
 
 export type SignInFailure =
   | 'cancelled'
+  | 'unavailable'
   | 'play-services'
   | 'network'
   | 'rejected'
