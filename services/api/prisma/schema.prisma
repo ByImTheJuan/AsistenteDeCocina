@@ -1,0 +1,12 @@
+// Prisma schema. The connection URL is configured in prisma7.config.ts.
+// Models are added by the user stories that need them, always through
+// versioned migrations (`prisma migrate dev`).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}

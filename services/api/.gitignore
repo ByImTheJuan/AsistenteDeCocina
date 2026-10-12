@@ -1,0 +1,5 @@
+node_modules
+dist
+
+# Generated Prisma client (`npm run prisma:generate`)
+/src/generated/prisma
