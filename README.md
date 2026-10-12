@@ -17,7 +17,7 @@ Aplicación móvil multiplataforma para iOS y Android que ayuda a gestionar los 
 - [Flujo de trabajo con Claude Code](#flujo-de-trabajo-con-claude-code)
 - [Git y Pull Requests](#git-y-pull-requests)
 - [Pruebas y calidad](#pruebas-y-calidad)
-- [Probar en un iPhone](#probar-en-un-iphone)
+- [Probar en un dispositivo](#probar-en-un-dispositivo)
 - [Entornos](#entornos)
 - [Seguridad y privacidad](#seguridad-y-privacidad)
 - [Roadmap inicial](#roadmap-inicial)
@@ -178,8 +178,8 @@ No introduzcas un monorepo ni un paquete compartido por inercia. La organizació
 - **Docker** para ejecutar MySQL 8.4 en local (`docker-compose.yml`). No hace falta instalar MySQL de forma nativa.
 - **GitHub CLI** (`gh`) para Pull Requests y secretos.
 - **EAS CLI** (`npm install -g eas-cli`) y una cuenta de Expo para generar builds.
-- Cuenta de **Apple Developer Program** para instalar builds en un iPhone.
-- Expo Go en el iPhone para pruebas rápidas sin build.
+- Cuenta de **Apple Developer Program** para instalar builds en un iPhone. Android no requiere cuenta para instalar un APK.
+- Expo Go en el teléfono (iOS o Android) para pruebas rápidas sin build.
 
 Versiones fijadas: Expo SDK 57 (React Native 0.86, React 19.2), NestJS 12, Prisma 7.10 y TypeScript 6. Las decisiones de estructura están en [`docs/decisions/0001-estructura-y-gestor-de-paquetes.md`](docs/decisions/0001-estructura-y-gestor-de-paquetes.md).
 
@@ -326,7 +326,7 @@ La estrategia de pruebas debe crecer junto con el producto.
 
 ### Integración continua
 
-El pipeline está en [`.github/workflows/ci.yml`](.github/workflows/ci.yml) y se ejecuta en cada Pull Request hacia `main`, en cada push a `main` y manualmente:
+El pipeline está en [`.github/workflows/ci.yml`](.github/workflows/ci.yml) y se ejecuta en cada Pull Request hacia `main` y en cada push a `main`. No genera builds de la app:
 
 | Job | Qué comprueba |
 |---|---|
@@ -334,9 +334,8 @@ El pipeline está en [`.github/workflows/ci.yml`](.github/workflows/ci.yml) y se
 | `api` | Esquema de Prisma, TypeScript, lint, pruebas unitarias, pruebas de integración (con MySQL 8.4 como servicio) y build. |
 | `dependencies` | Coherencia del lockfile (`npm ci`), `expo-doctor` y alineación de versiones con el SDK de Expo. |
 | `security` | `npm audit`: bloquea con severidad `high` en las dependencias de producción de la API y con `critical` en todo el árbol; publica el informe completo en el resumen. La revisión de dependencias de GitHub solo se activa si el repositorio es público. |
-| `build-ios` | Build de iOS con EAS (perfil `preview`, distribución interna) cuando cambian `apps/mobile/**`, los manifiestos de la raíz o el propio workflow. Publica el enlace de instalación en el PR. |
 
-`build-ios` necesita el secreto `EXPO_TOKEN` y un proyecto EAS vinculado (ver [Probar en un iPhone](#probar-en-un-iphone)). Si falta alguno, el job lo indica con un aviso y **no** genera la build; no debe interpretarse como una build correcta.
+Las builds instalables se generan aparte, de forma manual y solo desde `main`, con [`.github/workflows/build.yml`](.github/workflows/build.yml) (ver [Probar en un dispositivo](#probar-en-un-dispositivo)).
 
 Las pruebas que dependan de servicios externos deben configurarse con entornos de prueba o quedar identificadas como pendientes, nunca darse por aprobadas sin ejecutarse.
 
@@ -352,40 +351,54 @@ Una historia solo está terminada cuando:
 - La documentación afectada está actualizada.
 - Existe un Pull Request hacia `main`, o se ha explicado con precisión por qué no se pudo crear.
 
-## Probar en un iPhone
+## Probar en un dispositivo
 
-### Inicio rápido con Expo Go
+La aplicación se desarrolla para iOS y Android. Hay tres formas de probarla en un teléfono, de menor a mayor coste:
 
-Para las primeras pantallas y flujos compatibles:
+### 1. Expo Go (sin build)
 
-1. Instala Expo Go desde la App Store.
-2. Clona el repositorio e instala las dependencias cuando el proyecto esté preparado.
-3. Arranca el servidor Expo con el script definido por el proyecto (habitualmente `npx expo start`).
-4. Abre Expo Go y escanea el código QR.
-5. Prueba la funcionalidad en el dispositivo y revisa los errores de consola.
+Para iterar la interfaz mientras la app solo use módulos incluidos en Expo Go:
 
-El iPhone y el ordenador deben poder comunicarse con el servidor de desarrollo. Si el backend se ejecuta en el ordenador, `localhost` desde el iPhone se refiere al propio teléfono: configura una dirección de red accesible o un entorno remoto.
+1. Instala Expo Go desde la App Store o Google Play.
+2. Arranca el servidor con `npm run start:go -w mobile`.
+3. Escanea el código QR con la cámara (iOS) o desde Expo Go (Android).
 
-Expo Go es útil para empezar, pero tiene limitaciones para módulos nativos personalizados.
+Los cambios de código se recargan al instante y no se consume cupo de EAS. Limitaciones: Expo Go solo incluye sus propios módulos nativos y solo abre proyectos del SDK que soporta la versión instalada.
 
-### Builds con EAS
+El teléfono y el ordenador deben estar en la misma red (o usar `npx expo start --tunnel`). `localhost` desde el teléfono es el propio teléfono: configura `EXPO_PUBLIC_API_URL` con la IP del ordenador.
 
-Los perfiles están definidos en `apps/mobile/eas.json`:
+### 2. Development build
 
-- `preview`: app autónoma con distribución interna (ad hoc). Es la que genera el CI en cada Pull Request.
-- `development`: development build con `expo-dev-client`, para trabajar con módulos nativos contra el servidor de desarrollo.
-- `production`: reservado para la publicación.
+Cuando una funcionalidad necesite módulos nativos que Expo Go no incluye. Es una versión propia de Expo Go con las dependencias nativas del proyecto:
 
-Configuración inicial, una sola vez y desde `apps/mobile` (requiere iniciar sesión de forma interactiva):
+1. Genera la build una vez: `eas build --platform ios|android --profile development` (desde `apps/mobile`).
+2. Instálala en el teléfono desde el enlace que devuelve EAS.
+3. Arranca el servidor con `npm run start -w mobile` y abre la app.
+
+Los cambios de JavaScript/TypeScript se recargan en vivo. Solo hay que volver a compilar cuando cambian las dependencias nativas, `app.json` o el SDK de Expo.
+
+Para revisar un Pull Request en el teléfono basta con cambiar a su rama y arrancar el servidor; no hace falta una build por PR.
+
+### 3. Build de prueba (`preview`)
+
+App autónoma, sin servidor de desarrollo, para validar una versión de `main`. Se lanza manualmente, desde la pestaña *Actions* de GitHub (workflow **Build**) o con:
+
+```bash
+gh workflow run build.yml --ref main -f platform=ios      # ios | android | all
+```
+
+El workflow solo acepta `main`, falla si EAS no está configurado y publica el enlace de instalación en el resumen de la ejecución. Cada ejecución consume cupo de builds de EAS (15 de iOS y 15 de Android al mes en el plan gratuito).
+
+### Configuración inicial de EAS
+
+Una sola vez, desde `apps/mobile` y con sesión interactiva:
 
 1. `eas login` y `eas init` — vincula el proyecto y añade `extra.eas.projectId` a `app.json` (hay que versionar ese cambio).
-2. `eas device:create` — registra el UDID del iPhone.
-3. `eas build --platform ios --profile preview` — la primera vez pide la sesión de Apple y genera el certificado y el perfil de aprovisionamiento, que quedan guardados en EAS para las builds no interactivas del CI.
+2. iOS: `eas device:create` para registrar el UDID del iPhone, y una primera `eas build --platform ios --profile preview`, que pide la sesión de Apple y genera el certificado y el perfil de aprovisionamiento. Quedan guardados en EAS para las builds no interactivas.
+3. Android: una primera `eas build --platform android --profile preview` para que EAS genere el almacén de claves de firma.
 4. Crea un token de acceso en expo.dev y guárdalo como secreto del repositorio: `gh secret set EXPO_TOKEN`.
 
-A partir de ahí, el job `build-ios` comenta en cada Pull Request el enlace para instalar la build. Cada iPhone nuevo exige repetir el paso 2 y regenerar el perfil de aprovisionamiento.
-
-No todos los cambios necesitan una nueva compilación nativa. Los cambios JavaScript/TypeScript suelen poder probarse con el servidor activo; los cambios en dependencias nativas o configuración nativa normalmente requieren recompilar.
+Cada iPhone nuevo exige registrarlo y volver a compilar para que entre en el perfil de aprovisionamiento.
 
 La validación manual en un dispositivo físico debe distinguirse de las pruebas en simulador y de las pruebas automatizadas.
 
