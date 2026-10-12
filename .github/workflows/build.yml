@@ -1,0 +1,107 @@
+name: Build
+
+# Manual only: each run spends EAS build quota. Quality checks are not repeated
+# here because main already passed them in the CI workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to build
+        type: choice
+        required: true
+        default: ios
+        options:
+          - ios
+          - android
+          - all
+
+concurrency:
+  group: build-${{ inputs.platform }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Check build prerequisites
+    runs-on: ubuntu-latest
+    outputs:
+      platforms: ${{ steps.platforms.outputs.list }}
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Only main can be built
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Builds are only generated from main (got $GITHUB_REF_NAME)."
+          exit 1
+      - name: Check EAS configuration
+        run: |
+          ok=true
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN secret is not set."
+            ok=false
+          fi
+          if [ "$(jq -r '.expo.extra.eas.projectId // empty' apps/mobile/app.json)" = "" ]; then
+            echo "::error::apps/mobile/app.json has no EAS projectId (run 'eas init')."
+            ok=false
+          fi
+          [ "$ok" = true ]
+      - id: platforms
+        env:
+          PLATFORM: ${{ inputs.platform }}
+        run: |
+          if [ "$PLATFORM" = "all" ]; then
+            echo 'list=["ios","android"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "list=[\"$PLATFORM\"]" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: EAS build (${{ matrix.platform }})
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(needs.preflight.outputs.platforms) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: expo/expo-github-action@v9
+        with:
+          eas-version: latest
+          packager: npm
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - name: Build
+        working-directory: apps/mobile
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: eas build --platform "$PLATFORM" --profile preview --non-interactive --wait --json > "$RUNNER_TEMP/build.json"
+      - name: Publish install link
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          build="$RUNNER_TEMP/build.json"
+          id=$(jq -r '.[0].id' "$build")
+          owner=$(jq -r '.[0].project.ownerAccount.name // empty' "$build")
+          slug=$(jq -r '.[0].project.slug // empty' "$build")
+          if [ -n "$owner" ] && [ -n "$slug" ]; then
+            url="https://expo.dev/accounts/$owner/projects/$slug/builds/$id"
+          else
+            url="https://expo.dev (build id: $id)"
+          fi
+          {
+            echo "### 📱 $PLATFORM build ready"
+            echo
+            echo "Open this link on the device to install it: $url"
+            echo
+            echo "Commit: \`${GITHUB_SHA::7}\` · Profile: \`preview\`"
+          } >> "$GITHUB_STEP_SUMMARY"
