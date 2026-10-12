@@ -10,6 +10,8 @@ Estas instrucciones son obligatorias salvo que el usuario indique explícitament
 
 Estamos desarrollando una aplicación móvil multiplataforma para iOS y Android que actúa como asistente personal de cocina.
 
+**iOS y Android son objetivos de igual prioridad.** La aplicación se desarrolla desde una única base de código y toda historia de usuario se implementa y valida para ambas plataformas, reutilizando todo el código posible. Una historia que solo funciona en una plataforma no está terminada.
+
 La aplicación permitirá a los usuarios:
 
 - Crear una cuenta e iniciar sesión mediante Google.
@@ -30,6 +32,16 @@ No inventes criterios de aceptación ni amplíes el alcance de una US sin justif
 ## 2. Stack tecnológico acordado
 
 Utiliza las siguientes tecnologías como stack objetivo. No sustituyas una tecnología por otra sin presentar primero una justificación y obtener aprobación del usuario.
+
+### Arquitectura y separación de componentes
+
+El sistema se compone de dos componentes separados e independientes: la aplicación móvil (`apps/mobile`) y el backend (`services/api`).
+
+- La comunicación entre ambos se realiza **exclusivamente a través de la API REST** documentada con OpenAPI. La aplicación no accede a la base de datos ni a ningún servicio interno del backend por otra vía.
+- El backend se desplegará en el servidor personal del propietario del proyecto. Debe poder compilarse, desplegarse y ejecutarse sin depender de la aplicación móvil ni de Expo/EAS.
+- La aplicación no importa código de ejecución del backend ni al revés. Si en el futuro se comparten tipos o contratos, se hará mediante un paquete explícito y justificado, no con importaciones cruzadas.
+- La URL de la API es configuración por entorno en la aplicación (`EXPO_PUBLIC_API_URL`), nunca un valor fijo en el código.
+- Los detalles de despliegue del backend se documentarán a medida que las historias los necesiten. No añadir infraestructura de despliegue por adelantado.
 
 ### Aplicación móvil
 
@@ -279,6 +291,7 @@ No declares la historia completada si quedan criterios de aceptación sin cubrir
 Una US solo se considera terminada cuando se cumplen todas las condiciones aplicables:
 
 - [ ] La implementación satisface todos los criterios de aceptación acordados.
+- [ ] La funcionalidad móvil está implementada para iOS y Android, y se ha indicado qué se validó en cada plataforma (dispositivo físico, simulador/emulador o solo pruebas automatizadas).
 - [ ] Las dependencias funcionales y técnicas están resueltas o documentadas.
 - [ ] Se han añadido pruebas para los caminos principales y los errores relevantes.
 - [ ] Todas las pruebas obligatorias ejecutables pasan.
@@ -306,6 +319,9 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 - Evita lógica de negocio duplicada entre cliente y backend.
 - No hagas peticiones de red directamente desde componentes visuales si el proyecto utiliza una capa de servicios o TanStack Query.
 - Respeta accesibilidad, navegación y comportamiento coherente en iOS y Android.
+- Comparte el código entre iOS y Android por defecto. Usa código específico de plataforma (`Platform.select`, archivos `.ios.tsx`/`.android.tsx`) solo cuando exista una diferencia real entre plataformas; mantenlo aislado y justifícalo en el plan.
+- No añadas dependencias que solo funcionen en una de las dos plataformas sin aprobación del usuario.
+- La aplicación móvil solo obtiene y modifica datos del backend a través de la API REST.
 
 ### API y datos
 
