@@ -173,34 +173,57 @@ No introduzcas un monorepo ni un paquete compartido por inercia. La organizació
 
 ## Requisitos previos
 
-Las herramientas exactas y sus versiones deberán fijarse al configurar el repositorio. Como mínimo, el entorno de desarrollo necesitará:
-
 - Git.
-- Node.js en una versión compatible con la versión de Expo y NestJS elegida.
-- El gestor de paquetes definido por el repositorio.
-- Una instancia de MySQL para desarrollo y otra configuración aislada para pruebas de integración.
-- Una cuenta de GitHub con permisos para el repositorio y Pull Requests.
-- Expo Go en el iPhone para las primeras pruebas rápidas, o un development build cuando se necesiten módulos nativos específicos.
-- Cuenta y configuración de EAS cuando se empiecen a generar builds de iOS/Android.
+- **Node.js 24** (ver `.nvmrc`; se recomienda la última 24.x) y **npm**, que es el gestor de paquetes del repositorio (npm workspaces, un único `package-lock.json` en la raíz).
+- **Docker** para ejecutar MySQL 8.4 en local (`docker-compose.yml`). No hace falta instalar MySQL de forma nativa.
+- **GitHub CLI** (`gh`) para Pull Requests y secretos.
+- **EAS CLI** (`npm install -g eas-cli`) y una cuenta de Expo para generar builds.
+- Cuenta de **Apple Developer Program** para instalar builds en un iPhone.
+- Expo Go en el iPhone para pruebas rápidas sin build.
 
-No instales versiones al azar. Comprueba la compatibilidad entre Expo, React Native, Node.js y las dependencias antes de fijarlas.
+Versiones fijadas: Expo SDK 57 (React Native 0.86, React 19.2), NestJS 12, Prisma 7.10 y TypeScript 6. Las decisiones de estructura están en [`docs/decisions/0001-estructura-y-gestor-de-paquetes.md`](docs/decisions/0001-estructura-y-gestor-de-paquetes.md).
+
+No instales versiones al azar. Las dependencias de la app móvil se añaden con `npx expo install <paquete>` desde `apps/mobile`, que resuelve versiones compatibles con el SDK.
 
 ## Puesta en marcha
 
-> **Nota:** los comandos definitivos de instalación y ejecución deben documentarse cuando estén creados los manifiestos del proyecto. No ejecutes comandos de una carpeta que todavía no exista.
+Todos los comandos se ejecutan desde la raíz del repositorio salvo que se indique lo contrario.
 
-Cuando el repositorio esté configurado, esta sección deberá incluir los pasos concretos para:
+```bash
+# 1. Dependencias de todos los workspaces
+npm ci
 
-1. Clonar el repositorio.
-2. Instalar dependencias usando el gestor de paquetes y los lockfiles versionados.
-3. Crear los archivos de configuración locales a partir de `.env.example`.
-4. Iniciar MySQL para desarrollo.
-5. Aplicar las migraciones de Prisma.
-6. Iniciar la API.
-7. Iniciar la aplicación Expo.
-8. Ejecutar las pruebas y comprobaciones de calidad.
+# 2. Configuración local (no se versiona)
+cp services/api/.env.example services/api/.env
+cp apps/mobile/.env.example apps/mobile/.env
 
-Los comandos reales deben obtenerse de los scripts definidos en los `package.json` y de la configuración del repositorio; no deben documentarse como funcionales hasta que se hayan verificado.
+# 3. MySQL de desarrollo (bases cocina_dev y cocina_test)
+npm run db:up
+
+# 4. Cliente de Prisma y migraciones (cuando existan)
+npm run prisma:generate -w api
+cd services/api && npx prisma migrate dev && cd ../..
+
+# 5. API en http://localhost:3000 (OpenAPI en /docs, salud en /health)
+npm run start:dev -w api
+
+# 6. Aplicación Expo
+npm run start -w mobile
+```
+
+### Comprobaciones de calidad
+
+```bash
+npm run typecheck          # TypeScript en mobile y api
+npm run lint               # expo lint (mobile) y oxlint (api)
+npm test                   # Jest (mobile) y Vitest (api)
+npm run test:unit -w mobile
+npm run test:components -w mobile
+npm run test:e2e -w api
+npm run build -w api
+```
+
+En la app móvil, las pruebas unitarias viven en archivos `*.test.ts` y las de componentes en `*.test.tsx`.
 
 ## Configuración y secretos
 
@@ -303,7 +326,19 @@ La estrategia de pruebas debe crecer junto con el producto.
 
 ### Integración continua
 
-GitHub Actions deberá ejecutar las comprobaciones aplicables a los cambios, incluyendo tipos, lint, pruebas y builds relevantes. Las pruebas que dependan de servicios externos deben configurarse con entornos de prueba o quedar identificadas como pendientes, nunca darse por aprobadas sin ejecutarse.
+El pipeline está en [`.github/workflows/ci.yml`](.github/workflows/ci.yml) y se ejecuta en cada Pull Request hacia `main`, en cada push a `main` y manualmente:
+
+| Job | Qué comprueba |
+|---|---|
+| `mobile` | TypeScript, lint, pruebas unitarias y pruebas de componentes. |
+| `api` | Esquema de Prisma, TypeScript, lint, pruebas unitarias, pruebas de integración (con MySQL 8.4 como servicio) y build. |
+| `dependencies` | Coherencia del lockfile (`npm ci`), `expo-doctor` y alineación de versiones con el SDK de Expo. |
+| `security` | `npm audit`: bloquea con severidad `high` en las dependencias de producción de la API y con `critical` en todo el árbol; publica el informe completo en el resumen. La revisión de dependencias de GitHub solo se activa si el repositorio es público. |
+| `build-ios` | Build de iOS con EAS (perfil `preview`, distribución interna) cuando cambian `apps/mobile/**`, los manifiestos de la raíz o el propio workflow. Publica el enlace de instalación en el PR. |
+
+`build-ios` necesita el secreto `EXPO_TOKEN` y un proyecto EAS vinculado (ver [Probar en un iPhone](#probar-en-un-iphone)). Si falta alguno, el job lo indica con un aviso y **no** genera la build; no debe interpretarse como una build correcta.
+
+Las pruebas que dependan de servicios externos deben configurarse con entornos de prueba o quedar identificadas como pendientes, nunca darse por aprobadas sin ejecutarse.
 
 ### Definition of Done
 
@@ -333,15 +368,22 @@ El iPhone y el ordenador deben poder comunicarse con el servidor de desarrollo. 
 
 Expo Go es útil para empezar, pero tiene limitaciones para módulos nativos personalizados.
 
-### Development builds con EAS
+### Builds con EAS
 
-Cuando la aplicación requiera módulos nativos específicos o se necesite un entorno más parecido a producción:
+Los perfiles están definidos en `apps/mobile/eas.json`:
 
-1. Configura EAS en el repositorio.
-2. Genera un development build para iOS.
-3. Configura la firma y registra el dispositivo siguiendo el proceso de Apple/EAS correspondiente.
-4. Instala la compilación en el iPhone.
-5. Utiliza el servidor de desarrollo para probar los cambios compatibles.
+- `preview`: app autónoma con distribución interna (ad hoc). Es la que genera el CI en cada Pull Request.
+- `development`: development build con `expo-dev-client`, para trabajar con módulos nativos contra el servidor de desarrollo.
+- `production`: reservado para la publicación.
+
+Configuración inicial, una sola vez y desde `apps/mobile` (requiere iniciar sesión de forma interactiva):
+
+1. `eas login` y `eas init` — vincula el proyecto y añade `extra.eas.projectId` a `app.json` (hay que versionar ese cambio).
+2. `eas device:create` — registra el UDID del iPhone.
+3. `eas build --platform ios --profile preview` — la primera vez pide la sesión de Apple y genera el certificado y el perfil de aprovisionamiento, que quedan guardados en EAS para las builds no interactivas del CI.
+4. Crea un token de acceso en expo.dev y guárdalo como secreto del repositorio: `gh secret set EXPO_TOKEN`.
+
+A partir de ahí, el job `build-ios` comenta en cada Pull Request el enlace para instalar la build. Cada iPhone nuevo exige repetir el paso 2 y regenerar el perfil de aprovisionamiento.
 
 No todos los cambios necesitan una nueva compilación nativa. Los cambios JavaScript/TypeScript suelen poder probarse con el servidor activo; los cambios en dependencias nativas o configuración nativa normalmente requieren recompilar.
 
