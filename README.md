@@ -2,7 +2,7 @@
 
 Aplicación móvil multiplataforma para iOS y Android que ayuda a gestionar los alimentos disponibles en casa, descubrir recetas personalizadas, planificar comidas y preparar listas de compra.
 
-> **Estado del proyecto:** definición inicial del producto y preparación del entorno de desarrollo. Consulta el repositorio para comprobar qué funcionalidades están realmente implementadas.
+> **Estado del proyecto:** entorno de desarrollo preparado y primera historia (`US-001`, inicio de sesión con Google) implementada y cubierta con pruebas automatizadas, pendiente de validar en un dispositivo. Consulta el repositorio para comprobar qué funcionalidades están realmente implementadas.
 
 ## Índice
 
@@ -200,7 +200,7 @@ cp apps/mobile/.env.example apps/mobile/.env
 # 3. MySQL de desarrollo (bases cocina_dev y cocina_test)
 npm run db:up
 
-# 4. Cliente de Prisma y migraciones (cuando existan)
+# 4. Cliente de Prisma y migraciones
 npm run prisma:generate -w api
 cd services/api && npx prisma migrate dev && cd ../..
 
@@ -210,6 +210,8 @@ npm run start:dev -w api
 # 6. Aplicación Expo
 npm run start -w mobile
 ```
+
+La API no arranca sin `GOOGLE_CLIENT_ID` y `JWT_ACCESS_SECRET` en `services/api/.env`, y la app necesita `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`. Cómo obtener esos valores está en [`docs/google-sign-in-setup.md`](docs/google-sign-in-setup.md).
 
 ### Comprobaciones de calidad
 
@@ -224,6 +226,8 @@ npm run build -w api
 ```
 
 En la app móvil, las pruebas unitarias viven en archivos `*.test.ts` y las de componentes en `*.test.tsx`.
+
+Las pruebas de integración de la API (`test:e2e`) necesitan MySQL en marcha (`npm run db:up`). Usan la base `cocina_test`, aplican antes las migraciones pendientes y se niegan a ejecutarse contra una base cuyo nombre no termine en `_test`.
 
 ## Configuración y secretos
 
@@ -365,6 +369,8 @@ Para iterar la interfaz mientras la app solo use módulos incluidos en Expo Go:
 
 Los cambios de código se recargan al instante y no se consume cupo de EAS. Limitaciones: Expo Go solo incluye sus propios módulos nativos y solo abre proyectos del SDK que soporta la versión instalada.
 
+**El inicio de sesión con Google no funciona en Expo Go**, porque usa un módulo nativo que no incluye. Como la app exige iniciar sesión, para pasar de la primera pantalla hace falta una development build.
+
 El teléfono y el ordenador deben estar en la misma red (o usar `npx expo start --tunnel`). `localhost` desde el teléfono es el propio teléfono: configura `EXPO_PUBLIC_API_URL` con la IP del ordenador.
 
 ### 2. Development build
@@ -446,6 +452,7 @@ Este roadmap no reemplaza el orden de dependencias de `ProductBacklog.md`. Antes
 
 - [`CLAUDE.md`](CLAUDE.md): contexto, stack, convenciones y flujo de trabajo obligatorio para Claude Code.
 - [`ProductBacklog.md`](ProductBacklog.md): fuente de verdad para épicas, historias de usuario y criterios de aceptación.
+- [`docs/google-sign-in-setup.md`](docs/google-sign-in-setup.md): alta de las credenciales de Google y variables de entorno del inicio de sesión.
 - `docs/architecture/`: documentación de arquitectura, cuando exista.
 - `docs/decisions/`: decisiones técnicas (ADR), cuando exista.
 
