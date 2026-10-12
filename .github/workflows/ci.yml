@@ -129,3 +129,6 @@ jobs:
         uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
+          # braces: no patched release exists; only reached through the
+          # Metro/Expo build toolchain. Remove once upstream ships a fix.
+          allow-ghsas: GHSA-vfj7-8cjw-p6xm
