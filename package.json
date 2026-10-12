@@ -1,0 +1,26 @@
+{
+  "name": "asistente-de-cocina",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*"
+  ],
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "mysql2": "^3.24.5",
+    "deepmerge-ts": "^8.0.2"
+  },
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "db:up": "docker compose up -d --wait mysql",
+    "db:down": "docker compose down"
+  }
+}

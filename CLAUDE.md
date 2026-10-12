@@ -10,6 +10,8 @@ Estas instrucciones son obligatorias salvo que el usuario indique explícitament
 
 Estamos desarrollando una aplicación móvil multiplataforma para iOS y Android que actúa como asistente personal de cocina.
 
+**iOS y Android son objetivos de igual prioridad.** La aplicación se desarrolla desde una única base de código y toda historia de usuario se implementa y valida para ambas plataformas, reutilizando todo el código posible. Una historia que solo funciona en una plataforma no está terminada.
+
 La aplicación permitirá a los usuarios:
 
 - Crear una cuenta e iniciar sesión mediante Google.
@@ -30,6 +32,16 @@ No inventes criterios de aceptación ni amplíes el alcance de una US sin justif
 ## 2. Stack tecnológico acordado
 
 Utiliza las siguientes tecnologías como stack objetivo. No sustituyas una tecnología por otra sin presentar primero una justificación y obtener aprobación del usuario.
+
+### Arquitectura y separación de componentes
+
+El sistema se compone de dos componentes separados e independientes: la aplicación móvil (`apps/mobile`) y el backend (`services/api`).
+
+- La comunicación entre ambos se realiza **exclusivamente a través de la API REST** documentada con OpenAPI. La aplicación no accede a la base de datos ni a ningún servicio interno del backend por otra vía.
+- El backend se desplegará en el servidor personal del propietario del proyecto. Debe poder compilarse, desplegarse y ejecutarse sin depender de la aplicación móvil ni de Expo/EAS.
+- La aplicación no importa código de ejecución del backend ni al revés. Si en el futuro se comparten tipos o contratos, se hará mediante un paquete explícito y justificado, no con importaciones cruzadas.
+- La URL de la API es configuración por entorno en la aplicación (`EXPO_PUBLIC_API_URL`), nunca un valor fijo en el código.
+- Los detalles de despliegue del backend se documentarán a medida que las historias los necesiten. No añadir infraestructura de despliegue por adelantado.
 
 ### Aplicación móvil
 
@@ -279,6 +291,7 @@ No declares la historia completada si quedan criterios de aceptación sin cubrir
 Una US solo se considera terminada cuando se cumplen todas las condiciones aplicables:
 
 - [ ] La implementación satisface todos los criterios de aceptación acordados.
+- [ ] La funcionalidad móvil está implementada para iOS y Android, y se ha indicado qué se validó en cada plataforma (dispositivo físico, simulador/emulador o solo pruebas automatizadas).
 - [ ] Las dependencias funcionales y técnicas están resueltas o documentadas.
 - [ ] Se han añadido pruebas para los caminos principales y los errores relevantes.
 - [ ] Todas las pruebas obligatorias ejecutables pasan.
@@ -306,6 +319,9 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 - Evita lógica de negocio duplicada entre cliente y backend.
 - No hagas peticiones de red directamente desde componentes visuales si el proyecto utiliza una capa de servicios o TanStack Query.
 - Respeta accesibilidad, navegación y comportamiento coherente en iOS y Android.
+- Comparte el código entre iOS y Android por defecto. Usa código específico de plataforma (`Platform.select`, archivos `.ios.tsx`/`.android.tsx`) solo cuando exista una diferencia real entre plataformas; mantenlo aislado y justifícalo en el plan.
+- No añadas dependencias que solo funcionen en una de las dos plataformas sin aprobación del usuario.
+- La aplicación móvil solo obtiene y modifica datos del backend a través de la API REST.
 
 ### API y datos
 
@@ -339,40 +355,97 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 
 ---
 
-## 6. Configuración inicial del repositorio
+## 6. Estructura y estado actual del proyecto
 
-Antes de la primera implementación, inspecciona el estado real del repositorio y determina qué existe y qué falta. No presupongas que la estructura ya está creada.
+> **Estado a 12-10-2026.** Esta sección describe lo que existe realmente. Actualízala al cerrar cada historia o cambio de infraestructura, y comprueba el repositorio antes de fiarte de ella: si el código y esta sección discrepan, manda el código.
 
-Una estructura objetivo posible —orientativa, no obligatoria si el repositorio ya tiene una organización razonable— es:
+### Estructura
 
 ```text
 .
 ├── CLAUDE.md
 ├── ProductBacklog.md
+├── README.md
+├── package.json              # raíz: npm workspaces, overrides y scripts agregados
+├── package-lock.json         # único lockfile
+├── docker-compose.yml        # MySQL 8.4 local (cocina_dev y cocina_test)
 ├── apps/
-│   └── mobile/             # React Native + Expo
+│   └── mobile/               # workspace `mobile`: Expo + Expo Router
 ├── services/
-│   └── api/                # NestJS
-├── packages/
-│   └── shared/             # Tipos/contratos compartidos si aportan valor
+│   └── api/                  # workspace `api`: NestJS + Prisma
 ├── docs/
-│   ├── architecture/
-│   └── decisions/
-├── .github/
-│   └── workflows/
-├── .env.example
-└── README.md
+│   └── decisions/            # ADR
+└── .github/
+    └── workflows/            # ci.yml y build.yml
 ```
 
-No introduzcas un monorepo ni un paquete compartido si el tamaño inicial del proyecto no lo justifica. Si eliges una estructura diferente, explica la razón en el plan.
+No existe `packages/shared`. No lo crees hasta que haya un contrato compartido real entre la app y la API, y con aprobación.
 
-Antes de crear archivos de configuración:
+### Qué está construido
 
-1. Inspecciona los archivos existentes.
-2. Identifica el gestor de paquetes y las versiones.
-3. Comprueba si hay código o convenciones que deban conservarse.
-4. Evita reemplazar archivos completos cuando sea suficiente una modificación localizada.
-5. Actualiza el `README.md` con instrucciones reproducibles de instalación, ejecución y pruebas cuando se establezca el proyecto.
+- **Gestor de paquetes:** npm workspaces, Node.js 24 (`.nvmrc`). Los comandos se lanzan desde la raíz con `-w mobile` o `-w api`.
+- **App móvil:** Expo SDK 57 (React Native 0.86, React 19.2, TypeScript 6), Expo Router, TanStack Query, React Hook Form, Zod, `expo-dev-client`, Jest y React Native Testing Library. Contiene todavía las pantallas de ejemplo de la plantilla de Expo.
+- **API:** NestJS 12 (proyecto ESM), OpenAPI en `/docs`, `ValidationPipe` global, `GET /health` y Prisma 7.10 con proveedor MySQL. **El esquema de Prisma no tiene modelos ni migraciones.**
+- **Ninguna historia de usuario está implementada.** La siguiente según el backlog es US-001.
+
+### Comandos
+
+```bash
+npm ci                              # dependencias de todos los workspaces
+npm run db:up                       # MySQL local con Docker
+npm run typecheck                   # TypeScript en mobile y api
+npm run lint                        # expo lint (mobile) y oxlint (api)
+npm test                            # Jest (mobile) y Vitest (api)
+npm run test:unit -w mobile         # archivos *.test.ts
+npm run test:components -w mobile   # archivos *.test.tsx
+npm run test:e2e -w api
+npm run build -w api
+npm run start:dev -w api            # API en http://localhost:3000
+npm run start:go -w mobile          # app en Expo Go
+npm run start -w mobile             # app en la development build
+```
+
+Las dependencias de la app móvil se añaden con `npx expo install <paquete>` desde `apps/mobile`.
+
+### Integración continua y builds
+
+- **`.github/workflows/ci.yml`:** se ejecuta en cada Pull Request hacia `main` y en cada push a `main`. Jobs `mobile`, `api`, `dependencies` y `security`. **No genera builds de la app.**
+- **`.github/workflows/build.yml`:** manual y solo desde `main`. Genera con EAS la build `preview` de iOS, Android o ambas (`gh workflow run build.yml --ref main -f platform=ios|android|all`).
+- **No lances builds de EAS por iniciativa propia.** El plan gratuito permite 15 builds de iOS y 15 de Android al mes, sin excedente; el usuario decide cuándo gastar una.
+- Para ver los cambios de una rama en el teléfono no hace falta build: se arranca el servidor de desarrollo y se abre en Expo Go o en la development build.
+
+### EAS y distribución
+
+- Proyecto de EAS vinculado: organización `hyd-co`, `projectId` en `apps/mobile/app.json`.
+- Identificador de la app en ambas plataformas: `com.hyd.asistentedecocina`. No lo cambies: a él quedan atadas las credenciales de firma y, más adelante, el inicio de sesión con Google.
+- Perfiles en `apps/mobile/eas.json`: `development` (cliente de desarrollo), `preview` (app autónoma de distribución interna; APK en Android) y `production` (reservado).
+- Secreto `EXPO_TOKEN` configurado en el repositorio de GitHub.
+
+### Decisiones ya tomadas
+
+Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md`:
+
+- La API usa **Vitest y oxlint**, los valores por defecto del generador de NestJS 12. Jest y React Native Testing Library se usan en la app móvil.
+- **Prisma fijado en 7.10.0**: el dist-tag `latest` de npm apuntaba a una versión candidata 8.0.0-rc.
+- `overrides` en el `package.json` raíz: `react` y `react-dom` (una sola copia, la que exige el SDK de Expo) y `mysql2` y `deepmerge-ts` (versiones corregidas que la CLI de Prisma fija por debajo). Al actualizar el SDK de Expo hay que revisar los de React y la versión de `test-renderer`.
+- **Auditoría de seguridad por niveles:** el CI bloquea con severidad `high` en las dependencias de producción de la API y con `critical` en todo el árbol, porque las herramientas de compilación de Expo/Metro arrastran avisos `high` sin corrección publicada.
+
+### Pendiente
+
+- **iOS:** el propietario aún no tiene suscripción a Apple Developer Program. Sin ella no se pueden generar builds de iOS. Después habrá que registrar el iPhone (`eas device:create`) y crear las credenciales con una primera build interactiva.
+- **Android:** no se ha generado ninguna build. Puede requerir una primera `eas build --platform android --profile preview` interactiva para crear la clave de firma.
+- **`build.yml` no se ha ejecutado nunca.** El enlace de instalación que publica se construye a partir de la salida JSON de `eas build`, sin verificar.
+- **No hay ninguna validación en dispositivo**, ni en iOS ni en Android, ni con Expo Go.
+- Protección de la rama `main` exigiendo los checks del CI: sin configurar.
+- Despliegue del backend en el servidor del propietario: sin definir.
+
+### Al modificar la configuración
+
+1. Inspecciona los archivos existentes antes de crear otros nuevos.
+2. Respeta el gestor de paquetes, el lockfile y las versiones fijadas.
+3. Evita reemplazar archivos completos cuando baste una modificación localizada.
+4. Mantén el `README.md` y esta sección al día con comandos verificados.
+
 
 ---
 

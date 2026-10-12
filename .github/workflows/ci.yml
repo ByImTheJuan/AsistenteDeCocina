@@ -1,0 +1,135 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  mobile:
+    name: Mobile · types, lint, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npm run typecheck -w mobile
+      - name: Lint
+        run: npm run lint -w mobile
+      - name: Unit tests
+        run: npm run test:unit -w mobile -- --ci --coverage
+      - name: Component tests
+        run: npm run test:components -w mobile -- --ci --coverage
+
+  api:
+    name: API · types, lint, tests, build
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root_ci_password
+          MYSQL_DATABASE: cocina_test
+          MYSQL_USER: cocina
+          MYSQL_PASSWORD: cocina_ci_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot_ci_password --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      # Throwaway credentials for the job-scoped service container above.
+      DATABASE_URL: mysql://cocina:cocina_ci_password@127.0.0.1:3306/cocina_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Validate Prisma schema
+        run: npm run prisma:validate -w api
+      - name: Generate Prisma client
+        run: npm run prisma:generate -w api
+      - name: Apply migrations
+        if: hashFiles('services/api/prisma/migrations/**') != ''
+        run: npx prisma migrate deploy
+        working-directory: services/api
+      - name: TypeScript
+        run: npm run typecheck -w api
+      - name: Lint
+        run: npm run lint -w api
+      - name: Unit tests
+        run: npm run test -w api
+      - name: Integration tests
+        run: npm run test:e2e -w api
+      - name: Build
+        run: npm run build -w api
+
+  dependencies:
+    name: Dependency validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      # Fails when package.json and package-lock.json are out of sync.
+      - run: npm ci
+      - name: Expo Doctor
+        run: npx expo-doctor@latest
+        working-directory: apps/mobile
+      - name: Expo SDK version alignment
+        run: npx expo install --check
+        working-directory: apps/mobile
+
+  security:
+    name: Security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: API production dependencies (high and above)
+        run: npm audit -w api --omit=dev --audit-level=high
+      # The Expo/Metro build toolchain ships unfixed high advisories upstream
+      # (not bundled into the app), so the whole tree only blocks on critical.
+      - name: All production dependencies (critical)
+        run: npm audit --omit=dev --audit-level=critical
+      - name: Full audit report
+        if: always()
+        run: |
+          {
+            echo '### npm audit (production dependencies)'
+            echo '```'
+            npm audit --omit=dev || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      # Needs the dependency graph: public repositories or GitHub Advanced Security.
+      - name: Dependency review
+        if: github.event_name == 'pull_request' && !github.event.repository.private
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+          # braces and node-forge: no patched release exists; only reached
+          # through the Metro/Expo build toolchain, not bundled in the app.
+          # Remove each entry once upstream ships a fix.
+          allow-ghsas: GHSA-vfj7-8cjw-p6xm, GHSA-86w9-cpqp-85rv
