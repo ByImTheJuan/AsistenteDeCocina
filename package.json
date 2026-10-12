@@ -11,7 +11,9 @@
   },
   "overrides": {
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "mysql2": "^3.24.5",
+    "deepmerge-ts": "^8.0.2"
   },
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
