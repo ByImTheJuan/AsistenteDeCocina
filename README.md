@@ -333,7 +333,7 @@ El pipeline está en [`.github/workflows/ci.yml`](.github/workflows/ci.yml) y se
 | `mobile` | TypeScript, lint, pruebas unitarias y pruebas de componentes. |
 | `api` | Esquema de Prisma, TypeScript, lint, pruebas unitarias, pruebas de integración (con MySQL 8.4 como servicio) y build. |
 | `dependencies` | Coherencia del lockfile (`npm ci`), `expo-doctor` y alineación de versiones con el SDK de Expo. |
-| `security` | `npm audit`: bloquea con severidad `high` en las dependencias de producción de la API y con `critical` en todo el árbol; publica el informe completo en el resumen. La revisión de dependencias de GitHub solo se activa si el repositorio es público. |
+| `security` | `npm audit`: bloquea con severidad `high` en las dependencias de producción de la API y con `critical` en todo el árbol; publica el informe completo en el resumen. En repositorios públicos ejecuta además la revisión de dependencias de GitHub en los PR, que exige tener activado *Dependency graph* en *Settings → Advanced Security*. |
 
 Las builds instalables se generan aparte, de forma manual y solo desde `main`, con [`.github/workflows/build.yml`](.github/workflows/build.yml) (ver [Probar en un dispositivo](#probar-en-un-dispositivo)).
 
