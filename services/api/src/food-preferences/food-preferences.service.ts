@@ -1,13 +1,15 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { AuthenticatedUser } from '../auth/jwt-auth.guard.js';
-import type { Diet, Ingredient } from '../generated/prisma/client.js';
+import type { Diet } from '../generated/prisma/client.js';
+import { withAllergens } from '../ingredients/ingredient-with-allergens.js';
+import type { IngredientWithAllergens } from '../ingredients/ingredient-with-allergens.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { foodPreferencesError } from './food-preferences.errors.js';
 
 export type FoodPreferences = {
   diet: Diet | null;
-  liked: Ingredient[];
-  avoided: Ingredient[];
+  liked: IngredientWithAllergens[];
+  avoided: IngredientWithAllergens[];
 };
 
 export type FoodPreferencesInput = {
@@ -27,7 +29,7 @@ export class FoodPreferencesService {
       select: {
         diet: true,
         ingredientPreferences: {
-          select: { kind: true, ingredient: true },
+          select: { kind: true, ingredient: { include: withAllergens } },
           orderBy: { ingredient: { name: 'asc' } },
         },
       },
