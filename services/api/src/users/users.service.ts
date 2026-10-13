@@ -62,7 +62,8 @@ export class UsersService {
 
   // Finds the account for a verified Google profile, creating it on the first
   // sign-in. There is one account per email, so a profile whose email already
-  // belongs to a password account takes that account over.
+  // belongs to a password account is linked to it: from then on the account
+  // can sign in with either method.
   async upsertFromGoogle(profile: GoogleProfile): Promise<User> {
     try {
       return await this.resolveGoogleAccount(profile);
@@ -78,19 +79,23 @@ export class UsersService {
 
   private async resolveGoogleAccount(profile: GoogleProfile): Promise<User> {
     const email = normalizeEmail(profile.email);
-    const details = { name: profile.name, avatarUrl: profile.avatarUrl };
 
     const known = await this.prisma.user.findUnique({
       where: { googleSub: profile.sub },
     });
     if (known) {
-      return this.refreshGoogleProfile(known, email, details);
+      return this.refreshGoogleProfile(known, email, profile);
     }
 
     const sameEmail = await this.prisma.user.findUnique({ where: { email } });
     if (!sameEmail) {
       return this.prisma.user.create({
-        data: { googleSub: profile.sub, email, ...details },
+        data: {
+          googleSub: profile.sub,
+          email,
+          name: profile.name,
+          avatarUrl: profile.avatarUrl,
+        },
       });
     }
     if (sameEmail.googleSub) {
@@ -103,8 +108,9 @@ export class UsersService {
   private async refreshGoogleProfile(
     user: User,
     email: string,
-    details: { name: string | null; avatarUrl: string | null },
+    profile: GoogleProfile,
   ): Promise<User> {
+    const details = this.detailsFromGoogle(user, profile);
     try {
       return await this.prisma.user.update({
         where: { id: user.id },
@@ -119,27 +125,31 @@ export class UsersService {
     }
   }
 
-  // Emails of password accounts are not verified, so whoever registered this
-  // address may not own it. Google has verified that this person does: the
-  // password and every open session stop working.
+  // Google becomes a second way into the account: the password and the open
+  // sessions keep working. Emails of password accounts are not verified, so
+  // whoever registered this address keeps access too.
   private linkPasswordAccountToGoogle(
     user: User,
     profile: GoogleProfile,
   ): Promise<User> {
-    return this.prisma.$transaction(async (tx) => {
-      await tx.refreshToken.updateMany({
-        where: { userId: user.id, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
-      return tx.user.update({
-        where: { id: user.id },
-        data: {
-          googleSub: profile.sub,
-          passwordHash: null,
-          name: profile.name ?? user.name,
-          avatarUrl: profile.avatarUrl,
-        },
-      });
+    return this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        googleSub: profile.sub,
+        ...this.detailsFromGoogle(user, profile),
+      },
     });
+  }
+
+  // The name may have been chosen by the user when registering, so Google
+  // only fills it in when it is missing. The picture only comes from Google.
+  private detailsFromGoogle(
+    user: User,
+    profile: GoogleProfile,
+  ): { name: string | null; avatarUrl: string | null } {
+    return {
+      name: user.name ?? profile.name,
+      avatarUrl: profile.avatarUrl,
+    };
   }
 }
