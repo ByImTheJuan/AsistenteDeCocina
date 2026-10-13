@@ -1,5 +1,5 @@
 import * as authApi from './auth-api';
-import type { ApiSession, User } from './auth-api';
+import type { ApiSession, Registration, User } from './auth-api';
 import * as google from './google-sign-in';
 import type { GoogleSignInResult } from './google-sign-in';
 import * as tokenStorage from './token-storage';
@@ -22,7 +22,20 @@ export type SignInFailure =
   | 'rejected'
   | 'unknown';
 
-export type SignInResult = { ok: true } | { ok: false; reason: SignInFailure };
+export type PasswordSignInFailure = 'invalid-credentials' | 'rate-limited' | 'network' | 'unknown';
+
+export type RegisterFailure =
+  | 'email-taken'
+  | 'invalid-data'
+  | 'rate-limited'
+  | 'network'
+  | 'unknown';
+
+type Result<Failure> = { ok: true } | { ok: false; reason: Failure };
+
+export type SignInResult = Result<SignInFailure>;
+export type PasswordSignInResult = Result<PasswordSignInFailure>;
+export type RegisterResult = Result<RegisterFailure>;
 
 export class SessionExpiredError extends Error {
   constructor() {
@@ -34,6 +47,8 @@ export class SessionExpiredError extends Error {
 export type SessionDependencies = {
   api: {
     signInWithGoogle(idToken: string): Promise<ApiSession>;
+    signInWithPassword(email: string, password: string): Promise<ApiSession>;
+    register(registration: Registration): Promise<ApiSession>;
     refreshSession(refreshToken: string): Promise<ApiSession>;
     signOut(refreshToken: string): Promise<void>;
     request(path: string, options?: ApiRequestOptions): Promise<unknown>;
@@ -56,6 +71,16 @@ const defaultDependencies: SessionDependencies = {
   storage: tokenStorage,
   google,
 };
+
+function commonFailure(error: unknown): 'rate-limited' | 'network' | 'unknown' {
+  if (error instanceof NetworkError) {
+    return 'network';
+  }
+  if (error instanceof ApiError && error.status === 429) {
+    return 'rate-limited';
+  }
+  return 'unknown';
+}
 
 export function createSessionManager({
   api,
@@ -160,6 +185,33 @@ export function createSessionManager({
           return { ok: false, reason: 'rejected' };
         }
         return { ok: false, reason: 'unknown' };
+      }
+    },
+
+    async signInWithPassword(email: string, password: string): Promise<PasswordSignInResult> {
+      try {
+        await startSession(await api.signInWithPassword(email, password));
+        return { ok: true };
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          return { ok: false, reason: 'invalid-credentials' };
+        }
+        return { ok: false, reason: commonFailure(error) };
+      }
+    },
+
+    async register(registration: Registration): Promise<RegisterResult> {
+      try {
+        await startSession(await api.register(registration));
+        return { ok: true };
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 409) {
+          return { ok: false, reason: 'email-taken' };
+        }
+        if (error instanceof ApiError && error.status === 400) {
+          return { ok: false, reason: 'invalid-data' };
+        }
+        return { ok: false, reason: commonFailure(error) };
       }
     },
 

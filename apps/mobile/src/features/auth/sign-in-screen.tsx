@@ -1,16 +1,24 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link } from 'expo-router';
 import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { ActivityIndicator, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AuthScreenLayout } from './auth-screen-layout';
+import { signInSchema, type SignInForm } from './credentials-schema';
 import { PrimaryButton } from './primary-button';
-import type { SignInFailure } from './session-manager';
+import type { PasswordSignInFailure, SignInFailure } from './session-manager';
 import { useSession } from './session-provider';
+import { TextField } from './text-field';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
 
-const failureMessages: Record<SignInFailure, string> = {
+type Failure = SignInFailure | PasswordSignInFailure;
+
+const failureMessages: Record<Failure, string> = {
+  'invalid-credentials': 'El email o la contraseña no son correctos.',
+  'rate-limited': 'Has hecho demasiados intentos. Espera un minuto y vuelve a intentarlo.',
   cancelled: 'Has cancelado el inicio de sesión. Puedes intentarlo de nuevo cuando quieras.',
   unavailable:
     'El inicio de sesión con Google no está incluido en esta versión de la app. Si usas Expo Go o una development build antigua, instala una development build actualizada.',
@@ -27,23 +35,34 @@ const failureMessages: Record<SignInFailure, string> = {
  * reach the API while doing so.
  */
 export function SignInScreen() {
-  const { session, signIn, retry } = useSession();
-  const [signingIn, setSigningIn] = useState(false);
-  const [failure, setFailure] = useState<SignInFailure | null>(null);
+  const { session, signIn, signInWithPassword, retry } = useSession();
+  const [pending, setPending] = useState<'password' | 'google' | null>(null);
+  const [failure, setFailure] = useState<Failure | null>(null);
+  const { control, handleSubmit } = useForm<SignInForm>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: { email: '', password: '' },
+  });
 
-  async function handleSignIn() {
+  async function run(
+    method: 'password' | 'google',
+    attempt: () => Promise<{ ok: true } | { ok: false; reason: Failure }>,
+  ) {
     setFailure(null);
-    setSigningIn(true);
-    const result = await signIn();
-    setSigningIn(false);
+    setPending(method);
+    const result = await attempt();
+    setPending(null);
     if (!result.ok) {
       setFailure(result.reason);
     }
   }
 
+  const submitPassword = handleSubmit(({ email, password }) =>
+    run('password', () => signInWithPassword(email, password)),
+  );
+
   if (session.status === 'loading') {
     return (
-      <ThemedView style={styles.container}>
+      <ThemedView style={styles.centered}>
         <ActivityIndicator accessibilityLabel="Recuperando tu sesión" />
       </ThemedView>
     );
@@ -51,60 +70,105 @@ export function SignInScreen() {
 
   if (session.status === 'unavailable') {
     return (
-      <ThemedView style={styles.container}>
-        <SafeAreaView style={styles.content}>
-          <ThemedText type="subtitle" style={styles.centered}>
-            Sin conexión
-          </ThemedText>
-          <ThemedText themeColor="textSecondary" style={styles.centered}>
-            No hemos podido conectar con el servidor para recuperar tu sesión.
-          </ThemedText>
-          <PrimaryButton label="Reintentar" onPress={() => void retry()} />
-        </SafeAreaView>
-      </ThemedView>
+      <AuthScreenLayout>
+        <ThemedText type="subtitle" style={styles.text}>
+          Sin conexión
+        </ThemedText>
+        <ThemedText themeColor="textSecondary" style={styles.text}>
+          No hemos podido conectar con el servidor para recuperar tu sesión.
+        </ThemedText>
+        <PrimaryButton label="Reintentar" onPress={() => void retry()} />
+      </AuthScreenLayout>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.content}>
-        <ThemedText type="subtitle" style={styles.centered}>
-          Asistente de Cocina
-        </ThemedText>
-        <ThemedText themeColor="textSecondary" style={styles.centered}>
-          Inicia sesión para guardar tus preferencias, tu despensa y tus recetas.
-        </ThemedText>
-        <PrimaryButton
-          label="Continuar con Google"
-          loading={signingIn}
-          onPress={() => void handleSignIn()}
-        />
-        {failure && (
-          <ThemedText type="small" accessibilityRole="alert" style={styles.centered}>
-            {failureMessages[failure]}
-          </ThemedText>
+    <AuthScreenLayout>
+      <ThemedText type="subtitle" style={styles.text}>
+        Asistente de Cocina
+      </ThemedText>
+      <ThemedText themeColor="textSecondary" style={styles.text}>
+        Inicia sesión para guardar tus preferencias, tu despensa y tus recetas.
+      </ThemedText>
+
+      <Controller
+        control={control}
+        name="email"
+        render={({ field, fieldState }) => (
+          <TextField
+            label="Email"
+            value={field.value}
+            onChangeText={field.onChange}
+            onBlur={field.onBlur}
+            error={fieldState.error?.message}
+            autoCapitalize="none"
+            autoComplete="email"
+            autoCorrect={false}
+            inputMode="email"
+            textContentType="emailAddress"
+            returnKeyType="next"
+          />
         )}
-      </SafeAreaView>
-    </ThemedView>
+      />
+      <Controller
+        control={control}
+        name="password"
+        render={({ field, fieldState }) => (
+          <TextField
+            label="Contraseña"
+            value={field.value}
+            onChangeText={field.onChange}
+            onBlur={field.onBlur}
+            error={fieldState.error?.message}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="current-password"
+            textContentType="password"
+            returnKeyType="done"
+            onSubmitEditing={() => void submitPassword()}
+          />
+        )}
+      />
+      <PrimaryButton
+        label="Iniciar sesión"
+        loading={pending === 'password'}
+        disabled={pending !== null}
+        onPress={() => void submitPassword()}
+      />
+
+      {failure && (
+        <ThemedText type="small" themeColor="danger" accessibilityRole="alert" style={styles.text}>
+          {failureMessages[failure]}
+        </ThemedText>
+      )}
+
+      <ThemedText type="small" themeColor="textSecondary">
+        o
+      </ThemedText>
+      <PrimaryButton
+        label="Continuar con Google"
+        variant="secondary"
+        loading={pending === 'google'}
+        disabled={pending !== null}
+        onPress={() => void run('google', signIn)}
+      />
+
+      <Link href="/sign-up" accessibilityRole="link">
+        <ThemedText type="small" themeColor="textSecondary">
+          ¿No tienes cuenta? <ThemedText type="smallBold">Crear cuenta</ThemedText>
+        </ThemedText>
+      </Link>
+    </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    maxWidth: MaxContentWidth,
-  },
   centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
     textAlign: 'center',
   },
 });

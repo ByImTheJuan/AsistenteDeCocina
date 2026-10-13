@@ -8,27 +8,38 @@ type PrimaryButtonProps = {
   label: string;
   onPress(): void;
   loading?: boolean;
+  disabled?: boolean;
+  /** `secondary` for an alternative that should not compete with the main action. */
+  variant?: 'primary' | 'secondary';
 };
 
-export function PrimaryButton({ label, onPress, loading = false }: PrimaryButtonProps) {
+export function PrimaryButton({
+  label,
+  onPress,
+  loading = false,
+  disabled = false,
+  variant = 'primary',
+}: PrimaryButtonProps) {
   const theme = useTheme();
+  const inactive = loading || disabled;
+  const primary = variant === 'primary';
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: loading, busy: loading }}
-      disabled={loading}
+      accessibilityState={{ disabled: inactive, busy: loading }}
+      disabled={inactive}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: theme.text },
-        (pressed || loading) && styles.dimmed,
+        { backgroundColor: primary ? theme.text : theme.backgroundElement },
+        (pressed || inactive) && styles.dimmed,
       ]}>
       {loading ? (
-        <ActivityIndicator color={theme.background} />
+        <ActivityIndicator color={primary ? theme.background : theme.text} />
       ) : (
-        <ThemedText themeColor="background">{label}</ThemedText>
+        <ThemedText themeColor={primary ? 'background' : 'text'}>{label}</ThemedText>
       )}
     </Pressable>
   );

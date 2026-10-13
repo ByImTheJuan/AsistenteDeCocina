@@ -23,6 +23,18 @@ export async function signInWithGoogle(idToken: string): Promise<ApiSession> {
   return sessionSchema.parse(body);
 }
 
+export type Registration = { name: string; email: string; password: string };
+
+export async function register(registration: Registration): Promise<ApiSession> {
+  const body = await apiRequest('/auth/register', { method: 'POST', body: registration });
+  return sessionSchema.parse(body);
+}
+
+export async function signInWithPassword(email: string, password: string): Promise<ApiSession> {
+  const body = await apiRequest('/auth/login', { method: 'POST', body: { email, password } });
+  return sessionSchema.parse(body);
+}
+
 export async function refreshSession(refreshToken: string): Promise<ApiSession> {
   const body = await apiRequest('/auth/refresh', { method: 'POST', body: { refreshToken } });
   return sessionSchema.parse(body);

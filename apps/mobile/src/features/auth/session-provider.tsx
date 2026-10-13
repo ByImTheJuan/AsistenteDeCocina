@@ -7,11 +7,21 @@ import {
 } from 'react';
 
 import { sessionManager as defaultManager } from './session-manager';
-import type { SessionManager, SessionState, SignInResult } from './session-manager';
+import type { Registration } from './auth-api';
+import type {
+  PasswordSignInResult,
+  RegisterResult,
+  SessionManager,
+  SessionState,
+  SignInResult,
+} from './session-manager';
 
 type SessionContextValue = {
   session: SessionState;
+  /** Signs in with Google. */
   signIn(): Promise<SignInResult>;
+  signInWithPassword(email: string, password: string): Promise<PasswordSignInResult>;
+  register(registration: Registration): Promise<RegisterResult>;
   signOut(): Promise<void>;
   /** Tries again to recover the saved session after a connection failure. */
   retry(): Promise<void>;
@@ -36,6 +46,8 @@ export function SessionProvider({ manager = defaultManager, children }: SessionP
       value={{
         session,
         signIn: manager.signIn,
+        signInWithPassword: manager.signInWithPassword,
+        register: manager.register,
         signOut: manager.signOut,
         retry: manager.restore,
       }}>
