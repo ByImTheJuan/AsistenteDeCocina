@@ -16,13 +16,21 @@ const luis = {
   password: 'another long password',
 };
 
-const tomate = { id: 'ing_tomate', name: 'Tomate', category: 'VEGETABLE' };
-const ajo = { id: 'ing_ajo', name: 'Ajo', category: 'VEGETABLE' };
-const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT' };
+const plain = { allergens: [], allergensUncertain: false };
+const tomate = {
+  id: 'ing_tomate',
+  name: 'Tomate',
+  category: 'VEGETABLE',
+  allergens: ['HISTAMINE'],
+  allergensUncertain: false,
+};
+const ajo = { id: 'ing_ajo', name: 'Ajo', category: 'VEGETABLE', ...plain };
+const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT', ...plain };
 const cilantro = {
   id: 'ing_cilantro',
   name: 'Cilantro',
   category: 'HERB_SPICE',
+  ...plain,
 };
 
 const nothing = {
