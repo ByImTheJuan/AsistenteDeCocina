@@ -76,6 +76,42 @@ describe('apiRequest', () => {
     await expect(apiRequest('/auth/me')).rejects.toBeInstanceOf(ApiError);
   });
 
+  it('reads the error code sent by the API', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(409, { statusCode: 409, code: 'last_sign_in_method', message: 'nope' }),
+    );
+
+    await expect(apiRequest('/account/password', { method: 'DELETE' })).rejects.toMatchObject({
+      status: 409,
+      code: 'last_sign_in_method',
+    });
+  });
+
+  it.each([
+    ['has no code', { message: 'nope' }],
+    ['has a code that is not a string', { code: 42 }],
+    ['is not an object', 'nope'],
+  ])('has no error code when the body %s', async (_case, body) => {
+    fetchMock.mockResolvedValue(jsonResponse(400, body));
+
+    const error = await apiRequest('/auth/login').catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({ status: 400 });
+    expect(error).not.toHaveProperty('code', expect.anything());
+  });
+
+  it('still reports the status when the error has no JSON body', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 502,
+      json: async () => {
+        throw new SyntaxError('Unexpected token <');
+      },
+    } as unknown as Response);
+
+    await expect(apiRequest('/health')).rejects.toMatchObject({ name: 'ApiError', status: 502 });
+  });
+
   it('throws a NetworkError when the API cannot be reached', async () => {
     fetchMock.mockRejectedValue(new TypeError('Network request failed'));
 
