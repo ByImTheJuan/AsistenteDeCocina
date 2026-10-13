@@ -1,6 +1,7 @@
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { screen, userEvent } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
+import { TurboModuleRegistry, type TurboModule } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 import { AccountSummary } from './account-summary';
@@ -38,6 +39,9 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   isSuccessResponse: (response: { type: string }) => response.type === 'success',
 }));
 
+// Captured once: spying again on an existing spy would return the spy itself.
+const getModule = TurboModuleRegistry.get;
+
 const session = {
   accessToken: 'access-1',
   refreshToken: 'refresh-1',
@@ -73,6 +77,12 @@ describe('protected routes', () => {
   const user = userEvent.setup();
 
   beforeEach(async () => {
+    // The binary includes the native Google module.
+    jest
+      .spyOn(TurboModuleRegistry, 'get')
+      .mockImplementation((name) =>
+        name === 'RNGoogleSignin' ? ({} as TurboModule) : getModule(name),
+      );
     fetchMock.mockReset();
     globalThis.fetch = fetchMock as unknown as typeof fetch;
     await SecureStore.deleteItemAsync('auth.refreshToken');

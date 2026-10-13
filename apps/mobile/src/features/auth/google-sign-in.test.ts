@@ -1,4 +1,5 @@
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { TurboModuleRegistry, type TurboModule } from 'react-native';
 
 import { requestGoogleIdToken, signOutFromGoogle } from './google-sign-in';
 
@@ -19,6 +20,9 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   isSuccessResponse: (response: { type: string }) => response.type === 'success',
 }));
 
+// Captured once: spying again on an existing spy would return the spy itself.
+const getModule = TurboModuleRegistry.get;
+
 const mocked = jest.mocked(GoogleSignin);
 
 function successResponse(idToken: string | null) {
@@ -28,6 +32,15 @@ function successResponse(idToken: string | null) {
 function nativeError(code: string) {
   return Object.assign(new Error(code), { code });
 }
+
+// The binary includes the native module.
+beforeEach(() => {
+  jest
+    .spyOn(TurboModuleRegistry, 'get')
+    .mockImplementation((name) =>
+      name === 'RNGoogleSignin' ? ({} as TurboModule) : getModule(name),
+    );
+});
 
 describe('requestGoogleIdToken', () => {
   beforeEach(() => {

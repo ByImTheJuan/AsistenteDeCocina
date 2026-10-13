@@ -139,7 +139,7 @@ describe('SignInScreen', () => {
 
     await user.press(await screen.findByRole('button', { name: 'Continuar con Google' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/Expo Go.*development build/);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Expo Go.*development build actualizada/);
     expect(fake.api.signInWithGoogle).not.toHaveBeenCalled();
   });
 

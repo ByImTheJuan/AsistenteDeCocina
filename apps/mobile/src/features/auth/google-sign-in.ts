@@ -1,3 +1,5 @@
+import { TurboModuleRegistry } from 'react-native';
+
 import { getEnv } from '@/config/app-env';
 
 export type GoogleSignInResult =
@@ -9,19 +11,18 @@ type GoogleSignInModule = typeof import('@react-native-google-signin/google-sign
 
 let configured = false;
 
-// The library looks up its native module as soon as it is imported and throws
-// when the binary does not include it, as in Expo Go. Loading it on demand
-// keeps the rest of the app working there; `null` means it is not available.
+// The library looks up its native module as soon as it is imported and fails
+// when the binary does not include it: Expo Go, or a development build made
+// before the dependency was added. It is therefore loaded on demand, and only
+// once the native module is known to exist; `null` means it is not available.
 function loadGoogleSignIn(): GoogleSignInModule | null {
-  let library: GoogleSignInModule;
-  try {
-    // A static import would run at startup, and `import()` is not transformed
-    // the same way by Metro and Jest.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    library = require('@react-native-google-signin/google-signin');
-  } catch {
+  // Metro reports an error thrown while a module loads as fatal and makes
+  // `require` return undefined, so a try/catch around it is not enough.
+  if (!TurboModuleRegistry.get('RNGoogleSignin')) {
     return null;
   }
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const library: GoogleSignInModule = require('@react-native-google-signin/google-signin');
   if (!configured) {
     const env = getEnv();
     // The web client ID makes Google issue an ID token whose audience is the

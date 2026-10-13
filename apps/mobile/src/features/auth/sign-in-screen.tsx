@@ -13,7 +13,7 @@ import { MaxContentWidth, Spacing } from '@/constants/theme';
 const failureMessages: Record<SignInFailure, string> = {
   cancelled: 'Has cancelado el inicio de sesión. Puedes intentarlo de nuevo cuando quieras.',
   unavailable:
-    'El inicio de sesión con Google no está incluido en esta versión de la app. Si la has abierto con Expo Go, instala la development build.',
+    'El inicio de sesión con Google no está incluido en esta versión de la app. Si usas Expo Go o una development build antigua, instala una development build actualizada.',
   'play-services':
     'Google Play Services no está disponible o necesita actualizarse en este dispositivo.',
   network: 'No hemos podido conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.',
