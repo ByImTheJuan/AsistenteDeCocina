@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import type { User } from '../generated/prisma/client.js';
 
 export class GoogleSignInRequest {
@@ -8,6 +15,47 @@ export class GoogleSignInRequest {
   @IsNotEmpty()
   @MaxLength(4096)
   idToken: string;
+}
+
+const trim = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim() : value;
+const trimAndLowerCase = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim().toLowerCase() : value;
+
+export class RegisterRequest {
+  @ApiProperty({ example: 'Ana', maxLength: 100 })
+  @Transform(trim)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  name: string;
+
+  @ApiProperty({ example: 'ana@example.com', maxLength: 320 })
+  @Transform(trimAndLowerCase)
+  @IsEmail()
+  @MaxLength(320)
+  email: string;
+
+  // Length is the only rule: composition rules make passwords worse.
+  @ApiProperty({ minLength: 8, maxLength: 128 })
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  password: string;
+}
+
+export class PasswordSignInRequest {
+  @ApiProperty({ example: 'ana@example.com' })
+  @Transform(trimAndLowerCase)
+  @IsEmail()
+  @MaxLength(320)
+  email: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
+  password: string;
 }
 
 export class RefreshTokenRequest {

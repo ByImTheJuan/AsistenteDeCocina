@@ -7,6 +7,13 @@ import type { User } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { GoogleTokenVerifier } from './google-token-verifier.js';
+import { PasswordHasher } from './password-hasher.js';
+
+export type Registration = {
+  name: string;
+  email: string;
+  password: string;
+};
 
 export type Session = {
   accessToken: string;
@@ -23,12 +30,14 @@ function hashToken(token: string): string {
 @Injectable()
 export class AuthService {
   private readonly refreshTokenTtlMs: number;
+  private dummyHash: Promise<string> | undefined;
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(UsersService) private readonly users: UsersService,
     @Inject(GoogleTokenVerifier)
     private readonly googleTokenVerifier: GoogleTokenVerifier,
+    @Inject(PasswordHasher) private readonly passwordHasher: PasswordHasher,
     @Inject(JwtService) private readonly jwt: JwtService,
     @Inject(ConfigService)
     config: ConfigService<EnvironmentVariables, true>,
@@ -40,8 +49,33 @@ export class AuthService {
   async signInWithGoogle(idToken: string): Promise<Session> {
     const profile = await this.googleTokenVerifier.verify(idToken);
     const user = await this.users.upsertFromGoogle(profile);
-    const refreshToken = await this.createRefreshToken(user.id, randomUUID());
-    return this.buildSession(user, refreshToken);
+    return this.startSession(user);
+  }
+
+  async register(registration: Registration): Promise<Session> {
+    const passwordHash = await this.passwordHasher.hash(registration.password);
+    const user = await this.users.createWithPassword({
+      name: registration.name,
+      email: registration.email,
+      passwordHash,
+    });
+    return this.startSession(user);
+  }
+
+  // Every failure gives the same answer, so the response does not reveal
+  // whether the email has an account or how it signs in.
+  async signInWithPassword(email: string, password: string): Promise<Session> {
+    const user = await this.users.findByEmail(email);
+    if (!user?.passwordHash) {
+      // Spend the same time as a real check, or the response time would
+      // tell which emails are registered.
+      await this.passwordHasher.verify(password, await this.getDummyHash());
+      throw new UnauthorizedException('Invalid email or password');
+    }
+    if (!(await this.passwordHasher.verify(password, user.passwordHash))) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+    return this.startSession(user);
   }
 
   // Each refresh token can be used once: it is revoked and replaced by a new
@@ -99,6 +133,18 @@ export class AuthService {
       where: { tokenHash: hashToken(refreshToken), revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  private getDummyHash(): Promise<string> {
+    this.dummyHash ??= this.passwordHasher.hash(
+      randomBytes(16).toString('hex'),
+    );
+    return this.dummyHash;
+  }
+
+  private async startSession(user: User): Promise<Session> {
+    const refreshToken = await this.createRefreshToken(user.id, randomUUID());
+    return this.buildSession(user, refreshToken);
   }
 
   private async revokeFamily(familyId: string): Promise<void> {

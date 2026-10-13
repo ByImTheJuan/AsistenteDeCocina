@@ -40,6 +40,16 @@ export class EnvironmentVariables {
   @IsInt()
   @Min(1)
   REFRESH_TOKEN_TTL_DAYS: number = 30;
+
+  // Attempts allowed per client IP and window on the endpoints that accept
+  // credentials.
+  @IsInt()
+  @Min(1)
+  AUTH_RATE_LIMIT_MAX: number = 10;
+
+  @IsInt()
+  @Min(1)
+  AUTH_RATE_LIMIT_WINDOW_SECONDS: number = 60;
 }
 
 // Fails fast at startup instead of on the first request that needs a value.

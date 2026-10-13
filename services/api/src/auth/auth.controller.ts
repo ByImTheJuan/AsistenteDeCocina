@@ -12,16 +12,22 @@ import {
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
+  ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { UsersService } from '../users/users.service.js';
 import {
   GoogleSignInRequest,
+  PasswordSignInRequest,
   RefreshTokenRequest,
+  RegisterRequest,
   SessionResponse,
   UserResponse,
 } from './auth.dto.js';
@@ -47,7 +53,35 @@ export class AuthController {
     @Inject(UsersService) private readonly users: UsersService,
   ) {}
 
+  @Post('register')
+  @UseGuards(ThrottlerGuard)
+  @ApiOperation({ summary: 'Create an account with email and password' })
+  @ApiCreatedResponse({ type: SessionResponse })
+  @ApiBadRequestResponse({ description: 'Invalid name, email or password' })
+  @ApiConflictResponse({ description: 'The email already has an account' })
+  @ApiTooManyRequestsResponse({ description: 'Too many attempts' })
+  async register(@Body() body: RegisterRequest): Promise<SessionResponse> {
+    return toSessionResponse(await this.auth.register(body));
+  }
+
+  @Post('login')
+  @UseGuards(ThrottlerGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sign in with email and password' })
+  @ApiOkResponse({ type: SessionResponse })
+  @ApiBadRequestResponse({ description: 'Malformed request body' })
+  @ApiUnauthorizedResponse({ description: 'Invalid email or password' })
+  @ApiTooManyRequestsResponse({ description: 'Too many attempts' })
+  async signInWithPassword(
+    @Body() body: PasswordSignInRequest,
+  ): Promise<SessionResponse> {
+    return toSessionResponse(
+      await this.auth.signInWithPassword(body.email, body.password),
+    );
+  }
+
   @Post('google')
+  @UseGuards(ThrottlerGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Sign in with a Google ID token',
@@ -56,6 +90,10 @@ export class AuthController {
   @ApiOkResponse({ type: SessionResponse })
   @ApiBadRequestResponse({ description: 'Malformed request body' })
   @ApiUnauthorizedResponse({ description: 'Invalid Google ID token' })
+  @ApiConflictResponse({
+    description: 'The email belongs to a different Google account',
+  })
+  @ApiTooManyRequestsResponse({ description: 'Too many attempts' })
   async signInWithGoogle(
     @Body() body: GoogleSignInRequest,
   ): Promise<SessionResponse> {
