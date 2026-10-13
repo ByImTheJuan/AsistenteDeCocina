@@ -12,15 +12,19 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  // Google's stable account identifier. The email can change, so it is not
-  // used as the identity and is not unique.
-  googleSub String   @unique @db.VarChar(255)
-  email     String   @db.VarChar(320)
-  name      String?  @db.VarChar(255)
-  avatarUrl String?  @db.VarChar(2048)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  // Google's stable account identifier. Null for accounts that have only
+  // ever signed in with a password.
+  googleSub    String?  @unique @db.VarChar(255)
+  // Stored trimmed and in lower case: one account per email, whatever the
+  // sign-in method.
+  email        String   @unique @db.VarChar(320)
+  // Null for accounts that sign in with Google.
+  passwordHash String?  @db.VarChar(255)
+  name         String?  @db.VarChar(255)
+  avatarUrl    String?  @db.VarChar(2048)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   refreshTokens RefreshToken[]
 
