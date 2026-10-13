@@ -1,3 +1,3 @@
-import { ProfileScreen } from '@/features/food-preferences/profile-screen';
+import { ProfileScreen } from '@/features/profile/profile-screen';
 
 export default ProfileScreen;

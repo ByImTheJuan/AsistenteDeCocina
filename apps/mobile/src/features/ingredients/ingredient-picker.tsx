@@ -2,10 +2,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { Ingredient } from './food-preferences-api';
-import { foodPreferencesErrorMessage } from './food-preferences-errors';
-import { categoryLabel, listLabels, type PreferenceList } from './labels';
-import { useIngredientSearch } from './use-food-preferences';
+import { categoryLabel, type Ingredient } from './ingredients-api';
+import { useIngredientSearch } from './use-ingredient-search';
 
 import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
@@ -13,26 +11,26 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { apiErrorMessage } from '@/lib/api-error-message';
 
 const SEARCH_DELAY_MS = 300;
 // What the API returns at most; a full page means there may be more.
 const PAGE_SIZE = 50;
 
 type IngredientPickerProps = {
-  /** List being edited. */
-  list: PreferenceList;
+  title: string;
   selected: Ingredient[];
-  /** Ingredients of the other list, which cannot be chosen here. */
-  taken: Ingredient[];
+  /** Ingredients that cannot be chosen here, and why, as shown next to them. */
+  unavailable?: { ingredients: Ingredient[]; reason: string };
   onToggle(ingredient: Ingredient): void;
   onClose(): void;
 };
 
-/** Searches the catalogue and adds ingredients to one of the two lists, or removes them. */
+/** Searches the catalogue and adds ingredients to a list, or removes them from it. */
 export function IngredientPicker({
-  list,
+  title,
   selected,
-  taken,
+  unavailable,
   onToggle,
   onClose,
 }: IngredientPickerProps) {
@@ -47,7 +45,6 @@ export function IngredientPicker({
     return () => clearTimeout(timeout);
   }, [text]);
 
-  const otherList = listLabels[list === 'liked' ? 'avoided' : 'liked'];
   const isIn = (ingredients: Ingredient[], { id }: Ingredient) =>
     ingredients.some((ingredient) => ingredient.id === id);
 
@@ -55,7 +52,7 @@ export function IngredientPicker({
     <Modal animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.content}>
-          <ThemedText type="subtitle">Añadir a «{listLabels[list]}»</ThemedText>
+          <ThemedText type="subtitle">{title}</ThemedText>
           <TextField
             label="Buscar alimento"
             placeholder="Por ejemplo, tomate"
@@ -73,7 +70,7 @@ export function IngredientPicker({
             {error ? (
               <View style={styles.message}>
                 <ThemedText themeColor="danger" accessibilityRole="alert" style={styles.centered}>
-                  {foodPreferencesErrorMessage(error)}
+                  {apiErrorMessage(error)}
                 </ThemedText>
                 <PrimaryButton
                   label="Reintentar"
@@ -92,15 +89,16 @@ export function IngredientPicker({
               <>
                 {results.map((ingredient) => {
                   const checked = isIn(selected, ingredient);
-                  const unavailable = isIn(taken, ingredient);
+                  const blocked =
+                    unavailable !== undefined && isIn(unavailable.ingredients, ingredient);
                   return (
                     <Pressable
                       key={ingredient.id}
                       accessibilityRole="checkbox"
                       accessibilityLabel={ingredient.name}
-                      accessibilityHint={unavailable ? `Ya está en «${otherList}»` : undefined}
-                      accessibilityState={{ checked, disabled: unavailable }}
-                      disabled={unavailable}
+                      accessibilityHint={blocked ? unavailable?.reason : undefined}
+                      accessibilityState={{ checked, disabled: blocked }}
+                      disabled={blocked}
                       onPress={() => onToggle(ingredient)}
                       style={({ pressed }) => [
                         styles.row,
@@ -108,12 +106,12 @@ export function IngredientPicker({
                           backgroundColor:
                             theme[checked ? 'backgroundSelected' : 'backgroundElement'],
                         },
-                        (pressed || unavailable) && styles.dimmed,
+                        (pressed || blocked) && styles.dimmed,
                       ]}>
                       <View style={styles.rowText}>
                         <ThemedText>{ingredient.name}</ThemedText>
                         <ThemedText type="small" themeColor="textSecondary">
-                          {unavailable ? `En «${otherList}»` : categoryLabel(ingredient.category)}
+                          {blocked ? unavailable?.reason : categoryLabel(ingredient.category)}
                         </ThemedText>
                       </View>
                       {checked && <ThemedText type="smallBold">✓</ThemedText>}
