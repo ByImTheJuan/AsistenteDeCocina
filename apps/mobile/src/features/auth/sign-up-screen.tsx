@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet } from 'react-native';
 
-import { AuthScreenLayout } from './auth-screen-layout';
+import { FormScreen } from '@/components/form-screen';
 import { signUpSchema, type SignUpForm } from './credentials-schema';
-import { PrimaryButton } from './primary-button';
+import { PrimaryButton } from '@/components/primary-button';
 import type { RegisterFailure } from './session-manager';
 import { useSession } from './session-provider';
-import { TextField } from './text-field';
+import { TextField } from '@/components/text-field';
 
 import { ThemedText } from '@/components/themed-text';
 
@@ -42,7 +42,7 @@ export function SignUpScreen() {
   });
 
   return (
-    <AuthScreenLayout>
+    <FormScreen>
       <ThemedText type="subtitle" style={styles.text}>
         Crear cuenta
       </ThemedText>
@@ -119,7 +119,7 @@ export function SignUpScreen() {
           ¿Ya tienes cuenta? <ThemedText type="smallBold">Inicia sesión</ThemedText>
         </ThemedText>
       </Link>
-    </AuthScreenLayout>
+    </FormScreen>
   );
 }
 

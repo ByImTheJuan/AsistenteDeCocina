@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ActivityIndicator, StyleSheet } from 'react-native';
 
-import { AuthScreenLayout } from './auth-screen-layout';
+import { FormScreen } from '@/components/form-screen';
 import { signInSchema, type SignInForm } from './credentials-schema';
-import { PrimaryButton } from './primary-button';
+import { PrimaryButton } from '@/components/primary-button';
 import type { PasswordSignInFailure, SignInFailure } from './session-manager';
 import { useSession } from './session-provider';
-import { TextField } from './text-field';
+import { TextField } from '@/components/text-field';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -70,7 +70,7 @@ export function SignInScreen() {
 
   if (session.status === 'unavailable') {
     return (
-      <AuthScreenLayout>
+      <FormScreen>
         <ThemedText type="subtitle" style={styles.text}>
           Sin conexión
         </ThemedText>
@@ -78,12 +78,12 @@ export function SignInScreen() {
           No hemos podido conectar con el servidor para recuperar tu sesión.
         </ThemedText>
         <PrimaryButton label="Reintentar" onPress={() => void retry()} />
-      </AuthScreenLayout>
+      </FormScreen>
     );
   }
 
   return (
-    <AuthScreenLayout>
+    <FormScreen>
       <ThemedText type="subtitle" style={styles.text}>
         Asistente de Cocina
       </ThemedText>
@@ -158,7 +158,7 @@ export function SignInScreen() {
           ¿No tienes cuenta? <ThemedText type="smallBold">Crear cuenta</ThemedText>
         </ThemedText>
       </Link>
-    </AuthScreenLayout>
+    </FormScreen>
   );
 }
 

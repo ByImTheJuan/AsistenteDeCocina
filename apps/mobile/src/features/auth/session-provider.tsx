@@ -23,6 +23,8 @@ type SessionContextValue = {
   signInWithPassword(email: string, password: string): Promise<PasswordSignInResult>;
   register(registration: Registration): Promise<RegisterResult>;
   signOut(): Promise<void>;
+  /** Calls the API as the signed-in user; see `authorizedRequest`. */
+  request: SessionManager['authorizedRequest'];
   /** Tries again to recover the saved session after a connection failure. */
   retry(): Promise<void>;
 };
@@ -49,6 +51,7 @@ export function SessionProvider({ manager = defaultManager, children }: SessionP
         signInWithPassword: manager.signInWithPassword,
         register: manager.register,
         signOut: manager.signOut,
+        request: manager.authorizedRequest,
         retry: manager.restore,
       }}>
       {children}
