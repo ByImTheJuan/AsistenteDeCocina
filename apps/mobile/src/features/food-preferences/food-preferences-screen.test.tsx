@@ -9,6 +9,13 @@ import { ApiError, NetworkError } from '@/lib/api-client';
 // The shared session manager created on import is not used here.
 jest.mock('@react-native-google-signin/google-signin', () => ({}));
 jest.mock('expo-secure-store', () => ({}));
+// Leaving with unsaved changes is covered in the hook's own test; here only
+// when the screen asks for the warning.
+const mockUnsavedChangesWarning = jest.fn();
+jest.mock('@/hooks/use-unsaved-changes-warning', () => ({
+  useUnsavedChangesWarning: (hasUnsavedChanges: boolean) =>
+    mockUnsavedChangesWarning(hasUnsavedChanges),
+}));
 
 const tomate = { id: 'ing_tomate', name: 'Tomate', category: 'VEGETABLE' };
 const tomillo = { id: 'ing_tomillo', name: 'Tomillo', category: 'HERB_SPICE' };
@@ -106,7 +113,9 @@ describe('FoodPreferencesScreen', () => {
     it('tells preferences apart from allergies', async () => {
       await renderScreen(empty);
 
-      expect(await screen.findByText(/no sirve para alergias ni intolerancias/)).toBeOnTheScreen();
+      expect(
+        await screen.findByText(/alergias e intolerancias tienen su propio apartado/),
+      ).toBeOnTheScreen();
     });
   });
 
@@ -305,6 +314,41 @@ describe('FoodPreferencesScreen', () => {
       await user.press(await screen.findByRole('button', { name: 'Añadir a «Me gustan»' }));
 
       expect(await screen.findByText(/Hay más alimentos/)).toBeOnTheScreen();
+    });
+  });
+
+  describe('leaving the screen', () => {
+    it('does not warn while nothing has changed', async () => {
+      await renderScreen(configured);
+
+      await screen.findByRole('radio', { name: 'Vegetariana' });
+
+      expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(false);
+    });
+
+    it('warns once there is a change to lose, until it is saved', async () => {
+      await renderScreen(configured);
+
+      await user.press(await screen.findByRole('radio', { name: 'Vegana' }));
+      expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(true);
+      await user.press(saveButton());
+
+      await screen.findByText('Preferencias guardadas.');
+      expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(false);
+    });
+
+    it('keeps warning when saving fails', async () => {
+      await renderScreen(configured, {
+        'PUT /food-preferences': () => {
+          throw new NetworkError();
+        },
+      });
+
+      await user.press(await screen.findByRole('button', { name: 'Quitar Tomate de «Me gustan»' }));
+      await user.press(saveButton());
+
+      await screen.findByRole('alert');
+      expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(true);
     });
   });
 

@@ -14,24 +14,6 @@ export const dietDescriptions: Record<Diet, string> = {
   FLEXITARIAN: 'Sobre todo vegetal, con carne o pescado de vez en cuando.',
 };
 
-const categoryLabels: Record<string, string> = {
-  VEGETABLE: 'Verduras y hortalizas',
-  FRUIT: 'Frutas',
-  MEAT: 'Carnes',
-  FISH_SEAFOOD: 'Pescados y mariscos',
-  DAIRY_EGG: 'Lácteos y huevos',
-  GRAIN: 'Cereales y derivados',
-  LEGUME: 'Legumbres',
-  NUT_SEED: 'Frutos secos y semillas',
-  HERB_SPICE: 'Hierbas y especias',
-  OTHER: 'Otros',
-};
-
-/** Name of an ingredient category; the catalogue may have ones not listed here. */
-export function categoryLabel(category: string): string {
-  return categoryLabels[category] ?? categoryLabels.OTHER;
-}
-
 export const listLabels = {
   liked: 'Me gustan',
   avoided: 'Prefiero evitar',

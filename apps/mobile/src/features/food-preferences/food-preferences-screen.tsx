@@ -3,17 +3,19 @@ import { useForm, useFormState, useWatch } from 'react-hook-form';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { diets, type Diet, type FoodPreferences, type Ingredient } from './food-preferences-api';
+import { diets, type Diet, type FoodPreferences } from './food-preferences-api';
 import { foodPreferencesErrorMessage } from './food-preferences-errors';
-import { IngredientPicker } from './ingredient-picker';
 import { dietDescriptions, dietLabels, listLabels, type PreferenceList } from './labels';
 import { useFoodPreferences, useSaveFoodPreferences } from './use-food-preferences';
 
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
+import type { Ingredient } from '@/features/ingredients/ingredients-api';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 
 /** Diet and the foods the user likes or would rather avoid. */
 export function FoodPreferencesScreen() {
@@ -53,6 +55,7 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
     defaultValues: saved,
   });
   const { isDirty } = useFormState({ control });
+  useUnsavedChangesWarning(isDirty);
   const diet = useWatch({ control, name: 'diet' });
   const liked = useWatch({ control, name: 'liked' });
   const avoided = useWatch({ control, name: 'avoided' });
@@ -129,7 +132,7 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
             list="avoided"
             ingredients={avoided}
             empty="Todavía no has añadido ningún alimento que prefieras evitar."
-            note="Indica aquí solo gustos. Esta lista no sirve para alergias ni intolerancias."
+            note="Indica aquí solo gustos. Las alergias e intolerancias tienen su propio apartado en Perfil."
             onRemove={(ingredient) => toggle('avoided', ingredient)}
             onAdd={() => setPicking('avoided')}
           />
@@ -163,9 +166,12 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
 
       {picking && (
         <IngredientPicker
-          list={picking}
+          title={`Añadir a «${listLabels[picking]}»`}
           selected={picking === 'liked' ? liked : avoided}
-          taken={picking === 'liked' ? avoided : liked}
+          unavailable={{
+            ingredients: picking === 'liked' ? avoided : liked,
+            reason: `En «${listLabels[picking === 'liked' ? 'avoided' : 'liked']}»`,
+          }}
           onToggle={(ingredient) => toggle(picking, ingredient)}
           onClose={() => setPicking(null)}
         />

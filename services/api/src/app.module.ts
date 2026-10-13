@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AccountModule } from './account/account.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { validateEnv } from './config/env.validation.js';
+import { DietaryRestrictionsModule } from './dietary-restrictions/dietary-restrictions.module.js';
 import { FoodPreferencesModule } from './food-preferences/food-preferences.module.js';
 import { HealthModule } from './health/health.module.js';
 import { IngredientsModule } from './ingredients/ingredients.module.js';
@@ -17,6 +18,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     AccountModule,
     IngredientsModule,
     FoodPreferencesModule,
+    DietaryRestrictionsModule,
   ],
 })
 export class AppModule {}

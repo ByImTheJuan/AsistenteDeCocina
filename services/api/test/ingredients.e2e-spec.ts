@@ -48,12 +48,33 @@ describe('Ingredients (e2e)', () => {
   it('finds ingredients whose name contains the text', async () => {
     const response = await search({ search: 'pimiento' }).expect(200);
 
+    const plain = { allergens: [], allergensUncertain: false };
     expect(response.body).toEqual([
-      { id: 'ing_pimiento_rojo', name: 'Pimiento rojo', category: 'VEGETABLE' },
+      {
+        id: 'ing_pimiento_rojo',
+        name: 'Pimiento rojo',
+        category: 'VEGETABLE',
+        ...plain,
+      },
       {
         id: 'ing_pimiento_verde',
         name: 'Pimiento verde',
         category: 'VEGETABLE',
+        ...plain,
+      },
+    ]);
+  });
+
+  it('says which allergens each ingredient contains', async () => {
+    const response = await search({ search: 'mayonesa' }).expect(200);
+
+    expect(response.body).toEqual([
+      {
+        id: 'ing_mayonesa',
+        name: 'Mayonesa',
+        category: 'OTHER',
+        allergens: ['EGG', 'MUSTARD'],
+        allergensUncertain: true,
       },
     ]);
   });
