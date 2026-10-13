@@ -95,7 +95,11 @@ describe('AuthService', () => {
 
       expect(users.upsertFromGoogle).toHaveBeenCalledWith(profile);
       expect(session.user).toBe(user);
-      expect(jwt.decode(session.accessToken)).toMatchObject({ sub: user.id });
+      const { familyId } = refreshToken.create.mock.calls[0][0].data;
+      expect(jwt.decode(session.accessToken)).toMatchObject({
+        sub: user.id,
+        sid: familyId,
+      });
       expect(refreshToken.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           userId: user.id,
@@ -231,6 +235,9 @@ describe('AuthService', () => {
         }),
       });
       expect(session.refreshToken).not.toBe('current-token');
+      expect(jwt.decode(session.accessToken)).toMatchObject({
+        sid: 'family-1',
+      });
     });
 
     it('rejects an unknown token', async () => {

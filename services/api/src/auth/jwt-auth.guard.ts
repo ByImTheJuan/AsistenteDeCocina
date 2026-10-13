@@ -8,7 +8,11 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 
-export type AuthenticatedUser = { id: string };
+export type AuthenticatedUser = {
+  id: string;
+  /** Refresh token family of the calling session; null in older tokens. */
+  sessionId: string | null;
+};
 export type AuthenticatedRequest = Request & { user: AuthenticatedUser };
 
 // Protects a route with the access token issued by this API. The user ID
@@ -24,9 +28,11 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Missing access token');
     }
 
-    let payload: { sub?: unknown };
+    let payload: { sub?: unknown; sid?: unknown };
     try {
-      payload = await this.jwt.verifyAsync<{ sub?: unknown }>(token);
+      payload = await this.jwt.verifyAsync<{ sub?: unknown; sid?: unknown }>(
+        token,
+      );
     } catch {
       throw new UnauthorizedException('Invalid access token');
     }
@@ -34,7 +40,10 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid access token');
     }
 
-    request.user = { id: payload.sub };
+    request.user = {
+      id: payload.sub,
+      sessionId: typeof payload.sid === 'string' ? payload.sid : null,
+    };
     return true;
   }
 }

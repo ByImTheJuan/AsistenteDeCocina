@@ -124,7 +124,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    return this.buildSession(stored.user, replacement);
+    return this.buildSession(stored.user, replacement, stored.familyId);
   }
 
   // Idempotent: an unknown or already revoked token is not an error.
@@ -143,8 +143,9 @@ export class AuthService {
   }
 
   private async startSession(user: User): Promise<Session> {
-    const refreshToken = await this.createRefreshToken(user.id, randomUUID());
-    return this.buildSession(user, refreshToken);
+    const familyId = randomUUID();
+    const refreshToken = await this.createRefreshToken(user.id, familyId);
+    return this.buildSession(user, refreshToken, familyId);
   }
 
   private async revokeFamily(familyId: string): Promise<void> {
@@ -174,11 +175,17 @@ export class AuthService {
     return token;
   }
 
+  // `sid` names the refresh token family the access token belongs to, so an
+  // endpoint can close every session of the user except the one calling it.
   private async buildSession(
     user: User,
     refreshToken: string,
+    familyId: string,
   ): Promise<Session> {
-    const accessToken = await this.jwt.signAsync({ sub: user.id });
+    const accessToken = await this.jwt.signAsync({
+      sub: user.id,
+      sid: familyId,
+    });
     return { accessToken, refreshToken, user };
   }
 }
