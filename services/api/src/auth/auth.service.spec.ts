@@ -6,6 +6,7 @@ import type { PrismaService } from '../prisma/prisma.service.js';
 import type { UsersService } from '../users/users.service.js';
 import { AuthService } from './auth.service.js';
 import type { GoogleTokenVerifier } from './google-token-verifier.js';
+import type { PasswordHasher } from './password-hasher.js';
 
 // Persistence against MySQL is covered by test/auth.e2e-spec.ts. These tests
 // pin down the decisions the service takes around it.
@@ -13,6 +14,7 @@ const user = {
   id: 'user-1',
   googleSub: 'google-1',
   email: 'ana@example.com',
+  passwordHash: null,
   name: 'Ana',
   avatarUrl: null,
   createdAt: new Date(),
@@ -48,7 +50,18 @@ describe('AuthService', () => {
       run({ refreshToken }),
     ),
   };
-  const users = { upsertFromGoogle: vi.fn() };
+  const users = {
+    upsertFromGoogle: vi.fn(),
+    findByEmail: vi.fn(),
+    createWithPassword: vi.fn(),
+  };
+  // Stands in for scrypt, which is covered by its own spec.
+  const passwordHasher = {
+    hash: vi.fn(async (password: string) => `hashed:${password}`),
+    verify: vi.fn(
+      async (password: string, hash: string) => hash === `hashed:${password}`,
+    ),
+  };
   const googleTokenVerifier = { verify: vi.fn() };
   const jwt = new JwtService({ secret: 'unit-test-secret-with-enough-length' });
 
@@ -61,6 +74,7 @@ describe('AuthService', () => {
       prisma as unknown as PrismaService,
       users as unknown as UsersService,
       googleTokenVerifier as unknown as GoogleTokenVerifier,
+      passwordHasher as unknown as PasswordHasher,
       jwt,
       new ConfigService({ REFRESH_TOKEN_TTL_DAYS: 30 }),
     );
@@ -111,6 +125,80 @@ describe('AuthService', () => {
       const thirtyDays = 30 * 24 * 60 * 60 * 1000;
       expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + thirtyDays);
       expect(expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + thirtyDays);
+    });
+  });
+
+  describe('register', () => {
+    it('stores a hash of the password and starts a session', async () => {
+      users.createWithPassword.mockResolvedValue(user);
+
+      const session = await service.register({
+        name: 'Ana',
+        email: 'ana@example.com',
+        password: 'correct horse',
+      });
+
+      expect(users.createWithPassword).toHaveBeenCalledWith({
+        name: 'Ana',
+        email: 'ana@example.com',
+        passwordHash: 'hashed:correct horse',
+      });
+      expect(session.user).toBe(user);
+      expect(refreshToken.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not start a session when the account cannot be created', async () => {
+      users.createWithPassword.mockRejectedValue(new Error('conflict'));
+
+      await expect(
+        service.register({ name: 'Ana', email: 'a@b.c', password: 'password' }),
+      ).rejects.toThrow('conflict');
+      expect(refreshToken.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('signInWithPassword', () => {
+    const account = { ...user, passwordHash: 'hashed:correct horse' };
+
+    it('starts a session with the right password', async () => {
+      users.findByEmail.mockResolvedValue(account);
+
+      const session = await service.signInWithPassword(
+        'ana@example.com',
+        'correct horse',
+      );
+
+      expect(session.user).toBe(account);
+      expect(jwt.decode(session.accessToken)).toMatchObject({ sub: user.id });
+    });
+
+    it.each([
+      ['a wrong password', account],
+      ['an unknown email', null],
+      ['an account that only signs in with Google', user],
+    ])('rejects %s with the same error', async (_case, found) => {
+      users.findByEmail.mockResolvedValue(found);
+
+      await expect(
+        service.signInWithPassword('ana@example.com', 'wrong password'),
+      ).rejects.toMatchObject({
+        constructor: UnauthorizedException,
+        message: 'Invalid email or password',
+      });
+      expect(refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['an unknown email', null],
+      ['an account without password', user],
+    ])('still spends a password check on %s', async (_case, found) => {
+      users.findByEmail.mockResolvedValue(found);
+
+      await expect(
+        service.signInWithPassword('ana@example.com', 'whatever'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(passwordHasher.verify).toHaveBeenCalledTimes(1);
     });
   });
 

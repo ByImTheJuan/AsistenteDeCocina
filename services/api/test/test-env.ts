@@ -19,4 +19,7 @@ export function applyTestEnv(): void {
   process.env.JWT_ACCESS_SECRET = 'test-only-secret-not-used-anywhere-else';
   process.env.JWT_ACCESS_TTL_SECONDS = '900';
   process.env.REFRESH_TOKEN_TTL_DAYS = '30';
+  // High enough not to interfere; the limit has its own spec.
+  process.env.AUTH_RATE_LIMIT_MAX = '1000';
+  process.env.AUTH_RATE_LIMIT_WINDOW_SECONDS = '60';
 }
