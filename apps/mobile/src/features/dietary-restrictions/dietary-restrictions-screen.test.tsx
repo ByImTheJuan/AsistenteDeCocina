@@ -9,6 +9,13 @@ import { ApiError, NetworkError } from '@/lib/api-client';
 // The shared session manager created on import is not used here.
 jest.mock('@react-native-google-signin/google-signin', () => ({}));
 jest.mock('expo-secure-store', () => ({}));
+// Leaving with unsaved changes is covered in the hook's own test; here only
+// when the screen asks for the warning.
+const mockUnsavedChangesWarning = jest.fn();
+jest.mock('@/hooks/use-unsaved-changes-warning', () => ({
+  useUnsavedChangesWarning: (hasUnsavedChanges: boolean) =>
+    mockUnsavedChangesWarning(hasUnsavedChanges),
+}));
 
 const kiwi = { id: 'ing_kiwi', name: 'Kiwi', category: 'FRUIT' };
 const melocoton = { id: 'ing_melocoton', name: 'Melocotón', category: 'FRUIT' };
@@ -249,6 +256,43 @@ describe('DietaryRestrictionsScreen', () => {
       expect(await screen.findByLabelText('Conflicto con tus preferencias')).toHaveTextContent(
         /Leche/,
       );
+    });
+  });
+
+  describe('leaving the screen', () => {
+    it('does not warn while nothing has changed', async () => {
+      await renderScreen(configured);
+
+      await screen.findByRole('checkbox', { name: 'Leche' });
+
+      expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(false);
+    });
+
+    it('warns once there is a change to lose, until it is saved', async () => {
+      await renderScreen(configured);
+
+      await user.press(await screen.findByRole('checkbox', { name: 'Huevo' }));
+      expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(true);
+      await user.press(saveButton());
+
+      await screen.findByText('Restricciones guardadas.');
+      expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(false);
+    });
+
+    it('keeps warning when saving fails', async () => {
+      await renderScreen(configured, {
+        'PUT /dietary-restrictions': () => {
+          throw new NetworkError();
+        },
+      });
+
+      await user.press(
+        await screen.findByRole('button', { name: 'Quitar Kiwi de tus restricciones' }),
+      );
+      await user.press(saveButton());
+
+      await screen.findByRole('alert');
+      expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(true);
     });
   });
 
