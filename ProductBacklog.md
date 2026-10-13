@@ -56,10 +56,10 @@ Las prioridades son una propuesta inicial y podrán cambiar según la validació
 
 **Objetivo:** permitir que cada usuario tenga una identidad propia y un perfil que sirva para personalizar toda la experiencia.
 
-### US-001 — Registrarse e iniciar sesión con Google
+### US-001 — Registrarse e iniciar sesión
 **Prioridad:** P0 — MVP
 
-**Historia de usuario:** Como usuario, quiero registrarme e iniciar sesión con mi cuenta de Google para acceder a mis datos personales y utilizar las funcionalidades de la aplicación.
+**Historia de usuario:** Como usuario, quiero registrarme e iniciar sesión, con mi cuenta de Google o con mi email y una contraseña, para acceder a mis datos personales y utilizar las funcionalidades de la aplicación.
 
 **Criterios de aceptación**
 - El usuario puede iniciar sesión mediante Google.
@@ -68,6 +68,16 @@ Las prioridades son una propuesta inicial y podrán cambiar según la validació
 - Si cancela el proceso o se produce un error, recibe información clara y puede intentarlo de nuevo.
 - Los datos personales, las recetas creadas y las preferencias quedan asociados a su cuenta.
 - El usuario puede cerrar sesión.
+- El usuario puede registrarse con su nombre, su email y una contraseña.
+- El usuario puede iniciar sesión con su email y su contraseña.
+- No pueden existir dos cuentas con el mismo email, sea cual sea el método de acceso.
+- Si los datos no son válidos, el email ya está registrado o las credenciales son incorrectas, recibe información clara y puede corregirlo.
+- La contraseña nunca se almacena ni se muestra en claro.
+
+**Notas**
+- La verificación del email y la recuperación de la contraseña quedan fuera de esta historia, pendientes de disponer de un servicio de envío de correo.
+- La contraseña y Google son métodos de acceso de una misma cuenta y pueden estar disponibles a la vez. Iniciar sesión con Google con el email de una cuenta creada con contraseña la vincula a Google y conserva la contraseña: el usuario puede entrar con cualquiera de los dos.
+- Una cuenta creada con Google no tiene contraseña hasta que el usuario la añade desde la gestión de su cuenta (US-002).
 
 ### US-002 — Gestionar la cuenta personal
 **Prioridad:** P0 — MVP
@@ -77,6 +87,11 @@ Las prioridades son una propuesta inicial y podrán cambiar según la validació
 **Criterios de aceptación**
 - Puedo consultar los datos básicos de mi cuenta.
 - Puedo acceder a las opciones de cierre de sesión y eliminación de cuenta.
+- Puedo consultar qué métodos de acceso tiene mi cuenta (contraseña y Google).
+- Si mi cuenta no tiene contraseña, puedo añadir una.
+- Puedo cambiar mi contraseña.
+- Puedo vincular mi cuenta de Google si no lo está.
+- Puedo quitar un método de acceso siempre que la cuenta conserve al menos otro.
 - Antes de eliminarla, se solicita confirmación y se informa de las consecuencias.
 - La eliminación sigue la política de conservación y supresión de datos del producto, incluyendo el tratamiento de recetas publicadas y reseñas.
 
@@ -788,7 +803,7 @@ El orden siguiente no pretende imponer una metodología de implementación ni su
 
 | Orden | ID | Historia | Dependencias principales | Justificación |
 |---:|---|---|---|---|
-| 1 | US-001 | Registrarse e iniciar sesión con Google | Ninguna | Establece la identidad necesaria para asociar los datos del usuario. |
+| 1 | US-001 | Registrarse e iniciar sesión | Ninguna | Establece la identidad necesaria para asociar los datos del usuario. |
 | 2 | US-042 | Gestionar los permisos del dispositivo | Ninguna; especialmente relevante para futuras funciones de cámara | Define la experiencia de permisos y sus alternativas. Puede trabajarse en paralelo con US-001. |
 | 3 | US-002 | Gestionar la cuenta personal | US-001 | La gestión de cuenta requiere que exista una identidad de usuario. |
 | 4 | US-003 | Configurar mis preferencias alimentarias | US-001 | Las preferencias deben quedar asociadas a una cuenta. |
@@ -816,7 +831,7 @@ La secuencia anterior enumera 20 historias de la selección de MVP; **US-047 y U
 Para facilitar la planificación de sprints, la secuencia puede agruparse en bloques. No equivalen automáticamente a sprints: su duración dependerá de la estimación y de la capacidad del equipo.
 
 ### Bloque A — Identidad y perfil
-- US-001 — Registrarse e iniciar sesión con Google
+- US-001 — Registrarse e iniciar sesión
 - US-002 — Gestionar la cuenta personal
 - US-003 — Configurar mis preferencias alimentarias
 - US-005 — Gestionar alergias e intolerancias

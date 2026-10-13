@@ -14,6 +14,7 @@ export function setupApp(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('Asistente de Cocina API')
     .setVersion('0.0.1')
+    .addBearerAuth()
     .build();
   SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, config));
 }

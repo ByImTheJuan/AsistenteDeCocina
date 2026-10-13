@@ -10,3 +10,42 @@ generator client {
 datasource db {
   provider = "mysql"
 }
+
+model User {
+  id           String   @id @default(cuid())
+  // Google's stable account identifier. Null until the account signs in
+  // with Google. Independent of the password: an account can have both.
+  googleSub    String?  @unique @db.VarChar(255)
+  // Stored trimmed and in lower case: one account per email, whatever the
+  // sign-in method.
+  email        String   @unique @db.VarChar(320)
+  // Null for accounts that have not set a password.
+  passwordHash String?  @db.VarChar(255)
+  name         String?  @db.VarChar(255)
+  avatarUrl    String?  @db.VarChar(2048)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  // Tokens issued by rotating the same sign-in share a family, so reusing a
+  // revoked token can revoke every descendant.
+  familyId  String    @db.Char(36)
+  // SHA-256 of the opaque token, hex encoded. The token itself is never stored.
+  tokenHash String    @unique @db.Char(64)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}

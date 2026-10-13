@@ -357,7 +357,7 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 
 ## 6. Estructura y estado actual del proyecto
 
-> **Estado a 12-10-2026.** Esta sección describe lo que existe realmente. Actualízala al cerrar cada historia o cambio de infraestructura, y comprueba el repositorio antes de fiarte de ella: si el código y esta sección discrepan, manda el código.
+> **Estado a 13-10-2026.** Esta sección describe lo que existe realmente. Actualízala al cerrar cada historia o cambio de infraestructura, y comprueba el repositorio antes de fiarte de ella: si el código y esta sección discrepan, manda el código.
 
 ### Estructura
 
@@ -374,7 +374,8 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 ├── services/
 │   └── api/                  # workspace `api`: NestJS + Prisma
 ├── docs/
-│   └── decisions/            # ADR
+│   ├── decisions/            # ADR
+│   └── google-sign-in-setup.md
 └── .github/
     └── workflows/            # ci.yml y build.yml
 ```
@@ -384,9 +385,10 @@ No existe `packages/shared`. No lo crees hasta que haya un contrato compartido r
 ### Qué está construido
 
 - **Gestor de paquetes:** npm workspaces, Node.js 24 (`.nvmrc`). Los comandos se lanzan desde la raíz con `-w mobile` o `-w api`.
-- **App móvil:** Expo SDK 57 (React Native 0.86, React 19.2, TypeScript 6), Expo Router, TanStack Query, React Hook Form, Zod, `expo-dev-client`, Jest y React Native Testing Library. Contiene todavía las pantallas de ejemplo de la plantilla de Expo.
-- **API:** NestJS 12 (proyecto ESM), OpenAPI en `/docs`, `ValidationPipe` global, `GET /health` y Prisma 7.10 con proveedor MySQL. **El esquema de Prisma no tiene modelos ni migraciones.**
-- **Ninguna historia de usuario está implementada.** La siguiente según el backlog es US-001.
+- **App móvil:** Expo SDK 57 (React Native 0.86, React 19.2, TypeScript 6), Expo Router, TanStack Query, React Hook Form, Zod, `expo-dev-client`, Jest y React Native Testing Library. El código propio vive en `src/features/<funcionalidad>` y `src/lib`; las rutas privadas están en `src/app/(app)` y todavía muestran las pantallas de ejemplo de la plantilla de Expo.
+- **API:** NestJS 12 (proyecto ESM), OpenAPI en `/docs`, `ValidationPipe` global, `GET /health`, módulo `auth` y Prisma 7.10 con proveedor MySQL a través de `@prisma/adapter-mariadb` (`PrismaService` global). Modelos `User` y `RefreshToken` con su migración. Las variables de entorno se validan al arrancar (`src/config/env.validation.ts`).
+- **US-001 (registro e inicio de sesión, con email y contraseña o con Google) está implementada y cubierta con pruebas automatizadas, pero sin validar en ningún dispositivo.** El acceso con email y contraseña se puede probar en Expo Go; el de Google necesita las credenciales de Google Cloud y una development build. La siguiente según el backlog es US-042.
+- **Autenticación:** tres formas de obtener sesión: `POST /auth/register` y `POST /auth/login` (email y contraseña, con hash scrypt) y `POST /auth/google` (ID token obtenido con `@react-native-google-signin/google-signin`). En los tres casos la API emite un JWT de acceso (15 min) y un refresh token rotatorio guardado con hash. Hay una cuenta por email (guardado en minúsculas); contraseña y Google son métodos de acceso independientes de la misma cuenta: entrar con Google a una cuenta con contraseña la vincula y conserva la contraseña. Registrarse con un email que ya tiene cuenta se rechaza siempre. Esos tres endpoints tienen límite de peticiones por IP (`@nestjs/throttler`, en memoria). Para proteger un endpoint: `@UseGuards(JwtAuthGuard)` y `@CurrentUser()` (el módulo debe importar `AuthModule`). En la app, las llamadas autenticadas pasan por `sessionManager.authorizedRequest` y el estado de sesión se lee con `useSession()`.
 
 ### Comandos
 
@@ -398,7 +400,7 @@ npm run lint                        # expo lint (mobile) y oxlint (api)
 npm test                            # Jest (mobile) y Vitest (api)
 npm run test:unit -w mobile         # archivos *.test.ts
 npm run test:components -w mobile   # archivos *.test.tsx
-npm run test:e2e -w api
+npm run test:e2e -w api             # necesita MySQL (db:up); usa cocina_test
 npm run build -w api
 npm run start:dev -w api            # API en http://localhost:3000
 npm run start:go -w mobile          # app en Expo Go
@@ -427,11 +429,16 @@ Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md`:
 
 - La API usa **Vitest y oxlint**, los valores por defecto del generador de NestJS 12. Jest y React Native Testing Library se usan en la app móvil.
 - **Prisma fijado en 7.10.0**: el dist-tag `latest` de npm apuntaba a una versión candidata 8.0.0-rc.
-- `overrides` en el `package.json` raíz: `react` y `react-dom` (una sola copia, la que exige el SDK de Expo) y `mysql2` y `deepmerge-ts` (versiones corregidas que la CLI de Prisma fija por debajo). Al actualizar el SDK de Expo hay que revisar los de React y la versión de `test-renderer`.
+- `overrides` en el `package.json` raíz: `react` y `react-dom` (una sola copia, la que exige el SDK de Expo) y `mysql2`, `deepmerge-ts` y `mariadb` (versiones corregidas que la CLI de Prisma y su adaptador de MySQL fijan por debajo). Al actualizar el SDK de Expo hay que revisar los de React y la versión de `test-renderer`.
 - **Auditoría de seguridad por niveles:** el CI bloquea con severidad `high` en las dependencias de producción de la API y con `critical` en todo el árbol, porque las herramientas de compilación de Expo/Metro arrastran avisos `high` sin corrección publicada.
 
 ### Pendiente
 
+- **Inicio de sesión con Google:** crear el proyecto y los client ID en Google Cloud y configurar las variables, según `docs/google-sign-in-setup.md`. No funciona en Expo Go; hace falta una development build.
+- **Verificación de email y recuperación de contraseña:** sin implementar; necesitan un servicio de envío de correo. Quien olvide su contraseña no puede recuperarla.
+- **Riesgo aceptado hasta que se verifique el email:** quien se registre con el email de otra persona conserva el acceso por contraseña cuando esa persona entre con Google, porque la vinculación es automática.
+- **Gestión de métodos de acceso** (ver, añadir o cambiar contraseña, vincular Google, quitar un método): pendiente, forma parte de US-002.
+- El límite de peticiones de autenticación es por IP y en memoria: detrás de un proxy habrá que configurar la IP real al definir el despliegue.
 - **iOS:** el propietario aún no tiene suscripción a Apple Developer Program. Sin ella no se pueden generar builds de iOS. Después habrá que registrar el iPhone (`eas device:create`) y crear las credenciales con una primera build interactiva.
 - **Android:** no se ha generado ninguna build. Puede requerir una primera `eas build --platform android --profile preview` interactiva para crear la clave de firma.
 - **`build.yml` no se ha ejecutado nunca.** El enlace de instalación que publica se construye a partir de la salida JSON de `eas build`, sin verificar.

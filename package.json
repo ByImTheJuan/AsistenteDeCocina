@@ -13,6 +13,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "mysql2": "^3.24.5",
+    "mariadb": "~3.4.7",
     "deepmerge-ts": "^8.0.2"
   },
   "scripts": {
