@@ -38,4 +38,4 @@ Se conservan **anonimizadas**: dejan de estar asociadas a la cuenta y se muestra
 
 ## Estado actual
 
-Las tablas con datos de usuario son `users` (que incluye la dieta elegida), `refresh_tokens`, `ingredient_preferences` (alimentos que gustan o se prefieren evitar), `allergen_restrictions` e `ingredient_restrictions` (alergias e intolerancias), y todas se borran con la cuenta. `ingredients` e `ingredient_allergens` son el catálogo común, no contienen datos de ningún usuario y no se tocan. Las reglas sobre recetas y reseñas se aplicarán cuando se implementen esas historias.
+Las tablas con datos de usuario son `users` (que incluye la dieta elegida), `refresh_tokens`, `ingredient_preferences` (alimentos que gustan o se prefieren evitar), `allergen_restrictions` e `ingredient_restrictions` (alergias e intolerancias) y `nutrition_goals` (objetivos nutricionales), y todas se borran con la cuenta. `ingredients` e `ingredient_allergens` son el catálogo común, no contienen datos de ningún usuario y no se tocan. Las reglas sobre recetas y reseñas se aplicarán cuando se implementen esas historias.
