@@ -23,10 +23,13 @@ model User {
   passwordHash String?  @db.VarChar(255)
   name         String?  @db.VarChar(255)
   avatarUrl    String?  @db.VarChar(2048)
+  // Null while the user has not chosen a diet.
+  diet         Diet?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  refreshTokens RefreshToken[]
+  refreshTokens         RefreshToken[]
+  ingredientPreferences IngredientPreference[]
 
   @@map("users")
 }
@@ -48,4 +51,61 @@ model RefreshToken {
   @@index([userId])
   @@index([familyId])
   @@map("refresh_tokens")
+}
+
+enum Diet {
+  VEGETARIAN
+  VEGAN
+  PESCATARIAN
+  FLEXITARIAN
+}
+
+enum IngredientCategory {
+  VEGETABLE
+  FRUIT
+  MEAT
+  FISH_SEAFOOD
+  DAIRY_EGG
+  GRAIN
+  LEGUME
+  NUT_SEED
+  HERB_SPICE
+  OTHER
+}
+
+// Catalogue of foods the user can refer to. Its rows are reference data,
+// inserted by migrations so every environment has the same ones. Units and
+// equivalences are not modelled yet.
+model Ingredient {
+  id        String             @id @default(cuid())
+  // In Spanish, as shown to the user.
+  name      String             @unique @db.VarChar(100)
+  category  IngredientCategory
+  createdAt DateTime           @default(now())
+
+  preferences IngredientPreference[]
+
+  @@map("ingredients")
+}
+
+enum IngredientPreferenceKind {
+  LIKED
+  AVOIDED
+}
+
+// A taste, not a safety restriction: allergies and intolerances are kept
+// apart from these.
+model IngredientPreference {
+  userId       String
+  ingredientId String
+  kind         IngredientPreferenceKind
+  createdAt    DateTime                 @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  // One row per ingredient: it cannot be liked and avoided at once.
+  @@id([userId, ingredientId])
+  @@index([ingredientId])
+  @@map("ingredient_preferences")
 }
