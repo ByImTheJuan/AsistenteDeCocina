@@ -2,7 +2,7 @@
 
 Aplicación móvil multiplataforma para iOS y Android que ayuda a gestionar los alimentos disponibles en casa, descubrir recetas personalizadas, planificar comidas y preparar listas de compra.
 
-> **Estado del proyecto:** entorno de desarrollo preparado y primera historia (`US-001`, inicio de sesión con Google) implementada y cubierta con pruebas automatizadas, pendiente de validar en un dispositivo. Consulta el repositorio para comprobar qué funcionalidades están realmente implementadas.
+> **Estado del proyecto:** entorno de desarrollo preparado y primera historia (`US-001`, registro e inicio de sesión con email y contraseña o con Google) implementada y cubierta con pruebas automatizadas, pendiente de validar en un dispositivo. Consulta el repositorio para comprobar qué funcionalidades están realmente implementadas.
 
 ## Índice
 
@@ -211,7 +211,7 @@ npm run start:dev -w api
 npm run start -w mobile
 ```
 
-La API no arranca sin `GOOGLE_CLIENT_ID` y `JWT_ACCESS_SECRET` en `services/api/.env`, y la app necesita `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`. Cómo obtener esos valores está en [`docs/google-sign-in-setup.md`](docs/google-sign-in-setup.md).
+La API no arranca sin `GOOGLE_CLIENT_ID` y `JWT_ACCESS_SECRET` en `services/api/.env`, y la app necesita `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`. Para registrarse e iniciar sesión con email y contraseña bastan los valores de ejemplo de los `.env.example`; los client ID reales solo hacen falta para entrar con Google y se obtienen siguiendo [`docs/google-sign-in-setup.md`](docs/google-sign-in-setup.md).
 
 ### Comprobaciones de calidad
 
@@ -369,7 +369,7 @@ Para iterar la interfaz mientras la app solo use módulos incluidos en Expo Go:
 
 Los cambios de código se recargan al instante y no se consume cupo de EAS. Limitaciones: Expo Go solo incluye sus propios módulos nativos y solo abre proyectos del SDK que soporta la versión instalada.
 
-**El inicio de sesión con Google no funciona en Expo Go**, porque usa un módulo nativo que no incluye. Como la app exige iniciar sesión, para pasar de la primera pantalla hace falta una development build.
+**El inicio de sesión con Google no funciona en Expo Go**, porque usa un módulo nativo que no incluye; el botón lo indica al pulsarlo. El registro y el inicio de sesión con email y contraseña sí funcionan en Expo Go, con la API arrancada.
 
 El teléfono y el ordenador deben estar en la misma red (o usar `npx expo start --tunnel`). `localhost` desde el teléfono es el propio teléfono: configura `EXPO_PUBLIC_API_URL` con la IP del ordenador.
 

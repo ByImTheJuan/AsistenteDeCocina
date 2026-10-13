@@ -1,6 +1,6 @@
 # Configurar el inicio de sesión con Google
 
-Guía para dar de alta las credenciales que necesita US-001. Hasta completarla, el inicio de sesión solo funciona en las pruebas automatizadas.
+Guía para dar de alta las credenciales del inicio de sesión con Google. No hace falta para usar la app: se puede crear una cuenta con email y contraseña sin nada de lo que se describe aquí.
 
 ## Cómo funciona
 
@@ -9,6 +9,10 @@ Guía para dar de alta las credenciales que necesita US-001. Hasta completarla, 
 3. La API comprueba la firma, la caducidad y que el token va dirigido a ella (`GOOGLE_CLIENT_ID`), crea la cuenta si es el primer acceso y devuelve su propia sesión: un JWT de acceso de 15 minutos y un refresh token de un solo uso.
 
 La API nunca recibe la contraseña de Google ni guarda tokens de Google. No hay ningún *client secret*: los client ID son identificadores públicos.
+
+## Relación con las cuentas de email y contraseña
+
+Hay una sola cuenta por email. Si alguien entra con Google usando el email de una cuenta creada con contraseña, la cuenta queda vinculada a Google, su contraseña deja de funcionar y se cierran sus sesiones abiertas. Es deliberado: el email de las cuentas con contraseña no se verifica, y Google sí garantiza que quien entra es su propietario.
 
 ## Credenciales necesarias
 

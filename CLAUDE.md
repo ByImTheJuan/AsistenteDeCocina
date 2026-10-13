@@ -387,8 +387,8 @@ No existe `packages/shared`. No lo crees hasta que haya un contrato compartido r
 - **Gestor de paquetes:** npm workspaces, Node.js 24 (`.nvmrc`). Los comandos se lanzan desde la raíz con `-w mobile` o `-w api`.
 - **App móvil:** Expo SDK 57 (React Native 0.86, React 19.2, TypeScript 6), Expo Router, TanStack Query, React Hook Form, Zod, `expo-dev-client`, Jest y React Native Testing Library. El código propio vive en `src/features/<funcionalidad>` y `src/lib`; las rutas privadas están en `src/app/(app)` y todavía muestran las pantallas de ejemplo de la plantilla de Expo.
 - **API:** NestJS 12 (proyecto ESM), OpenAPI en `/docs`, `ValidationPipe` global, `GET /health`, módulo `auth` y Prisma 7.10 con proveedor MySQL a través de `@prisma/adapter-mariadb` (`PrismaService` global). Modelos `User` y `RefreshToken` con su migración. Las variables de entorno se validan al arrancar (`src/config/env.validation.ts`).
-- **US-001 (inicio de sesión con Google) está implementada y cubierta con pruebas automatizadas, pero sin validar en ningún dispositivo**: faltan las credenciales de Google Cloud y una development build. La siguiente según el backlog es US-042.
-- **Autenticación:** la app obtiene un ID token con `@react-native-google-signin/google-signin` y lo envía a `POST /auth/google`; la API lo verifica y emite un JWT de acceso (15 min) y un refresh token rotatorio guardado con hash. Para proteger un endpoint: `@UseGuards(JwtAuthGuard)` y `@CurrentUser()` (el módulo debe importar `AuthModule`). En la app, las llamadas autenticadas pasan por `sessionManager.authorizedRequest` y el estado de sesión se lee con `useSession()`.
+- **US-001 (registro e inicio de sesión, con email y contraseña o con Google) está implementada y cubierta con pruebas automatizadas, pero sin validar en ningún dispositivo.** El acceso con email y contraseña se puede probar en Expo Go; el de Google necesita las credenciales de Google Cloud y una development build. La siguiente según el backlog es US-042.
+- **Autenticación:** tres formas de obtener sesión: `POST /auth/register` y `POST /auth/login` (email y contraseña, con hash scrypt) y `POST /auth/google` (ID token obtenido con `@react-native-google-signin/google-signin`). En los tres casos la API emite un JWT de acceso (15 min) y un refresh token rotatorio guardado con hash. Hay una cuenta por email (guardado en minúsculas); entrar con Google a una cuenta con contraseña la vincula y anula la contraseña. Esos tres endpoints tienen límite de peticiones por IP (`@nestjs/throttler`, en memoria). Para proteger un endpoint: `@UseGuards(JwtAuthGuard)` y `@CurrentUser()` (el módulo debe importar `AuthModule`). En la app, las llamadas autenticadas pasan por `sessionManager.authorizedRequest` y el estado de sesión se lee con `useSession()`.
 
 ### Comandos
 
@@ -435,7 +435,8 @@ Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md`:
 ### Pendiente
 
 - **Inicio de sesión con Google:** crear el proyecto y los client ID en Google Cloud y configurar las variables, según `docs/google-sign-in-setup.md`. No funciona en Expo Go; hace falta una development build.
-- Limitación de peticiones en `/auth/*`: sin implementar.
+- **Verificación de email y recuperación de contraseña:** sin implementar; necesitan un servicio de envío de correo. Quien olvide su contraseña no puede recuperarla.
+- El límite de peticiones de autenticación es por IP y en memoria: detrás de un proxy habrá que configurar la IP real al definir el despliegue.
 - **iOS:** el propietario aún no tiene suscripción a Apple Developer Program. Sin ella no se pueden generar builds de iOS. Después habrá que registrar el iPhone (`eas device:create`) y crear las credenciales con una primera build interactiva.
 - **Android:** no se ha generado ninguna build. Puede requerir una primera `eas build --platform android --profile preview` interactiva para crear la clave de firma.
 - **`build.yml` no se ha ejecutado nunca.** El enlace de instalación que publica se construye a partir de la salida JSON de `eas build`, sin verificar.
