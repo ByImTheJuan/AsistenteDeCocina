@@ -41,6 +41,6 @@ import { PasswordHasher } from './password-hasher.js';
   controllers: [AuthController],
   providers: [AuthService, GoogleTokenVerifier, JwtAuthGuard, PasswordHasher],
   // Other modules protect their routes with the guard, which needs JwtService.
-  exports: [JwtAuthGuard, JwtModule],
+  exports: [JwtAuthGuard, JwtModule, GoogleTokenVerifier, PasswordHasher],
 })
 export class AuthModule {}

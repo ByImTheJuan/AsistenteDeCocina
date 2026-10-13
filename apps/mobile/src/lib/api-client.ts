@@ -2,10 +2,26 @@ import { getEnv } from '@/config/app-env';
 
 /** The API answered with an error status. */
 export class ApiError extends Error {
-  constructor(readonly status: number) {
+  constructor(
+    readonly status: number,
+    /** Stable identifier sent by the API when the status alone is ambiguous. */
+    readonly code?: string,
+  ) {
     super(`API request failed with status ${status}`);
     this.name = 'ApiError';
   }
+}
+
+async function readErrorCode(response: Response): Promise<string | undefined> {
+  try {
+    const body: unknown = await response.json();
+    if (typeof body === 'object' && body !== null && 'code' in body) {
+      return typeof body.code === 'string' ? body.code : undefined;
+    }
+  } catch {
+    // Not every error has a JSON body; the status is enough then.
+  }
+  return undefined;
 }
 
 /** The API could not be reached: no connectivity, timeout or server down. */
@@ -55,7 +71,7 @@ export async function apiRequest(
   }
 
   if (!response.ok) {
-    throw new ApiError(response.status);
+    throw new ApiError(response.status, await readErrorCode(response));
   }
   if (response.status === 204) {
     return undefined;

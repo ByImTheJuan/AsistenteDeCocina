@@ -9,8 +9,11 @@ type PrimaryButtonProps = {
   onPress(): void;
   loading?: boolean;
   disabled?: boolean;
-  /** `secondary` for an alternative that should not compete with the main action. */
-  variant?: 'primary' | 'secondary';
+  /**
+   * `secondary` for an alternative that should not compete with the main
+   * action; `danger` for actions that destroy data.
+   */
+  variant?: 'primary' | 'secondary' | 'danger';
 };
 
 export function PrimaryButton({
@@ -22,7 +25,13 @@ export function PrimaryButton({
 }: PrimaryButtonProps) {
   const theme = useTheme();
   const inactive = loading || disabled;
-  const primary = variant === 'primary';
+  const background =
+    variant === 'primary'
+      ? theme.text
+      : variant === 'danger'
+        ? theme.danger
+        : theme.backgroundSelected;
+  const foreground = variant === 'secondary' ? 'text' : 'background';
 
   return (
     <Pressable
@@ -33,13 +42,13 @@ export function PrimaryButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: primary ? theme.text : theme.backgroundElement },
+        { backgroundColor: background },
         (pressed || inactive) && styles.dimmed,
       ]}>
       {loading ? (
-        <ActivityIndicator color={primary ? theme.background : theme.text} />
+        <ActivityIndicator color={theme[foreground]} />
       ) : (
-        <ThemedText themeColor={primary ? 'background' : 'text'}>{label}</ThemedText>
+        <ThemedText themeColor={foreground}>{label}</ThemedText>
       )}
     </Pressable>
   );

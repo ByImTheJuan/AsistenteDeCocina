@@ -1,14 +1,18 @@
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { screen, userEvent } from '@testing-library/react-native';
+import { Slot } from 'expo-router';
 import { renderRouter } from 'expo-router/testing-library';
-import { TurboModuleRegistry, type TurboModule } from 'react-native';
+import { act } from 'react';
+import { Alert, TurboModuleRegistry, type AlertButton, type TurboModule } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-import { AccountSummary } from './account-summary';
 import { SignInScreen } from './sign-in-screen';
 import { SignUpScreen } from './sign-up-screen';
 
 import RootLayout from '@/app/_layout';
+import { AccountScreen } from '@/features/account/account-screen';
+import { DeleteAccountScreen } from '@/features/account/delete-account-screen';
+import { PasswordScreen } from '@/features/account/password-screen';
 
 // Runs the real root layout, session manager and API client. Only the native
 // modules and the network are replaced.
@@ -49,12 +53,20 @@ const session = {
   user: { id: 'user-1', email: 'ana@example.com', name: 'Ana', avatarUrl: null },
 };
 
+const account = {
+  ...session.user,
+  createdAt: '2026-10-13T08:30:00.000Z',
+  signInMethods: { password: true, google: false },
+};
+
 const fetchMock = jest.fn<Promise<Response>, [string, RequestInit]>();
 
-// Answers each API path with the given status and body; anything else is a 401.
+// Answers each API path with the given status and body; anything else is a
+// 401. The account can always be read, as the private area shows it.
 function mockApi(routes: Record<string, [status: number, body?: unknown]>) {
+  const known: typeof routes = { '/account': [200, account], ...routes };
   fetchMock.mockImplementation(async (url) => {
-    const [status, body] = routes[new URL(url).pathname] ?? [401];
+    const [status, body] = known[new URL(url).pathname] ?? [401];
     return { ok: status < 300, status, json: async () => body } as Response;
   });
 }
@@ -69,7 +81,12 @@ async function renderApp() {
       _layout: RootLayout,
       'sign-in': SignInScreen,
       'sign-up': SignUpScreen,
-      '(app)/index': AccountSummary,
+      // Same shape as src/app: a private group behind the guard. The account
+      // screen stands in for its home screen.
+      '(app)/_layout': () => <Slot />,
+      '(app)/index': AccountScreen,
+      '(app)/account/password': PasswordScreen,
+      '(app)/account/delete': DeleteAccountScreen,
     },
     { initialUrl: '/' },
   );
@@ -99,7 +116,7 @@ describe('protected routes', () => {
     expect(
       await screen.findByRole('button', { name: 'Continuar con Google' }),
     ).toBeOnTheScreen();
-    expect(screen.queryByText('Sesión iniciada como')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Métodos de acceso')).not.toBeOnTheScreen();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -109,7 +126,7 @@ describe('protected routes', () => {
 
     await renderApp();
 
-    expect(await screen.findByText('Sesión iniciada como')).toBeOnTheScreen();
+    expect(await screen.findByText('Métodos de acceso')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Continuar con Google' })).not.toBeOnTheScreen();
     expect(requestsTo('/auth/refresh')[0][1].body).toBe('{"refreshToken":"refresh-0"}');
   });
@@ -136,7 +153,7 @@ describe('protected routes', () => {
 
     await user.press(await screen.findByRole('button', { name: 'Continuar con Google' }));
 
-    expect(await screen.findByText('Sesión iniciada como')).toBeOnTheScreen();
+    expect(await screen.findByText('Métodos de acceso')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Continuar con Google' })).not.toBeOnTheScreen();
     expect(requestsTo('/auth/google')[0][1].body).toBe('{"idToken":"google-id-token"}');
     await expect(SecureStore.getItemAsync('auth.refreshToken')).resolves.toBe('refresh-1');
@@ -146,7 +163,7 @@ describe('protected routes', () => {
     expect(
       await screen.findByRole('button', { name: 'Continuar con Google' }),
     ).toBeOnTheScreen();
-    expect(screen.queryByText('Sesión iniciada como')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Métodos de acceso')).not.toBeOnTheScreen();
     expect(requestsTo('/auth/logout')[0][1].body).toBe('{"refreshToken":"refresh-1"}');
     await expect(SecureStore.getItemAsync('auth.refreshToken')).resolves.toBeNull();
     expect(GoogleSignin.signOut).toHaveBeenCalled();
@@ -166,7 +183,7 @@ describe('protected routes', () => {
     await user.type(screen.getByLabelText('Contraseña'), 'correct horse');
     await user.press(screen.getByRole('button', { name: 'Crear cuenta' }));
 
-    expect(await screen.findByText('Sesión iniciada como')).toBeOnTheScreen();
+    expect(await screen.findByText('Métodos de acceso')).toBeOnTheScreen();
     expect(JSON.parse(String(requestsTo('/auth/register')[0][1].body))).toEqual({
       name: 'Ana',
       email: 'Ana@Example.com',
@@ -179,13 +196,54 @@ describe('protected routes', () => {
     await user.type(screen.getByLabelText('Contraseña'), 'correct horse');
     await user.press(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
-    expect(await screen.findByText('Sesión iniciada como')).toBeOnTheScreen();
+    expect(await screen.findByText('Métodos de acceso')).toBeOnTheScreen();
     expect(JSON.parse(String(requestsTo('/auth/login')[0][1].body))).toEqual({
       email: 'ana@example.com',
       password: 'correct horse',
     });
     await expect(SecureStore.getItemAsync('auth.refreshToken')).resolves.toBe('refresh-2');
     expect(GoogleSignin.signIn).not.toHaveBeenCalled();
+  });
+
+  it('changes the password and then deletes the account from the account screen', async () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    await SecureStore.setItemAsync('auth.refreshToken', 'refresh-0');
+    mockApi({
+      '/auth/refresh': [200, session],
+      '/account/password': [200, account],
+      '/account/delete': [204],
+    });
+    await renderApp();
+
+    await user.press(await screen.findByRole('button', { name: 'Cambiar contraseña' }));
+    await user.type(await screen.findByLabelText('Contraseña actual'), 'old password');
+    await user.type(screen.getByLabelText('Nueva contraseña'), 'a new password');
+    await user.press(screen.getByRole('button', { name: 'Cambiar contraseña' }));
+
+    expect(await screen.findByText('Métodos de acceso')).toBeOnTheScreen();
+    const passwordRequest = requestsTo('/account/password')[0][1];
+    expect(passwordRequest.method).toBe('PUT');
+    expect(passwordRequest.headers).toMatchObject({ Authorization: 'Bearer access-1' });
+    expect(JSON.parse(String(passwordRequest.body))).toEqual({
+      currentPassword: 'old password',
+      newPassword: 'a new password',
+    });
+
+    await user.press(screen.getByRole('link', { name: 'Eliminar mi cuenta' }));
+    await user.type(await screen.findByLabelText('Contraseña actual'), 'a new password');
+    await user.press(screen.getByRole('button', { name: 'Eliminar mi cuenta definitivamente' }));
+    const buttons: AlertButton[] = alert.mock.calls[0][2] ?? [];
+    await act(async () => {
+      await buttons.find((button) => button.text === 'Eliminar')?.onPress?.();
+    });
+
+    expect(await screen.findByRole('button', { name: 'Continuar con Google' })).toBeOnTheScreen();
+    expect(screen.queryByText('Métodos de acceso')).not.toBeOnTheScreen();
+    expect(JSON.parse(String(requestsTo('/account/delete')[0][1].body))).toEqual({
+      currentPassword: 'a new password',
+    });
+    await expect(SecureStore.getItemAsync('auth.refreshToken')).resolves.toBeNull();
+    alert.mockRestore();
   });
 
   it('moves between the sign-in and sign-up screens', async () => {
@@ -207,7 +265,7 @@ describe('protected routes', () => {
     await user.press(await screen.findByRole('button', { name: 'Continuar con Google' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/Has cancelado/);
-    expect(screen.queryByText('Sesión iniciada como')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Métodos de acceso')).not.toBeOnTheScreen();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

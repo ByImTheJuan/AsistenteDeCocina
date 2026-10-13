@@ -6,10 +6,10 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 
 /**
- * Centred column shared by the sign-in and sign-up screens. It scrolls and
+ * Centred column for screens with a form. It scrolls and
  * moves with the keyboard so the focused field and the buttons stay reachable.
  */
-export function AuthScreenLayout({ children }: PropsWithChildren) {
+export function FormScreen({ children }: PropsWithChildren) {
   return (
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView behavior="padding" style={styles.container}>

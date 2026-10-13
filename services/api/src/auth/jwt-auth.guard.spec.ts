@@ -19,11 +19,26 @@ describe('JwtAuthGuard', () => {
   const guard = new JwtAuthGuard(jwt);
 
   it('attaches the user ID from a valid token', async () => {
+    const token = await jwt.signAsync(
+      { sub: 'user-1', sid: 'family-1' },
+      { expiresIn: 60 },
+    );
+    const request = { headers: { authorization: `Bearer ${token}` } };
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request).toMatchObject({
+      user: { id: 'user-1', sessionId: 'family-1' },
+    });
+  });
+
+  it('accepts a token issued before sessions were identified', async () => {
     const token = await jwt.signAsync({ sub: 'user-1' }, { expiresIn: 60 });
     const request = { headers: { authorization: `Bearer ${token}` } };
 
     await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
-    expect(request).toMatchObject({ user: { id: 'user-1' } });
+    expect(request).toMatchObject({
+      user: { id: 'user-1', sessionId: null },
+    });
   });
 
   it.each([

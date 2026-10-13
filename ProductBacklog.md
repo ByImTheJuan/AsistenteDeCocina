@@ -95,6 +95,11 @@ Las prioridades son una propuesta inicial y podrán cambiar según la validació
 - Antes de eliminarla, se solicita confirmación y se informa de las consecuencias.
 - La eliminación sigue la política de conservación y supresión de datos del producto, incluyendo el tratamiento de recetas publicadas y reseñas.
 
+**Notas**
+- La política de conservación y supresión de datos está definida en `docs/data-retention-policy.md`: el borrado es inmediato y definitivo, los datos privados se eliminan y las recetas publicadas y las reseñas se conservan sin autor.
+- Las acciones sensibles (cambiar o quitar la contraseña, desvincular Google y eliminar la cuenta) piden la contraseña actual cuando la cuenta tiene una.
+- Solo se puede vincular la cuenta de Google cuyo email coincide con el de la cuenta.
+
 ### US-003 — Configurar mis preferencias alimentarias
 **Prioridad:** P0 — MVP
 

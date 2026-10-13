@@ -59,6 +59,24 @@ describe('Auth rate limit (e2e)', () => {
     await http().post('/auth/google').send({}).expect(429);
   });
 
+  it('limits the account endpoints that check the password', async () => {
+    const session = await http()
+      .post('/auth/register')
+      .send({ name: 'Ana', email: 'ana@example.com', password: 'a password' })
+      .expect(201);
+    const changePassword = () =>
+      http()
+        .put('/account/password')
+        .set('Authorization', `Bearer ${session.body.accessToken}`)
+        .send({ currentPassword: 'wrong guess', newPassword: 'new password' });
+
+    for (let attempt = 0; attempt < LIMIT; attempt += 1) {
+      await changePassword().expect(403);
+    }
+
+    await changePassword().expect(429);
+  });
+
   it('does not limit the endpoints that take no credentials', async () => {
     for (let attempt = 0; attempt < LIMIT + 2; attempt += 1) {
       await http().get('/health').expect(200);
