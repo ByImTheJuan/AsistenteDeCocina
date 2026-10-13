@@ -121,7 +121,7 @@ describe('SignUpScreen', () => {
     [
       'the email already has an account',
       new ApiError(409),
-      'Ya existe una cuenta con ese email. Inicia sesión o usa otro email.',
+      'Ya existe una cuenta con ese email. Inicia sesión con tu contraseña o con Google.',
     ],
     [
       'the server rejects the data',
