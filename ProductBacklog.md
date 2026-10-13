@@ -76,7 +76,8 @@ Las prioridades son una propuesta inicial y podrán cambiar según la validació
 
 **Notas**
 - La verificación del email y la recuperación de la contraseña quedan fuera de esta historia, pendientes de disponer de un servicio de envío de correo.
-- Mientras el email no se verifique, iniciar sesión con Google en una cuenta creada con contraseña la vincula a Google y anula esa contraseña.
+- La contraseña y Google son métodos de acceso de una misma cuenta y pueden estar disponibles a la vez. Iniciar sesión con Google con el email de una cuenta creada con contraseña la vincula a Google y conserva la contraseña: el usuario puede entrar con cualquiera de los dos.
+- Una cuenta creada con Google no tiene contraseña hasta que el usuario la añade desde la gestión de su cuenta (US-002).
 
 ### US-002 — Gestionar la cuenta personal
 **Prioridad:** P0 — MVP
@@ -86,6 +87,11 @@ Las prioridades son una propuesta inicial y podrán cambiar según la validació
 **Criterios de aceptación**
 - Puedo consultar los datos básicos de mi cuenta.
 - Puedo acceder a las opciones de cierre de sesión y eliminación de cuenta.
+- Puedo consultar qué métodos de acceso tiene mi cuenta (contraseña y Google).
+- Si mi cuenta no tiene contraseña, puedo añadir una.
+- Puedo cambiar mi contraseña.
+- Puedo vincular mi cuenta de Google si no lo está.
+- Puedo quitar un método de acceso siempre que la cuenta conserve al menos otro.
 - Antes de eliminarla, se solicita confirmación y se informa de las consecuencias.
 - La eliminación sigue la política de conservación y supresión de datos del producto, incluyendo el tratamiento de recetas publicadas y reseñas.
 
