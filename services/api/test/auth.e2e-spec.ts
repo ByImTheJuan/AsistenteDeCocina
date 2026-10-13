@@ -21,6 +21,12 @@ const profiles: Record<string, GoogleProfile> = {
     name: 'Ana María',
     avatarUrl: null,
   },
+  'token-luis-named': {
+    sub: 'google-luis',
+    email: 'luis@example.com',
+    name: 'Luis',
+    avatarUrl: null,
+  },
   'token-luis': {
     sub: 'google-luis',
     email: 'luis@example.com',
@@ -97,17 +103,27 @@ describe('Auth (e2e)', () => {
       await expect(prisma.user.count()).resolves.toBe(1);
     });
 
-    it('updates the profile data without creating another account', async () => {
+    it('follows email and picture changes without creating another account', async () => {
       const first = await signIn('token-ana').expect(200);
       const second = await signIn('token-ana-renamed').expect(200);
 
       expect(second.body.user).toEqual({
         id: first.body.user.id,
         email: 'ana.nueva@example.com',
-        name: 'Ana María',
+        name: 'Ana',
         avatarUrl: null,
       });
       await expect(prisma.user.count()).resolves.toBe(1);
+    });
+
+    it('takes the name from Google only while the account has none', async () => {
+      const first = await signIn('token-luis').expect(200);
+      const second = await signIn('token-luis-named').expect(200);
+      const third = await signIn('token-luis').expect(200);
+
+      expect(first.body.user.name).toBeNull();
+      expect(second.body.user.name).toBe('Luis');
+      expect(third.body.user.name).toBe('Luis');
     });
 
     it('does not duplicate the account when two first sign-ins race', async () => {

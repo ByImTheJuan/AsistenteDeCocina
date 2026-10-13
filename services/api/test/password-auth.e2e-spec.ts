@@ -250,46 +250,83 @@ describe('Email and password accounts (e2e)', () => {
     });
   });
 
-  describe('signing in with Google to an account created with a password', () => {
+  describe('an account with a password that signs in with Google', () => {
     it('keeps a single account and links it to Google', async () => {
       const registered = await register().expect(201);
 
       const google = await signInWithGoogle('google-token-ana').expect(200);
 
-      expect(google.body.user).toEqual({
-        id: registered.body.user.id,
-        email: 'ana@example.com',
-        name: 'Ana de Google',
-        avatarUrl: 'https://example.com/ana.png',
+      expect(google.body.user.id).toBe(registered.body.user.id);
+      await expect(prisma.user.count()).resolves.toBe(1);
+      const stored = await prisma.user.findUniqueOrThrow({
+        where: { id: registered.body.user.id },
       });
+      expect(stored.googleSub).toBe('google-ana');
+      expect(stored.passwordHash).toMatch(/^scrypt\$/);
+    });
+
+    it('can then sign in with either method', async () => {
+      const registered = await register().expect(201);
+      await signInWithGoogle('google-token-ana').expect(200);
+
+      const withPassword = await login(ana.email, ana.password).expect(200);
+      const withGoogle = await signInWithGoogle('google-token-ana').expect(200);
+
+      expect(withPassword.body.user.id).toBe(registered.body.user.id);
+      expect(withGoogle.body.user.id).toBe(registered.body.user.id);
       await expect(prisma.user.count()).resolves.toBe(1);
     });
 
-    it('stops the password from working', async () => {
+    it('still rejects a wrong password', async () => {
       await register().expect(201);
-
       await signInWithGoogle('google-token-ana').expect(200);
 
-      await login(ana.email, ana.password).expect(401);
+      await login(ana.email, 'wrong password').expect(401);
     });
 
-    it('ends the sessions opened with the password', async () => {
+    it('keeps the sessions opened with the password', async () => {
       const registered = await register().expect(201);
 
       const google = await signInWithGoogle('google-token-ana').expect(200);
 
-      await refresh(registered.body.refreshToken).expect(401);
+      await refresh(registered.body.refreshToken).expect(200);
       await refresh(google.body.refreshToken).expect(200);
     });
 
-    it('recognises the account on later Google sign-ins', async () => {
+    it('keeps the name chosen at registration and takes the picture from Google', async () => {
       await register().expect(201);
-      const first = await signInWithGoogle('google-token-ana').expect(200);
 
-      const second = await signInWithGoogle('google-token-ana').expect(200);
+      const google = await signInWithGoogle('google-token-ana').expect(200);
 
-      expect(second.body.user.id).toBe(first.body.user.id);
-      await expect(prisma.user.count()).resolves.toBe(1);
+      expect(google.body.user).toMatchObject({
+        email: 'ana@example.com',
+        name: 'Ana',
+        avatarUrl: 'https://example.com/ana.png',
+      });
+    });
+  });
+
+  describe('an account created with Google', () => {
+    it('has no password, so password sign-in is rejected', async () => {
+      await signInWithGoogle('google-token-ana').expect(200);
+
+      const response = await login('ana@example.com', 'any password').expect(
+        401,
+      );
+
+      expect(response.body.message).toBe('Invalid email or password');
+    });
+
+    it('cannot be given a password by registering with its email', async () => {
+      const google = await signInWithGoogle('google-token-ana').expect(200);
+
+      await register().expect(409);
+
+      const stored = await prisma.user.findUniqueOrThrow({
+        where: { id: google.body.user.id },
+      });
+      expect(stored.passwordHash).toBeNull();
+      await login(ana.email, ana.password).expect(401);
     });
 
     it('rejects a second Google account with the same email', async () => {
