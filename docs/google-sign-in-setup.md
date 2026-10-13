@@ -12,7 +12,12 @@ La API nunca recibe la contraseña de Google ni guarda tokens de Google. No hay 
 
 ## Relación con las cuentas de email y contraseña
 
-Hay una sola cuenta por email. Si alguien entra con Google usando el email de una cuenta creada con contraseña, la cuenta queda vinculada a Google, su contraseña deja de funcionar y se cierran sus sesiones abiertas. Es deliberado: el email de las cuentas con contraseña no se verifica, y Google sí garantiza que quien entra es su propietario.
+Hay una sola cuenta por email, y la contraseña y Google son dos métodos de acceso de esa misma cuenta.
+
+- Si alguien entra con Google usando el email de una cuenta creada con contraseña, la cuenta queda vinculada a Google. La contraseña y las sesiones abiertas siguen funcionando: se puede entrar con cualquiera de los dos métodos.
+- Una cuenta creada con Google no tiene contraseña. Añadirla, cambiarla o quitar un método se hará desde la gestión de la cuenta (US-002).
+
+**Riesgo conocido:** el email de las cuentas con contraseña no se verifica. Si alguien se registra con el email de otra persona y esa persona entra después con Google, los dos tienen acceso a la misma cuenta. Desaparece cuando exista verificación de email.
 
 ## Credenciales necesarias
 
