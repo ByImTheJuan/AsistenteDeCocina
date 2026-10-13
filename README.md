@@ -2,7 +2,7 @@
 
 Aplicación móvil multiplataforma para iOS y Android que ayuda a gestionar los alimentos disponibles en casa, descubrir recetas personalizadas, planificar comidas y preparar listas de compra.
 
-> **Estado del proyecto:** entorno de desarrollo preparado y `US-001` (registro e inicio de sesión con email y contraseña o con Google) terminada, y `US-002` (gestión de la cuenta: datos, métodos de acceso, cierre de sesión y eliminación) implementada y cubierta con pruebas automatizadas, pendiente de validar en un dispositivo. Consulta el repositorio para comprobar qué funcionalidades están realmente implementadas.
+> **Estado del proyecto:** entorno de desarrollo preparado y `US-001` (registro e inicio de sesión con email y contraseña o con Google) terminada, y `US-002` (gestión de la cuenta: datos, métodos de acceso, cierre de sesión y eliminación) implementada y cubierta con pruebas automatizadas, pendiente de validar en un dispositivo. `US-003` (preferencias alimentarias: dieta y alimentos que gustan o se prefieren evitar) está implementada y probada del mismo modo, salvo el criterio que depende de las recomendaciones, que se cubrirá con `US-015`. Consulta el repositorio para comprobar qué funcionalidades están realmente implementadas.
 
 ## Índice
 
@@ -200,7 +200,7 @@ cp apps/mobile/.env.example apps/mobile/.env
 # 3. MySQL de desarrollo (bases cocina_dev y cocina_test)
 npm run db:up
 
-# 4. Cliente de Prisma y migraciones
+# 4. Cliente de Prisma y migraciones (incluyen el catálogo de ingredientes)
 npm run prisma:generate -w api
 cd services/api && npx prisma migrate dev && cd ../..
 

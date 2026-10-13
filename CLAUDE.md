@@ -386,10 +386,13 @@ No existe `packages/shared`. No lo crees hasta que haya un contrato compartido r
 ### Qué está construido
 
 - **Gestor de paquetes:** npm workspaces, Node.js 24 (`.nvmrc`). Los comandos se lanzan desde la raíz con `-w mobile` o `-w api`.
-- **App móvil:** Expo SDK 57 (React Native 0.86, React 19.2, TypeScript 6), Expo Router, TanStack Query, React Hook Form, Zod, `expo-dev-client`, Jest y React Native Testing Library. El código propio vive en `src/features/<funcionalidad>` y `src/lib`; las rutas privadas están en `src/app/(app)` y todavía muestran las pantallas de ejemplo de la plantilla de Expo.
+- **App móvil:** Expo SDK 57 (React Native 0.86, React 19.2, TypeScript 6), Expo Router, TanStack Query, React Hook Form, Zod, `expo-dev-client`, Jest y React Native Testing Library. El código propio vive en `src/features/<funcionalidad>` y `src/lib`; las rutas privadas están en `src/app/(app)`, con tres pestañas: «Home» (todavía la pantalla de ejemplo de la plantilla de Expo), «Perfil» y «Cuenta».
 - **API:** NestJS 12 (proyecto ESM), OpenAPI en `/docs`, `ValidationPipe` global, `GET /health`, módulo `auth` y Prisma 7.10 con proveedor MySQL a través de `@prisma/adapter-mariadb` (`PrismaService` global). Modelos `User` y `RefreshToken` con su migración. Las variables de entorno se validan al arrancar (`src/config/env.validation.ts`).
 - **US-001 (registro e inicio de sesión, con email y contraseña o con Google) está terminada**; el propietario validó en Expo Go el acceso con email y contraseña. El de Google sigue sin validar: necesita las credenciales de Google Cloud y una development build.
-- **US-002 (gestión de la cuenta) está implementada y cubierta con pruebas automatizadas, pendiente de validar en dispositivo.** La siguiente según el backlog es US-042.
+- **US-002 (gestión de la cuenta) está implementada y cubierta con pruebas automatizadas, pendiente de validar en dispositivo.**
+- **US-003 (preferencias alimentarias) está implementada y cubierta con pruebas automatizadas, pendiente de validar en dispositivo y con un criterio diferido:** «Las recomendaciones tienen en cuenta las preferencias guardadas» se cubrirá en US-015, cuando existan recetas. Las siguientes según el backlog son US-005 y US-042.
+- **Perfil alimentario:** pestaña «Perfil» de la app (`src/features/food-preferences`, rutas en `src/app/(app)/profile`), separada de «Cuenta». Es el menú donde van las preferencias alimentarias y donde se añadirán las alergias e intolerancias (US-005) y los objetivos nutricionales (US-004). En la API, módulo `food-preferences` (`GET` y `PUT /food-preferences`; el `PUT` reemplaza la dieta y las dos listas a la vez) y módulo `ingredients` (`GET /ingredients?search=`, máximo 50 resultados). Quien no ha configurado nada recibe valores vacíos, no un error. La dieta es única (`Diet`: vegetariana, vegana, pescetariana, flexitariana o ninguna). Estas preferencias son gustos; las alergias irán en tablas propias, como restricciones de seguridad.
+- **Catálogo de ingredientes:** tabla `ingredients` (nombre en español y categoría), sembrada por una migración de datos con ids fijos (`ing_tomate`). Sin unidades, equivalencias ni alérgenos, que corresponden a US-044 y US-005. Para ampliarlo, otra migración. Detalles en `docs/decisions/0002-catalogo-de-ingredientes.md`.
 - **Cuenta:** módulo `account` de la API (`GET /account`, `PUT`/`DELETE /account/password`, `PUT`/`DELETE /account/google`, `POST /account/delete`) y pestaña «Cuenta» en la app (`src/features/account`, rutas en `src/app/(app)/account`). Las acciones sensibles piden la contraseña actual si la cuenta tiene una y responden 403 (no 401) cuando es incorrecta; no se puede quitar el último método de acceso; solo se vincula el Google con el mismo email. Los errores de negocio llevan un `code` que la app traduce a mensajes (`ApiError.code`).
 - **Eliminación de datos:** `docs/data-retention-policy.md`. Toda tabla nueva con datos de un usuario debe borrarse en cascada con `users` (`onDelete: Cascade`), salvo el contenido público, que se anonimiza (`onDelete: SetNull`), e incluir una prueba de qué ocurre al eliminar la cuenta.
 - **Datos del servidor en la app:** TanStack Query, con las llamadas autenticadas a través de `useSession().request`; la caché se vacía al cerrar sesión. Los componentes de formulario compartidos están en `src/components` (`PrimaryButton`, `TextField`, `FormScreen`).
@@ -430,7 +433,7 @@ Las dependencias de la app móvil se añaden con `npx expo install <paquete>` de
 
 ### Decisiones ya tomadas
 
-Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md`:
+Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md` (el catálogo de ingredientes, en `0002-catalogo-de-ingredientes.md`):
 
 - La API usa **Vitest y oxlint**, los valores por defecto del generador de NestJS 12. Jest y React Native Testing Library se usan en la app móvil.
 - **Prisma fijado en 7.10.0**: el dist-tag `latest` de npm apuntaba a una versión candidata 8.0.0-rc.
@@ -440,6 +443,9 @@ Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md`:
 ### Pendiente
 
 - **Validar US-002 en dispositivo.** En Expo Go se puede probar todo salvo vincular y desvincular Google.
+- **Validar US-003 en dispositivo.** Se puede probar entera en Expo Go.
+- **US-015 debe cubrir el criterio 4 de US-003:** que las recomendaciones usen la dieta y los alimentos guardados.
+- La pantalla de preferencias no avisa si se sale con cambios sin guardar.
 - Editar el nombre o el email de la cuenta: no está en ninguna historia.
 - **Inicio de sesión con Google:** crear el proyecto y los client ID en Google Cloud y configurar las variables, según `docs/google-sign-in-setup.md`. No funciona en Expo Go; hace falta una development build.
 - **Verificación de email y recuperación de contraseña:** sin implementar; necesitan un servicio de envío de correo. Quien olvide su contraseña no puede recuperarla.
