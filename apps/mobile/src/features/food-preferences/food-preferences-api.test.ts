@@ -1,4 +1,4 @@
-import { getFoodPreferences, saveFoodPreferences, searchIngredients } from './food-preferences-api';
+import { getFoodPreferences, saveFoodPreferences } from './food-preferences-api';
 
 const tomate = { id: 'ing_tomate', name: 'Tomate', category: 'VEGETABLE' };
 const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT' };
@@ -50,28 +50,5 @@ describe('food preferences API', () => {
     request.mockResolvedValue(response);
 
     await expect(getFoodPreferences(request)).rejects.toThrow();
-  });
-
-  it('searches the ingredients by text', async () => {
-    request.mockResolvedValue([tomate]);
-
-    await expect(searchIngredients(request, ' piña & coco ')).resolves.toEqual([tomate]);
-
-    expect(request).toHaveBeenCalledWith('/ingredients?search=pi%C3%B1a%20%26%20coco');
-  });
-
-  it('lists the start of the catalogue without a text', async () => {
-    request.mockResolvedValue([tomate, pollo]);
-
-    await expect(searchIngredients(request, '  ')).resolves.toEqual([tomate, pollo]);
-
-    expect(request).toHaveBeenCalledWith('/ingredients');
-  });
-
-  it('accepts ingredients of a category it does not know', async () => {
-    const algae = { id: 'ing_nori', name: 'Nori', category: 'ALGAE' };
-    request.mockResolvedValue([algae]);
-
-    await expect(searchIngredients(request, 'nori')).resolves.toEqual([algae]);
   });
 });

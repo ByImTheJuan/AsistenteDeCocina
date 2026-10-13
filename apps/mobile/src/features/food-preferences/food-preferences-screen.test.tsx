@@ -106,7 +106,9 @@ describe('FoodPreferencesScreen', () => {
     it('tells preferences apart from allergies', async () => {
       await renderScreen(empty);
 
-      expect(await screen.findByText(/no sirve para alergias ni intolerancias/)).toBeOnTheScreen();
+      expect(
+        await screen.findByText(/alergias e intolerancias tienen su propio apartado/),
+      ).toBeOnTheScreen();
     });
   });
 
