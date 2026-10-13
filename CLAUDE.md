@@ -375,6 +375,7 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 │   └── api/                  # workspace `api`: NestJS + Prisma
 ├── docs/
 │   ├── decisions/            # ADR
+│   ├── data-retention-policy.md
 │   └── google-sign-in-setup.md
 └── .github/
     └── workflows/            # ci.yml y build.yml
@@ -387,7 +388,11 @@ No existe `packages/shared`. No lo crees hasta que haya un contrato compartido r
 - **Gestor de paquetes:** npm workspaces, Node.js 24 (`.nvmrc`). Los comandos se lanzan desde la raíz con `-w mobile` o `-w api`.
 - **App móvil:** Expo SDK 57 (React Native 0.86, React 19.2, TypeScript 6), Expo Router, TanStack Query, React Hook Form, Zod, `expo-dev-client`, Jest y React Native Testing Library. El código propio vive en `src/features/<funcionalidad>` y `src/lib`; las rutas privadas están en `src/app/(app)` y todavía muestran las pantallas de ejemplo de la plantilla de Expo.
 - **API:** NestJS 12 (proyecto ESM), OpenAPI en `/docs`, `ValidationPipe` global, `GET /health`, módulo `auth` y Prisma 7.10 con proveedor MySQL a través de `@prisma/adapter-mariadb` (`PrismaService` global). Modelos `User` y `RefreshToken` con su migración. Las variables de entorno se validan al arrancar (`src/config/env.validation.ts`).
-- **US-001 (registro e inicio de sesión, con email y contraseña o con Google) está implementada y cubierta con pruebas automatizadas, pero sin validar en ningún dispositivo.** El acceso con email y contraseña se puede probar en Expo Go; el de Google necesita las credenciales de Google Cloud y una development build. La siguiente según el backlog es US-042.
+- **US-001 (registro e inicio de sesión, con email y contraseña o con Google) está terminada**; el propietario validó en Expo Go el acceso con email y contraseña. El de Google sigue sin validar: necesita las credenciales de Google Cloud y una development build.
+- **US-002 (gestión de la cuenta) está implementada y cubierta con pruebas automatizadas, pendiente de validar en dispositivo.** La siguiente según el backlog es US-042.
+- **Cuenta:** módulo `account` de la API (`GET /account`, `PUT`/`DELETE /account/password`, `PUT`/`DELETE /account/google`, `POST /account/delete`) y pestaña «Cuenta» en la app (`src/features/account`, rutas en `src/app/(app)/account`). Las acciones sensibles piden la contraseña actual si la cuenta tiene una y responden 403 (no 401) cuando es incorrecta; no se puede quitar el último método de acceso; solo se vincula el Google con el mismo email. Los errores de negocio llevan un `code` que la app traduce a mensajes (`ApiError.code`).
+- **Eliminación de datos:** `docs/data-retention-policy.md`. Toda tabla nueva con datos de un usuario debe borrarse en cascada con `users` (`onDelete: Cascade`), salvo el contenido público, que se anonimiza (`onDelete: SetNull`), e incluir una prueba de qué ocurre al eliminar la cuenta.
+- **Datos del servidor en la app:** TanStack Query, con las llamadas autenticadas a través de `useSession().request`; la caché se vacía al cerrar sesión. Los componentes de formulario compartidos están en `src/components` (`PrimaryButton`, `TextField`, `FormScreen`).
 - **Autenticación:** tres formas de obtener sesión: `POST /auth/register` y `POST /auth/login` (email y contraseña, con hash scrypt) y `POST /auth/google` (ID token obtenido con `@react-native-google-signin/google-signin`). En los tres casos la API emite un JWT de acceso (15 min) y un refresh token rotatorio guardado con hash. Hay una cuenta por email (guardado en minúsculas); contraseña y Google son métodos de acceso independientes de la misma cuenta: entrar con Google a una cuenta con contraseña la vincula y conserva la contraseña. Registrarse con un email que ya tiene cuenta se rechaza siempre. Esos tres endpoints tienen límite de peticiones por IP (`@nestjs/throttler`, en memoria). Para proteger un endpoint: `@UseGuards(JwtAuthGuard)` y `@CurrentUser()` (el módulo debe importar `AuthModule`). En la app, las llamadas autenticadas pasan por `sessionManager.authorizedRequest` y el estado de sesión se lee con `useSession()`.
 
 ### Comandos
@@ -434,10 +439,11 @@ Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md`:
 
 ### Pendiente
 
+- **Validar US-002 en dispositivo.** En Expo Go se puede probar todo salvo vincular y desvincular Google.
+- Editar el nombre o el email de la cuenta: no está en ninguna historia.
 - **Inicio de sesión con Google:** crear el proyecto y los client ID en Google Cloud y configurar las variables, según `docs/google-sign-in-setup.md`. No funciona en Expo Go; hace falta una development build.
 - **Verificación de email y recuperación de contraseña:** sin implementar; necesitan un servicio de envío de correo. Quien olvide su contraseña no puede recuperarla.
 - **Riesgo aceptado hasta que se verifique el email:** quien se registre con el email de otra persona conserva el acceso por contraseña cuando esa persona entre con Google, porque la vinculación es automática.
-- **Gestión de métodos de acceso** (ver, añadir o cambiar contraseña, vincular Google, quitar un método): pendiente, forma parte de US-002.
 - El límite de peticiones de autenticación es por IP y en memoria: detrás de un proxy habrá que configurar la IP real al definir el despliegue.
 - **iOS:** el propietario aún no tiene suscripción a Apple Developer Program. Sin ella no se pueden generar builds de iOS. Después habrá que registrar el iPhone (`eas device:create`) y crear las credenciales con una primera build interactiva.
 - **Android:** no se ha generado ninguna build. Puede requerir una primera `eas build --platform android --profile preview` interactiva para crear la clave de firma.

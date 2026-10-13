@@ -2,7 +2,7 @@
 
 Aplicación móvil multiplataforma para iOS y Android que ayuda a gestionar los alimentos disponibles en casa, descubrir recetas personalizadas, planificar comidas y preparar listas de compra.
 
-> **Estado del proyecto:** entorno de desarrollo preparado y primera historia (`US-001`, registro e inicio de sesión con email y contraseña o con Google) implementada y cubierta con pruebas automatizadas, pendiente de validar en un dispositivo. Consulta el repositorio para comprobar qué funcionalidades están realmente implementadas.
+> **Estado del proyecto:** entorno de desarrollo preparado y `US-001` (registro e inicio de sesión con email y contraseña o con Google) terminada, y `US-002` (gestión de la cuenta: datos, métodos de acceso, cierre de sesión y eliminación) implementada y cubierta con pruebas automatizadas, pendiente de validar en un dispositivo. Consulta el repositorio para comprobar qué funcionalidades están realmente implementadas.
 
 ## Índice
 
@@ -453,6 +453,7 @@ Este roadmap no reemplaza el orden de dependencias de `ProductBacklog.md`. Antes
 - [`CLAUDE.md`](CLAUDE.md): contexto, stack, convenciones y flujo de trabajo obligatorio para Claude Code.
 - [`ProductBacklog.md`](ProductBacklog.md): fuente de verdad para épicas, historias de usuario y criterios de aceptación.
 - [`docs/google-sign-in-setup.md`](docs/google-sign-in-setup.md): alta de las credenciales de Google y variables de entorno del inicio de sesión.
+- [`docs/data-retention-policy.md`](docs/data-retention-policy.md): qué se borra y qué se conserva al eliminar una cuenta, y las reglas que deben seguir las tablas con datos de usuario.
 - `docs/architecture/`: documentación de arquitectura, cuando exista.
 - `docs/decisions/`: decisiones técnicas (ADR), cuando exista.
 
