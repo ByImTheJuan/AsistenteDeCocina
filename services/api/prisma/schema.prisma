@@ -28,8 +28,10 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  refreshTokens         RefreshToken[]
-  ingredientPreferences IngredientPreference[]
+  refreshTokens          RefreshToken[]
+  ingredientPreferences  IngredientPreference[]
+  allergenRestrictions   AllergenRestriction[]
+  ingredientRestrictions IngredientRestriction[]
 
   @@map("users")
 }
@@ -77,13 +79,18 @@ enum IngredientCategory {
 // inserted by migrations so every environment has the same ones. Units and
 // equivalences are not modelled yet.
 model Ingredient {
-  id        String             @id @default(cuid())
+  id                 String             @id @default(cuid())
   // In Spanish, as shown to the user.
-  name      String             @unique @db.VarChar(100)
-  category  IngredientCategory
-  createdAt DateTime           @default(now())
+  name               String             @unique @db.VarChar(100)
+  category           IngredientCategory
+  // True for processed foods whose recipe changes with the brand: the
+  // allergens listed are the usual ones, not all it may contain.
+  allergensUncertain Boolean            @default(false)
+  createdAt          DateTime           @default(now())
 
-  preferences IngredientPreference[]
+  preferences  IngredientPreference[]
+  allergens    IngredientAllergen[]
+  restrictions IngredientRestriction[]
 
   @@map("ingredients")
 }
@@ -108,4 +115,66 @@ model IngredientPreference {
   @@id([userId, ingredientId])
   @@index([ingredientId])
   @@map("ingredient_preferences")
+}
+
+// The 14 allergens the EU requires to declare (Regulation 1169/2011), then
+// common intolerances.
+enum Allergen {
+  GLUTEN
+  CRUSTACEANS
+  EGG
+  FISH
+  PEANUTS
+  SOY
+  MILK
+  TREE_NUTS
+  CELERY
+  MUSTARD
+  SESAME
+  SULPHITES
+  LUPIN
+  MOLLUSCS
+  LACTOSE
+  FRUCTOSE
+  HISTAMINE
+  SORBITOL
+}
+
+// What each ingredient of the catalogue contains. Reference data, inserted
+// by migrations like the catalogue itself.
+model IngredientAllergen {
+  ingredientId String
+  allergen     Allergen
+
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@id([ingredientId, allergen])
+  @@index([allergen])
+  @@map("ingredient_allergens")
+}
+
+// Safety restrictions of a user: what they must not eat. Kept apart from the
+// ingredient preferences, which are only tastes.
+model AllergenRestriction {
+  userId    String
+  allergen  Allergen
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, allergen])
+  @@map("allergen_restrictions")
+}
+
+model IngredientRestriction {
+  userId       String
+  ingredientId String
+  createdAt    DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@id([userId, ingredientId])
+  @@index([ingredientId])
+  @@map("ingredient_restrictions")
 }
