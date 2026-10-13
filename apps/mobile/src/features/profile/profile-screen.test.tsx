@@ -20,6 +20,7 @@ const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT' };
 
 const noPreferences = { diet: null, liked: [], avoided: [] };
 const noRestrictions = { allergens: [], ingredients: [], conflictingLikedIngredients: [] };
+const noGoals = { dailyCalories: null, mealCalories: null, dailyProtein: null };
 
 type Handler = () => unknown;
 
@@ -30,6 +31,7 @@ describe('ProfileScreen', () => {
     renderSignedIn(<ProfileScreen />, {
       'GET /food-preferences': () => noPreferences,
       'GET /dietary-restrictions': () => noRestrictions,
+      'GET /nutrition-goals': () => noGoals,
       ...routes,
     });
 
@@ -115,6 +117,50 @@ describe('ProfileScreen', () => {
       );
 
       expect(mockPush).toHaveBeenCalledWith('/profile/dietary-restrictions');
+    });
+  });
+
+  describe('nutrition goals', () => {
+    it('says they are not configured for a new user', async () => {
+      await renderProfile();
+
+      expect(
+        await screen.findByRole('button', { name: 'Objetivos nutricionales: Sin configurar' }),
+      ).toBeOnTheScreen();
+    });
+
+    it('counts the goals in use', async () => {
+      await renderProfile({
+        'GET /nutrition-goals': () => ({
+          dailyCalories: { value: 2000, enabled: true },
+          mealCalories: { value: 600, enabled: false },
+          dailyProtein: { value: 90, enabled: true },
+        }),
+      });
+
+      expect(
+        await screen.findByRole('button', { name: 'Objetivos nutricionales: 2 objetivos activos' }),
+      ).toBeOnTheScreen();
+    });
+
+    it('says so when every goal is switched off', async () => {
+      await renderProfile({
+        'GET /nutrition-goals': () => ({ ...noGoals, dailyProtein: { value: 90, enabled: false } }),
+      });
+
+      expect(
+        await screen.findByRole('button', { name: 'Objetivos nutricionales: Ninguno activo' }),
+      ).toBeOnTheScreen();
+    });
+
+    it('opens them', async () => {
+      await renderProfile();
+
+      await user.press(
+        await screen.findByRole('button', { name: 'Objetivos nutricionales: Sin configurar' }),
+      );
+
+      expect(mockPush).toHaveBeenCalledWith('/profile/nutrition-goals');
     });
   });
 
