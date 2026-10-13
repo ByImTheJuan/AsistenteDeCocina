@@ -58,7 +58,7 @@ La primera versión debe validar un flujo completo y coherente:
 
 El MVP inicial comprende estas **20 historias**:
 
-- `US-001` — Registrarse e iniciar sesión con Google.
+- `US-001` — Registrarse e iniciar sesión.
 - `US-002` — Gestionar la cuenta personal.
 - `US-003` — Configurar mis preferencias alimentarias.
 - `US-005` — Gestionar alergias e intolerancias.
