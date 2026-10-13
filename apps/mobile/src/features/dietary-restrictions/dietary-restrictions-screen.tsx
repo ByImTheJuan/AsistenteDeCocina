@@ -20,6 +20,7 @@ import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
 import type { Ingredient } from '@/features/ingredients/ingredients-api';
 import { useTheme } from '@/hooks/use-theme';
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 
 /** Allergies and intolerances: what the user must not eat. */
 export function DietaryRestrictionsScreen() {
@@ -60,6 +61,7 @@ function DietaryRestrictionsForm({ saved }: { saved: DietaryRestrictions }) {
     defaultValues: { allergens: saved.allergens, ingredients: saved.ingredients },
   });
   const { isDirty } = useFormState({ control });
+  useUnsavedChangesWarning(isDirty);
   const allergens = useWatch({ control, name: 'allergens' });
   const ingredients = useWatch({ control, name: 'ingredients' });
   const [picking, setPicking] = useState(false);

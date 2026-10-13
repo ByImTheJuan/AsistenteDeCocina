@@ -15,6 +15,7 @@ import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
 import type { Ingredient } from '@/features/ingredients/ingredients-api';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 
 /** Diet and the foods the user likes or would rather avoid. */
 export function FoodPreferencesScreen() {
@@ -54,6 +55,7 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
     defaultValues: saved,
   });
   const { isDirty } = useFormState({ control });
+  useUnsavedChangesWarning(isDirty);
   const diet = useWatch({ control, name: 'diet' });
   const liked = useWatch({ control, name: 'liked' });
   const avoided = useWatch({ control, name: 'avoided' });
