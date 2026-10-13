@@ -1,4 +1,10 @@
-import { refreshSession, signInWithGoogle, signOut } from './auth-api';
+import {
+  refreshSession,
+  register,
+  signInWithGoogle,
+  signInWithPassword,
+  signOut,
+} from './auth-api';
 
 import { apiRequest } from '@/lib/api-client';
 
@@ -29,6 +35,38 @@ describe('auth API', () => {
       method: 'POST',
       body: { idToken: 'google-id-token' },
     });
+  });
+
+  it('creates an account with email and password', async () => {
+    mockedRequest.mockResolvedValue(session);
+    const registration = { name: 'Ana', email: 'ana@example.com', password: 'correct horse' };
+
+    await expect(register(registration)).resolves.toEqual(session);
+
+    expect(mockedRequest).toHaveBeenCalledWith('/auth/register', {
+      method: 'POST',
+      body: registration,
+    });
+  });
+
+  it('signs in with email and password', async () => {
+    mockedRequest.mockResolvedValue(session);
+
+    await expect(signInWithPassword('ana@example.com', 'correct horse')).resolves.toEqual(session);
+
+    expect(mockedRequest).toHaveBeenCalledWith('/auth/login', {
+      method: 'POST',
+      body: { email: 'ana@example.com', password: 'correct horse' },
+    });
+  });
+
+  it.each([
+    ['registering', () => register({ name: 'Ana', email: 'a@b.c', password: 'password' })],
+    ['signing in with a password', () => signInWithPassword('a@b.c', 'password')],
+  ])('rejects a malformed session when %s', async (_case, call) => {
+    mockedRequest.mockResolvedValue({ accessToken: 'only-this' });
+
+    await expect(call()).rejects.toThrow();
   });
 
   it('exchanges a refresh token for a new session', async () => {

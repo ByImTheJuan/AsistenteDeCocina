@@ -132,6 +132,110 @@ describe('SignInScreen', () => {
     );
   });
 
+  describe('with email and password', () => {
+    async function fillAndSubmit(email: string, password: string) {
+      if (email) await user.type(await screen.findByLabelText('Email'), email);
+      if (password) await user.type(screen.getByLabelText('Contraseña'), password);
+      await user.press(await screen.findByRole('button', { name: 'Iniciar sesión' }));
+    }
+
+    it('signs in', async () => {
+      const fake = createFakeSession();
+      fake.api.signInWithPassword.mockResolvedValue(apiSession());
+      await renderScreen(fake);
+
+      await fillAndSubmit('ana@example.com', 'correct horse');
+
+      expect(fake.api.signInWithPassword).toHaveBeenCalledWith('ana@example.com', 'correct horse');
+      expect(fake.manager.getState().status).toBe('signedIn');
+      expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
+    });
+
+    it('hides the password while it is typed', async () => {
+      await renderScreen(createFakeSession());
+
+      expect(await screen.findByLabelText('Contraseña')).toHaveProp('secureTextEntry', true);
+    });
+
+    it('asks for the email and the password before calling the server', async () => {
+      const fake = createFakeSession();
+      await renderScreen(fake);
+
+      await fillAndSubmit('', '');
+
+      expect(await screen.findByText('Escribe tu email.')).toBeOnTheScreen();
+      expect(screen.getByText('Escribe tu contraseña.')).toBeOnTheScreen();
+      expect(fake.api.signInWithPassword).not.toHaveBeenCalled();
+    });
+
+    it('rejects a malformed email before calling the server', async () => {
+      const fake = createFakeSession();
+      await renderScreen(fake);
+
+      await fillAndSubmit('ana-at-example.com', 'correct horse');
+
+      expect(await screen.findByText('Escribe un email válido.')).toBeOnTheScreen();
+      expect(fake.api.signInWithPassword).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['the credentials are wrong', new ApiError(401), 'El email o la contraseña no son correctos.'],
+      [
+        'there are too many attempts',
+        new ApiError(429),
+        'Has hecho demasiados intentos. Espera un minuto y vuelve a intentarlo.',
+      ],
+      [
+        'the server cannot be reached',
+        new NetworkError(),
+        'No hemos podido conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.',
+      ],
+    ])('shows a clear message when %s', async (_case, error, message) => {
+      const fake = createFakeSession();
+      fake.api.signInWithPassword.mockRejectedValue(error);
+      await renderScreen(fake);
+
+      await fillAndSubmit('ana@example.com', 'wrong password');
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(message);
+      expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeEnabled();
+    });
+
+    it('can be retried after wrong credentials', async () => {
+      const fake = createFakeSession();
+      fake.api.signInWithPassword.mockRejectedValueOnce(new ApiError(401));
+      fake.api.signInWithPassword.mockResolvedValueOnce(apiSession());
+      await renderScreen(fake);
+      await fillAndSubmit('ana@example.com', 'wrong');
+      await screen.findByRole('alert');
+
+      await user.type(screen.getByLabelText('Contraseña'), ' horse');
+      await user.press(screen.getByRole('button', { name: 'Iniciar sesión' }));
+
+      expect(fake.api.signInWithPassword).toHaveBeenLastCalledWith('ana@example.com', 'wrong horse');
+      expect(fake.manager.getState().status).toBe('signedIn');
+    });
+
+    it('blocks both ways of signing in while one is in progress', async () => {
+      const fake = createFakeSession();
+      const pending = deferred<ReturnType<typeof apiSession>>();
+      fake.api.signInWithPassword.mockReturnValue(pending.promise);
+      await renderScreen(fake);
+
+      await fillAndSubmit('ana@example.com', 'correct horse');
+
+      expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeBusy();
+      expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Continuar con Google' })).toBeDisabled();
+    });
+
+    it('offers to create an account', async () => {
+      await renderScreen(createFakeSession());
+
+      expect(await screen.findByRole('link')).toHaveTextContent('¿No tienes cuenta? Crear cuenta');
+    });
+  });
+
   it('explains that Google sign-in is not part of the running binary', async () => {
     const fake = createFakeSession();
     fake.google.requestGoogleIdToken.mockResolvedValue({ type: 'error', reason: 'unavailable' });

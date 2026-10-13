@@ -6,6 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import { AccountSummary } from './account-summary';
 import { SignInScreen } from './sign-in-screen';
+import { SignUpScreen } from './sign-up-screen';
 
 import RootLayout from '@/app/_layout';
 
@@ -67,6 +68,7 @@ async function renderApp() {
     {
       _layout: RootLayout,
       'sign-in': SignInScreen,
+      'sign-up': SignUpScreen,
       '(app)/index': AccountSummary,
     },
     { initialUrl: '/' },
@@ -148,6 +150,53 @@ describe('protected routes', () => {
     expect(requestsTo('/auth/logout')[0][1].body).toBe('{"refreshToken":"refresh-1"}');
     await expect(SecureStore.getItemAsync('auth.refreshToken')).resolves.toBeNull();
     expect(GoogleSignin.signOut).toHaveBeenCalled();
+  });
+
+  it('registers with email and password, signs out and signs in again', async () => {
+    mockApi({
+      '/auth/register': [201, session],
+      '/auth/logout': [204],
+      '/auth/login': [200, { ...session, refreshToken: 'refresh-2' }],
+    });
+    await renderApp();
+
+    await user.press(await screen.findByRole('link'));
+    await user.type(await screen.findByLabelText('Nombre'), 'Ana');
+    await user.type(screen.getByLabelText('Email'), 'Ana@Example.com');
+    await user.type(screen.getByLabelText('Contraseña'), 'correct horse');
+    await user.press(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+    expect(await screen.findByText('Sesión iniciada como')).toBeOnTheScreen();
+    expect(JSON.parse(String(requestsTo('/auth/register')[0][1].body))).toEqual({
+      name: 'Ana',
+      email: 'Ana@Example.com',
+      password: 'correct horse',
+    });
+    await expect(SecureStore.getItemAsync('auth.refreshToken')).resolves.toBe('refresh-1');
+
+    await user.press(screen.getByRole('button', { name: 'Cerrar sesión' }));
+    await user.type(await screen.findByLabelText('Email'), 'ana@example.com');
+    await user.type(screen.getByLabelText('Contraseña'), 'correct horse');
+    await user.press(screen.getByRole('button', { name: 'Iniciar sesión' }));
+
+    expect(await screen.findByText('Sesión iniciada como')).toBeOnTheScreen();
+    expect(JSON.parse(String(requestsTo('/auth/login')[0][1].body))).toEqual({
+      email: 'ana@example.com',
+      password: 'correct horse',
+    });
+    await expect(SecureStore.getItemAsync('auth.refreshToken')).resolves.toBe('refresh-2');
+    expect(GoogleSignin.signIn).not.toHaveBeenCalled();
+  });
+
+  it('moves between the sign-in and sign-up screens', async () => {
+    mockApi({});
+    await renderApp();
+
+    await user.press(await screen.findByRole('link'));
+    expect(await screen.findByRole('button', { name: 'Crear cuenta' })).toBeOnTheScreen();
+
+    await user.press(screen.getByRole('link'));
+    expect(await screen.findByRole('button', { name: 'Iniciar sesión' })).toBeOnTheScreen();
   });
 
   it('stays on the sign-in screen when the user cancels the Google picker', async () => {

@@ -132,6 +132,82 @@ describe('session manager', () => {
     });
   });
 
+  describe('signInWithPassword', () => {
+    it('starts a session with the email and the password', async () => {
+      const { manager, api, storedRefreshToken } = createFakeSession();
+      api.signInWithPassword.mockResolvedValue(apiSession(1));
+
+      await expect(manager.signInWithPassword('ana@example.com', 'correct horse')).resolves.toEqual(
+        { ok: true },
+      );
+
+      expect(api.signInWithPassword).toHaveBeenCalledWith('ana@example.com', 'correct horse');
+      expect(manager.getState()).toEqual({ status: 'signedIn', user: ana });
+      expect(storedRefreshToken()).toBe('refresh-1');
+    });
+
+    it.each([
+      ['invalid-credentials', new ApiError(401)],
+      ['rate-limited', new ApiError(429)],
+      ['network', new NetworkError()],
+      ['unknown', new ApiError(500)],
+      ['unknown', new Error('unexpected response shape')],
+    ] as const)('reports "%s" and stays signed out', async (reason, error) => {
+      const { manager, api, storedRefreshToken } = createFakeSession();
+      await manager.restore();
+      api.signInWithPassword.mockRejectedValue(error);
+
+      await expect(manager.signInWithPassword('ana@example.com', 'wrong')).resolves.toEqual({
+        ok: false,
+        reason,
+      });
+
+      expect(manager.getState()).toEqual({ status: 'signedOut' });
+      expect(storedRefreshToken()).toBeNull();
+    });
+
+    it('does not involve Google', async () => {
+      const { manager, api, google } = createFakeSession();
+      api.signInWithPassword.mockResolvedValue(apiSession(1));
+
+      await manager.signInWithPassword('ana@example.com', 'correct horse');
+
+      expect(google.requestGoogleIdToken).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('register', () => {
+    const registration = { name: 'Ana', email: 'ana@example.com', password: 'correct horse' };
+
+    it('creates the account and starts its session', async () => {
+      const { manager, api, storedRefreshToken } = createFakeSession();
+      api.register.mockResolvedValue(apiSession(1));
+
+      await expect(manager.register(registration)).resolves.toEqual({ ok: true });
+
+      expect(api.register).toHaveBeenCalledWith(registration);
+      expect(manager.getState()).toEqual({ status: 'signedIn', user: ana });
+      expect(storedRefreshToken()).toBe('refresh-1');
+    });
+
+    it.each([
+      ['email-taken', new ApiError(409)],
+      ['invalid-data', new ApiError(400)],
+      ['rate-limited', new ApiError(429)],
+      ['network', new NetworkError()],
+      ['unknown', new ApiError(500)],
+    ] as const)('reports "%s" and stays signed out', async (reason, error) => {
+      const { manager, api, storedRefreshToken } = createFakeSession();
+      await manager.restore();
+      api.register.mockRejectedValue(error);
+
+      await expect(manager.register(registration)).resolves.toEqual({ ok: false, reason });
+
+      expect(manager.getState()).toEqual({ status: 'signedOut' });
+      expect(storedRefreshToken()).toBeNull();
+    });
+  });
+
   describe('signOut', () => {
     async function signedIn() {
       const fake = createFakeSession();

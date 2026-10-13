@@ -1,4 +1,4 @@
-import type { ApiSession, User } from './auth-api';
+import type { ApiSession, Registration, User } from './auth-api';
 import type { GoogleSignInResult } from './google-sign-in';
 import { createSessionManager } from './session-manager';
 
@@ -23,6 +23,8 @@ export function createFakeSession(initialRefreshToken: string | null = null) {
 
   const api = {
     signInWithGoogle: jest.fn<Promise<ApiSession>, [string]>(),
+    signInWithPassword: jest.fn<Promise<ApiSession>, [string, string]>(),
+    register: jest.fn<Promise<ApiSession>, [Registration]>(),
     refreshSession: jest.fn<Promise<ApiSession>, [string]>(),
     signOut: jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined),
     request: jest.fn<Promise<unknown>, [string, ApiRequestOptions?]>(),
