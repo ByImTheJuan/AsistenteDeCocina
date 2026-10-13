@@ -15,6 +15,11 @@ import { ApiError, NetworkError } from '@/lib/api-client';
 // The shared session manager created on import is not used here.
 jest.mock('@react-native-google-signin/google-signin', () => ({}));
 jest.mock('expo-secure-store', () => ({}));
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({
+  ...jest.requireActual('expo-router'),
+  useRouter: () => ({ push: mockPush }),
+}));
 // The screen asks Google for the ID token through this module.
 jest.mock('@/features/auth/google-sign-in', () => ({
   requestGoogleIdToken: jest.fn(),
@@ -23,6 +28,10 @@ jest.mock('@/features/auth/google-sign-in', () => ({
 
 describe('AccountScreen', () => {
   const user = userEvent.setup();
+
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
 
   it('shows the basic data of the account', async () => {
     await renderSignedIn(<AccountScreen />, { 'GET /account': () => passwordAccount });
@@ -52,10 +61,10 @@ describe('AccountScreen', () => {
 
       expect(await screen.findByLabelText('Contraseña: Configurada')).toBeOnTheScreen();
       expect(screen.getByLabelText('Google: No vinculada')).toBeOnTheScreen();
-      expect(screen.getByRole('link', { name: 'Cambiar contraseña' })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Cambiar contraseña' })).toBeOnTheScreen();
       expect(screen.getByRole('button', { name: 'Vincular Google' })).toBeOnTheScreen();
-      expect(screen.queryByRole('link', { name: 'Quitar contraseña' })).not.toBeOnTheScreen();
-      expect(screen.queryByRole('link', { name: 'Desvincular Google' })).not.toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Quitar contraseña' })).not.toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Desvincular Google' })).not.toBeOnTheScreen();
     });
 
     it('offers to add a password with only Google', async () => {
@@ -63,17 +72,37 @@ describe('AccountScreen', () => {
 
       expect(await screen.findByLabelText('Contraseña: No configurada')).toBeOnTheScreen();
       expect(screen.getByLabelText('Google: Vinculada')).toBeOnTheScreen();
-      expect(screen.getByRole('link', { name: 'Añadir contraseña' })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Añadir contraseña' })).toBeOnTheScreen();
       expect(screen.queryByRole('button', { name: 'Vincular Google' })).not.toBeOnTheScreen();
-      expect(screen.queryByRole('link', { name: 'Desvincular Google' })).not.toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Desvincular Google' })).not.toBeOnTheScreen();
     });
 
     it('offers to remove either method when the account has both', async () => {
       await renderSignedIn(<AccountScreen />, { 'GET /account': () => linkedAccount });
 
-      expect(await screen.findByRole('link', { name: 'Quitar contraseña' })).toBeOnTheScreen();
-      expect(screen.getByRole('link', { name: 'Desvincular Google' })).toBeOnTheScreen();
-      expect(screen.getByRole('link', { name: 'Cambiar contraseña' })).toBeOnTheScreen();
+      expect(await screen.findByRole('button', { name: 'Quitar contraseña' })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Desvincular Google' })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Cambiar contraseña' })).toBeOnTheScreen();
+    });
+
+    it.each([
+      ['Cambiar contraseña', '/account/password'],
+      ['Quitar contraseña', '/account/remove-method?method=password'],
+      ['Desvincular Google', '/account/remove-method?method=google'],
+    ])('opens the right form when "%s" is pressed', async (name, href) => {
+      await renderSignedIn(<AccountScreen />, { 'GET /account': () => linkedAccount });
+
+      await user.press(await screen.findByRole('button', { name }));
+
+      expect(mockPush).toHaveBeenCalledWith(href);
+    });
+
+    it('opens the password form to add a first password', async () => {
+      await renderSignedIn(<AccountScreen />, { 'GET /account': () => googleAccount });
+
+      await user.press(await screen.findByRole('button', { name: 'Añadir contraseña' }));
+
+      expect(mockPush).toHaveBeenCalledWith('/account/password');
     });
 
     it('explains why the only method cannot be removed', async () => {

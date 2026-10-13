@@ -30,7 +30,7 @@ export function PrimaryButton({
       ? theme.text
       : variant === 'danger'
         ? theme.danger
-        : theme.backgroundElement;
+        : theme.backgroundSelected;
   const foreground = variant === 'secondary' ? 'text' : 'background';
 
   return (

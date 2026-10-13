@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, useRouter, type Href } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -119,12 +119,12 @@ function SignInMethods({ account }: { account: Account }) {
   return (
     <Section title="Métodos de acceso">
       <Method name="Contraseña" status={password ? 'Configurada' : 'No configurada'}>
-        <ActionLink
+        <ActionButton
           href="/account/password"
           label={password ? 'Cambiar contraseña' : 'Añadir contraseña'}
         />
         {password && google && (
-          <ActionLink href="/account/remove-method?method=password" label="Quitar contraseña" />
+          <ActionButton href="/account/remove-method?method=password" label="Quitar contraseña" />
         )}
       </Method>
 
@@ -138,7 +138,7 @@ function SignInMethods({ account }: { account: Account }) {
           />
         )}
         {google && password && (
-          <ActionLink href="/account/remove-method?method=google" label="Desvincular Google" />
+          <ActionButton href="/account/remove-method?method=google" label="Desvincular Google" />
         )}
         {linkError && (
           <ThemedText type="small" themeColor="danger" accessibilityRole="alert">
@@ -218,12 +218,10 @@ function Method({
   );
 }
 
-function ActionLink({ href, label }: { href: React.ComponentProps<typeof Link>['href']; label: string }) {
-  return (
-    <Link href={href} accessibilityRole="link" style={styles.actionLink}>
-      <ThemedText type="smallBold">{label}</ThemedText>
-    </Link>
-  );
+/** Opens one of the account forms. A button, so it reads as something to press. */
+function ActionButton({ href, label }: { href: Href; label: string }) {
+  const router = useRouter();
+  return <PrimaryButton label={label} variant="secondary" onPress={() => router.push(href)} />;
 }
 
 const styles = StyleSheet.create({
@@ -267,9 +265,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  actionLink: {
-    // Comfortable touch target for a text-only action.
-    paddingVertical: Spacing.two,
   },
 });

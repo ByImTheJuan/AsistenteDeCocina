@@ -215,7 +215,7 @@ describe('protected routes', () => {
     });
     await renderApp();
 
-    await user.press(await screen.findByRole('link', { name: 'Cambiar contraseña' }));
+    await user.press(await screen.findByRole('button', { name: 'Cambiar contraseña' }));
     await user.type(await screen.findByLabelText('Contraseña actual'), 'old password');
     await user.type(screen.getByLabelText('Nueva contraseña'), 'a new password');
     await user.press(screen.getByRole('button', { name: 'Cambiar contraseña' }));
