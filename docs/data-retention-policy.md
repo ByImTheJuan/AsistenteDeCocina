@@ -38,4 +38,4 @@ Se conservan **anonimizadas**: dejan de estar asociadas a la cuenta y se muestra
 
 ## Estado actual
 
-Hoy solo existen las tablas `users` y `refresh_tokens`, y ambas se borran. Las reglas sobre recetas y reseñas se aplicarán cuando se implementen esas historias.
+Las tablas con datos de usuario son `users` (que incluye la dieta elegida), `refresh_tokens` e `ingredient_preferences` (alimentos que gustan o se prefieren evitar), y las tres se borran con la cuenta. `ingredients` es el catálogo común, no contiene datos de ningún usuario y no se toca. Las reglas sobre recetas y reseñas se aplicarán cuando se implementen esas historias.
