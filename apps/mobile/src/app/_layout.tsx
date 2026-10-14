@@ -1,10 +1,9 @@
-import {
-  NunitoSans_400Regular,
-  NunitoSans_600SemiBold,
-  NunitoSans_700Bold,
-  useFonts,
-} from '@expo-google-fonts/nunito-sans';
+// One import per weight: the package index would bundle all sixteen files.
+import { NunitoSans_400Regular } from '@expo-google-fonts/nunito-sans/400Regular';
+import { NunitoSans_600SemiBold } from '@expo-google-fonts/nunito-sans/600SemiBold';
+import { NunitoSans_700Bold } from '@expo-google-fonts/nunito-sans/700Bold';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useFonts } from 'expo-font';
 import { DefaultTheme, Stack, ThemeProvider, type Theme } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
