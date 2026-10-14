@@ -5,11 +5,21 @@ import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
   /**
-   * `title` for the screen title, `heading` for a section, `small` for
+   * `title` for the screen title, `heading` for a section, `defaultBold` for
+   * the name of an item in a list, `small` for
    * secondary text and `label` for tags and metadata. `link` and `code` are
    * left for the Expo template screens.
    */
-  type?: 'default' | 'title' | 'heading' | 'small' | 'smallBold' | 'label' | 'link' | 'code';
+  type?:
+    | 'default'
+    | 'defaultBold'
+    | 'title'
+    | 'heading'
+    | 'small'
+    | 'smallBold'
+    | 'label'
+    | 'link'
+    | 'code';
   themeColor?: ThemeColor;
 };
 

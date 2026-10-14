@@ -59,6 +59,12 @@ export const Radius = {
   xl: 24,
 } as const;
 
+/**
+ * Soft shadow that lifts cards off the cream background, where white alone
+ * barely shows. One level only: no heavier shadows.
+ */
+export const CardShadow = '0px 1px 4px rgba(48, 47, 41, 0.10)';
+
 /** Minimum height of buttons and fields. Never a fixed height: text scales. */
 export const ControlHeight = 52;
 
@@ -83,6 +89,7 @@ export const Typography = {
   title: { fontFamily: FontFamily.bold, fontSize: 31, lineHeight: 38 },
   heading: { fontFamily: FontFamily.semiBold, fontSize: 22, lineHeight: 28 },
   default: { fontFamily: FontFamily.regular, fontSize: 16, lineHeight: 24 },
+  defaultBold: { fontFamily: FontFamily.semiBold, fontSize: 16, lineHeight: 24 },
   small: { fontFamily: FontFamily.regular, fontSize: 14, lineHeight: 20 },
   smallBold: { fontFamily: FontFamily.semiBold, fontSize: 14, lineHeight: 20 },
   label: { fontFamily: FontFamily.semiBold, fontSize: 13, lineHeight: 18 },
