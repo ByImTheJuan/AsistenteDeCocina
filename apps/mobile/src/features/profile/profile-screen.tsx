@@ -10,6 +10,8 @@ import { useDietaryRestrictions } from '@/features/dietary-restrictions/use-diet
 import type { FoodPreferences } from '@/features/food-preferences/food-preferences-api';
 import { dietLabels } from '@/features/food-preferences/labels';
 import { useFoodPreferences } from '@/features/food-preferences/use-food-preferences';
+import { summarizeGoals } from '@/features/nutrition-goals/nutrition-goals-form';
+import { useNutritionGoals } from '@/features/nutrition-goals/use-nutrition-goals';
 
 function summarizePreferences({ diet, liked, avoided }: FoodPreferences): string {
   const parts = [
@@ -36,6 +38,7 @@ function summaryOf<Data>(
 export function ProfileScreen() {
   const preferences = useFoodPreferences();
   const restrictions = useDietaryRestrictions();
+  const goals = useNutritionGoals();
 
   return (
     <ThemedView style={styles.container}>
@@ -56,6 +59,11 @@ export function ProfileScreen() {
             title="Alergias e intolerancias"
             summary={summaryOf(restrictions, summarizeRestrictions)}
             href="/profile/dietary-restrictions"
+          />
+          <Entry
+            title="Objetivos nutricionales"
+            summary={summaryOf(goals, summarizeGoals)}
+            href="/profile/nutrition-goals"
           />
         </SafeAreaView>
       </ScrollView>

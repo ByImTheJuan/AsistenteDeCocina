@@ -8,6 +8,7 @@ export default function ProfileLayout() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="food-preferences" />
       <Stack.Screen name="dietary-restrictions" />
+      <Stack.Screen name="nutrition-goals" />
     </Stack>
   );
 }

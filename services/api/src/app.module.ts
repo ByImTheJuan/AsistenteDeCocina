@@ -7,6 +7,7 @@ import { DietaryRestrictionsModule } from './dietary-restrictions/dietary-restri
 import { FoodPreferencesModule } from './food-preferences/food-preferences.module.js';
 import { HealthModule } from './health/health.module.js';
 import { IngredientsModule } from './ingredients/ingredients.module.js';
+import { NutritionGoalsModule } from './nutrition-goals/nutrition-goals.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -19,6 +20,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     IngredientsModule,
     FoodPreferencesModule,
     DietaryRestrictionsModule,
+    NutritionGoalsModule,
   ],
 })
 export class AppModule {}
