@@ -1,14 +1,23 @@
 // The app has no Node.js types; these are the few calls this test needs.
 declare const __dirname: string;
 type DirEntry = { name: string; isDirectory(): boolean };
-const { readdirSync, readFileSync }: {
+const {
+  readdirSync,
+  readFileSync,
+}: {
   readdirSync(path: string, options: { withFileTypes: true }): DirEntry[];
   readFileSync(path: string, encoding: 'utf8'): string;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
 } = require('node:fs');
-const { join, relative, sep }: {
+const {
+  join,
+  relative,
+  sep,
+}: {
   join(...paths: string[]): string;
   relative(from: string, to: string): string;
   sep: string;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
 } = require('node:path');
 
 const src = join(__dirname, '..');

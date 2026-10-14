@@ -29,7 +29,9 @@ describe('ScreenState', () => {
   });
 
   it('keeps the retry button busy while retrying', async () => {
-    await render(<ScreenState kind="error" title="Error" message="" onRetry={jest.fn()} retrying />);
+    await render(
+      <ScreenState kind="error" title="Error" message="" onRetry={jest.fn()} retrying />,
+    );
 
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeBusy();
   });

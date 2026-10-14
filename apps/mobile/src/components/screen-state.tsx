@@ -24,7 +24,11 @@ export function ScreenState(props: ScreenStateProps) {
   return (
     <ThemedView style={styles.centered}>
       {props.kind === 'loading' ? (
-        <ActivityIndicator size="large" color={theme.textPrimary} accessibilityLabel={props.label} />
+        <ActivityIndicator
+          size="large"
+          color={theme.textPrimary}
+          accessibilityLabel={props.label}
+        />
       ) : (
         <View style={styles.message}>
           <ThemedText type="heading" style={styles.text}>

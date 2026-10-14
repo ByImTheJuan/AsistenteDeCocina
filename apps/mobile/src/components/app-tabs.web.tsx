@@ -40,9 +40,7 @@ export default function AppTabs() {
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView
-        type={isFocused ? 'surfaceSecondary' : 'surface'}
-        style={styles.tabButtonView}>
+      <ThemedView type={isFocused ? 'surfaceSecondary' : 'surface'} style={styles.tabButtonView}>
         <ThemedText type="small" themeColor={isFocused ? 'textPrimary' : 'textSecondary'}>
           {children}
         </ThemedText>

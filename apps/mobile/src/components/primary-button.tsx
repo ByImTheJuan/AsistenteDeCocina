@@ -16,7 +16,12 @@ type PrimaryButtonProps = {
   variant?: 'primary' | 'secondary' | 'danger';
 };
 
-type Appearance = { background: ThemeColor; pressed: ThemeColor; text: ThemeColor; border?: ThemeColor };
+type Appearance = {
+  background: ThemeColor;
+  pressed: ThemeColor;
+  text: ThemeColor;
+  border?: ThemeColor;
+};
 
 const appearances: Record<NonNullable<PrimaryButtonProps['variant']>, Appearance> = {
   // Dark text on mustard: white on it does not reach the contrast for text.

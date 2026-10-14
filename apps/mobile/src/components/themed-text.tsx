@@ -17,10 +17,7 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
   const theme = useTheme();
 
   return (
-    <Text
-      style={[{ color: theme[themeColor ?? 'textPrimary'] }, styles[type], style]}
-      {...rest}
-    />
+    <Text style={[{ color: theme[themeColor ?? 'textPrimary'] }, styles[type], style]} {...rest} />
   );
 }
 

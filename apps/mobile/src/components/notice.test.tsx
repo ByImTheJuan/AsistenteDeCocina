@@ -6,7 +6,7 @@ describe('Notice', () => {
   it('announces errors and states them in words, not only in red', async () => {
     await render(<Notice tone="error">No se han podido guardar los cambios.</Notice>);
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/No se han podido guardar los cambios\./);
+    expect(screen.getByRole('alert')).toHaveTextContent('No se han podido guardar los cambios.');
     expect(screen.getByText('⚠', { includeHiddenElements: true })).toBeOnTheScreen();
   });
 

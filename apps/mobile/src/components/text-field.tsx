@@ -39,7 +39,11 @@ export function TextField({ label, error, ...inputProps }: TextFieldProps) {
           <ThemedText type="small" themeColor="error" importantForAccessibility="no" aria-hidden>
             ⚠
           </ThemedText>
-          <ThemedText type="small" themeColor="error" accessibilityRole="alert" style={styles.errorText}>
+          <ThemedText
+            type="small"
+            themeColor="error"
+            accessibilityRole="alert"
+            style={styles.errorText}>
             {error}
           </ThemedText>
         </View>

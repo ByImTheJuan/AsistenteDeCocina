@@ -10,7 +10,10 @@ type NoticeTone = 'error' | 'success' | 'warning';
 type NoticeProps = {
   tone: NoticeTone;
   title?: string;
+  /** Text, possibly with nested `ThemedText`. */
   children: ReactNode;
+  /** Replaces what screen readers announce for the whole notice. */
+  accessibilityLabel?: string;
 };
 
 const tones: Record<NoticeTone, { icon: string; color: ThemeColor; background: ThemeColor }> = {
@@ -26,21 +29,16 @@ const tones: Record<NoticeTone, { icon: string; color: ThemeColor; background: T
  * The icon and the text carry the meaning, never the colour alone, and errors
  * are announced by screen readers.
  */
-export function Notice({ tone, title, children }: NoticeProps) {
+export function Notice({ tone, title, children, accessibilityLabel }: NoticeProps) {
   const theme = useTheme();
   const { icon, color, background } = tones[tone];
 
   return (
-    // One focus stop that reads the whole message.
     <View
-      accessible
-      accessibilityRole={tone === 'error' ? 'alert' : undefined}
+      accessible={accessibilityLabel !== undefined}
+      accessibilityLabel={accessibilityLabel}
       style={[styles.notice, { backgroundColor: theme[background], borderColor: theme[color] }]}>
-      <ThemedText
-        type="smallBold"
-        themeColor={color}
-        importantForAccessibility="no"
-        aria-hidden>
+      <ThemedText type="smallBold" themeColor={color} importantForAccessibility="no" aria-hidden>
         {icon}
       </ThemedText>
       <View style={styles.body}>
@@ -49,13 +47,13 @@ export function Notice({ tone, title, children }: NoticeProps) {
             {title}
           </ThemedText>
         )}
-        {typeof children === 'string' ? (
-          <ThemedText type="small" themeColor={tone === 'warning' ? 'textPrimary' : color}>
-            {children}
-          </ThemedText>
-        ) : (
-          children
-        )}
+        <ThemedText
+          type="small"
+          themeColor={tone === 'warning' ? 'textPrimary' : color}
+          accessibilityRole={tone === 'error' ? 'alert' : undefined}
+          accessibilityLiveRegion={tone === 'success' ? 'polite' : undefined}>
+          {children}
+        </ThemedText>
       </View>
     </View>
   );
