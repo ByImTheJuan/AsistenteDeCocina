@@ -10,7 +10,7 @@ import { useAccount, useLinkGoogle } from './use-account';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { requestGoogleIdToken } from '@/features/auth/google-sign-in';
 import { useSession } from '@/features/auth/session-provider';
 
@@ -46,7 +46,7 @@ export function AccountScreen() {
     return (
       <ThemedView style={styles.centered}>
         <View style={styles.message}>
-          <ThemedText type="subtitle" style={styles.centeredText}>
+          <ThemedText type="title" style={styles.centeredText}>
             No se ha podido cargar tu cuenta
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.centeredText}>
@@ -63,7 +63,7 @@ export function AccountScreen() {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <SafeAreaView style={styles.content}>
-          <ThemedText type="subtitle">Cuenta</ThemedText>
+          <ThemedText type="title">Cuenta</ThemedText>
 
           <Section title="Tus datos">
             <Field label="Nombre" value={account.name ?? 'Sin nombre'} />
@@ -82,7 +82,7 @@ export function AccountScreen() {
               Borra tu cuenta y todos tus datos de forma definitiva.
             </ThemedText>
             <Link href="/account/delete" accessibilityRole="link">
-              <ThemedText type="smallBold" themeColor="danger">
+              <ThemedText type="smallBold" themeColor="error">
                 Eliminar mi cuenta
               </ThemedText>
             </Link>
@@ -141,7 +141,7 @@ function SignInMethods({ account }: { account: Account }) {
           <ActionButton href="/account/remove-method?method=google" label="Desvincular Google" />
         )}
         {linkError && (
-          <ThemedText type="small" themeColor="danger" accessibilityRole="alert">
+          <ThemedText type="small" themeColor="error" accessibilityRole="alert">
             {linkError}
           </ThemedText>
         )}
@@ -176,7 +176,7 @@ function SignOutButton() {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <ThemedView type="backgroundElement" style={styles.section}>
+    <ThemedView type="surface" style={styles.section}>
       <ThemedText type="smallBold" accessibilityRole="header">
         {title}
       </ThemedText>
@@ -232,14 +232,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: Spacing.xl,
   },
   centeredText: {
     textAlign: 'center',
   },
   message: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
+    gap: Spacing.lg,
   },
   scroll: {
     flexGrow: 1,
@@ -247,19 +247,19 @@ const styles = StyleSheet.create({
   },
   content: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.four,
-    paddingBottom: BottomTabInset + Spacing.four,
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: BottomTabInset + Spacing.xl,
     maxWidth: MaxContentWidth,
   },
   section: {
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderRadius: Spacing.four,
+    gap: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: Radius.lg,
   },
   method: {
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   methodHeader: {
     flexDirection: 'row',

@@ -13,7 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
 import type { Ingredient } from '@/features/ingredients/ingredients-api';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 
@@ -33,7 +33,7 @@ export function FoodPreferencesScreen() {
     return (
       <ThemedView style={styles.centered}>
         <View style={styles.message}>
-          <ThemedText type="subtitle" style={styles.centeredText}>
+          <ThemedText type="title" style={styles.centeredText}>
             No se han podido cargar tus preferencias
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.centeredText}>
@@ -98,7 +98,7 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.content}>
-          <ThemedText type="subtitle">Preferencias alimentarias</ThemedText>
+          <ThemedText type="title">Preferencias alimentarias</ThemedText>
 
           <Section title="Dieta">
             <View accessibilityRole="radiogroup" style={styles.options}>
@@ -146,7 +146,7 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
           {failure && (
             <ThemedText
               type="small"
-              themeColor="danger"
+              themeColor="error"
               accessibilityRole="alert"
               style={styles.centeredText}>
               {failure} Tus cambios siguen aquí, sin guardar.
@@ -182,7 +182,7 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <ThemedView type="backgroundElement" style={styles.section}>
+    <ThemedView type="surface" style={styles.section}>
       <ThemedText type="smallBold" accessibilityRole="header">
         {title}
       </ThemedText>
@@ -212,8 +212,8 @@ function DietOption({
       onPress={onPress}
       style={({ pressed }) => [
         styles.option,
-        { borderColor: checked ? theme.text : theme.backgroundSelected },
-        checked && { backgroundColor: theme.backgroundSelected },
+        { borderColor: checked ? theme.textPrimary : theme.borderStrong },
+        checked && { backgroundColor: theme.surfaceSecondary },
         pressed && styles.pressed,
       ]}>
       <View style={styles.optionText}>
@@ -265,7 +265,7 @@ function IngredientList({
               onPress={() => onRemove(ingredient)}
               style={({ pressed }) => [
                 styles.chip,
-                { backgroundColor: theme.backgroundSelected },
+                { backgroundColor: theme.surfaceSecondary },
                 pressed && styles.pressed,
               ]}>
               <ThemedText type="small">{ingredient.name}</ThemedText>
@@ -289,14 +289,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: Spacing.xl,
   },
   centeredText: {
     textAlign: 'center',
   },
   message: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
+    gap: Spacing.lg,
   },
   scroll: {
     flexGrow: 1,
@@ -304,28 +304,28 @@ const styles = StyleSheet.create({
   },
   content: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.four,
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.xl,
     maxWidth: MaxContentWidth,
   },
   section: {
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderRadius: Spacing.four,
+    gap: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: Radius.lg,
   },
   options: {
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
+    gap: Spacing.lg,
     minHeight: 48,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
     borderWidth: 1,
-    borderRadius: Spacing.three,
+    borderRadius: Radius.md,
   },
   optionText: {
     flex: 1,
@@ -333,15 +333,15 @@ const styles = StyleSheet.create({
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.sm,
     minHeight: 40,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.four,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.xl,
   },
   pressed: {
     opacity: 0.7,

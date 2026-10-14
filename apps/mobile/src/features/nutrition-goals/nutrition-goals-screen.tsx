@@ -30,7 +30,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 
 /** Calories and protein the user wants to aim for. */
@@ -49,7 +49,7 @@ export function NutritionGoalsScreen() {
     return (
       <ThemedView style={styles.centered}>
         <View style={styles.message}>
-          <ThemedText type="subtitle" style={styles.centeredText}>
+          <ThemedText type="title" style={styles.centeredText}>
             No se han podido cargar tus objetivos nutricionales
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.centeredText}>
@@ -97,7 +97,7 @@ function NutritionGoalsFormView({ saved }: { saved: NutritionGoals }) {
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.content}>
-            <ThemedText type="subtitle">Objetivos nutricionales</ThemedText>
+            <ThemedText type="title">Objetivos nutricionales</ThemedText>
             <ThemedText themeColor="textSecondary">
               Los eliges tú y todos son opcionales. La aplicación no los calcula ni sustituye el
               consejo de un profesional.
@@ -116,7 +116,7 @@ function NutritionGoalsFormView({ saved }: { saved: NutritionGoals }) {
             {failure && (
               <ThemedText
                 type="small"
-                themeColor="danger"
+                themeColor="error"
                 accessibilityRole="alert"
                 style={styles.centeredText}>
                 {failure} Tus cambios siguen aquí, sin guardar.
@@ -162,7 +162,7 @@ function GoalSection({
           ?.message;
 
         return (
-          <ThemedView type="backgroundElement" style={styles.section}>
+          <ThemedView type="surface" style={styles.section}>
             <ThemedText type="smallBold" accessibilityRole="header">
               {title}
             </ThemedText>
@@ -219,14 +219,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: Spacing.xl,
   },
   centeredText: {
     textAlign: 'center',
   },
   message: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
+    gap: Spacing.lg,
   },
   scroll: {
     flexGrow: 1,
@@ -234,20 +234,20 @@ const styles = StyleSheet.create({
   },
   content: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.four,
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.xl,
     maxWidth: MaxContentWidth,
   },
   section: {
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderRadius: Spacing.four,
+    gap: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: Radius.lg,
   },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
+    gap: Spacing.lg,
   },
   switchText: {
     flex: 1,

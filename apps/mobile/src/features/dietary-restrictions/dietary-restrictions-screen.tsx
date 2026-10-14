@@ -16,7 +16,7 @@ import { useDietaryRestrictions, useSaveDietaryRestrictions } from './use-dietar
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
 import type { Ingredient } from '@/features/ingredients/ingredients-api';
 import { useTheme } from '@/hooks/use-theme';
@@ -38,7 +38,7 @@ export function DietaryRestrictionsScreen() {
     return (
       <ThemedView style={styles.centered}>
         <View style={styles.message}>
-          <ThemedText type="subtitle" style={styles.centeredText}>
+          <ThemedText type="title" style={styles.centeredText}>
             No se han podido cargar tus alergias e intolerancias
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.centeredText}>
@@ -112,12 +112,12 @@ function DietaryRestrictionsForm({ saved }: { saved: DietaryRestrictions }) {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.content}>
-          <ThemedText type="subtitle">Alergias e intolerancias</ThemedText>
+          <ThemedText type="title">Alergias e intolerancias</ThemedText>
           <ThemedText themeColor="textSecondary">
             Lo que marques aquí es una restricción de seguridad, no un gusto: la aplicación lo
             tratará como algo que no puedes comer.
           </ThemedText>
-          <View style={[styles.notice, { borderColor: theme.danger }]}>
+          <View style={[styles.notice, { borderColor: theme.error }]}>
             <ThemedText type="small">
               La aplicación no puede garantizar la ausencia de trazas ni de contaminación cruzada.
               Comprueba siempre el etiquetado de los productos.
@@ -153,7 +153,7 @@ function DietaryRestrictionsForm({ saved }: { saved: DietaryRestrictions }) {
                     onPress={() => toggleIngredient(ingredient)}
                     style={({ pressed }) => [
                       styles.chip,
-                      { backgroundColor: theme.backgroundSelected },
+                      { backgroundColor: theme.surfaceSecondary },
                       pressed && styles.pressed,
                     ]}>
                     <ThemedText type="small">{ingredient.name}</ThemedText>
@@ -175,7 +175,7 @@ function DietaryRestrictionsForm({ saved }: { saved: DietaryRestrictions }) {
             <View
               accessible
               accessibilityLabel="Conflicto con tus preferencias"
-              style={[styles.notice, { borderColor: theme.danger }]}>
+              style={[styles.notice, { borderColor: theme.error }]}>
               <ThemedText type="smallBold">Conflicto con tus preferencias</ThemedText>
               <ThemedText type="small">
                 En «Me gustan» tienes alimentos que chocan con las restricciones guardadas:{' '}
@@ -194,7 +194,7 @@ function DietaryRestrictionsForm({ saved }: { saved: DietaryRestrictions }) {
           {failure && (
             <ThemedText
               type="small"
-              themeColor="danger"
+              themeColor="error"
               accessibilityRole="alert"
               style={styles.centeredText}>
               {failure} Tus cambios siguen aquí, sin guardar.
@@ -226,7 +226,7 @@ function DietaryRestrictionsForm({ saved }: { saved: DietaryRestrictions }) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <ThemedView type="backgroundElement" style={styles.section}>
+    <ThemedView type="surface" style={styles.section}>
       <ThemedText type="smallBold" accessibilityRole="header">
         {title}
       </ThemedText>
@@ -256,8 +256,8 @@ function AllergenOption({
       onPress={onPress}
       style={({ pressed }) => [
         styles.option,
-        { borderColor: checked ? theme.text : theme.backgroundSelected },
-        checked && { backgroundColor: theme.backgroundSelected },
+        { borderColor: checked ? theme.textPrimary : theme.borderStrong },
+        checked && { backgroundColor: theme.surfaceSecondary },
         pressed && styles.pressed,
       ]}>
       <View style={styles.optionText}>
@@ -279,14 +279,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: Spacing.xl,
   },
   centeredText: {
     textAlign: 'center',
   },
   message: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
+    gap: Spacing.lg,
   },
   scroll: {
     flexGrow: 1,
@@ -294,34 +294,34 @@ const styles = StyleSheet.create({
   },
   content: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.four,
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.xl,
     maxWidth: MaxContentWidth,
   },
   notice: {
-    gap: Spacing.one,
-    padding: Spacing.three,
+    gap: Spacing.xs,
+    padding: Spacing.lg,
     borderWidth: 1,
-    borderRadius: Spacing.three,
+    borderRadius: Radius.md,
   },
   section: {
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderRadius: Spacing.four,
+    gap: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: Radius.lg,
   },
   options: {
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
+    gap: Spacing.lg,
     minHeight: 48,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
     borderWidth: 1,
-    borderRadius: Spacing.three,
+    borderRadius: Radius.md,
   },
   optionText: {
     flex: 1,
@@ -329,15 +329,15 @@ const styles = StyleSheet.create({
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.sm,
     minHeight: 40,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.four,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.xl,
   },
   pressed: {
     opacity: 0.7,

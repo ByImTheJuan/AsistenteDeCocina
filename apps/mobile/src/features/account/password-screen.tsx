@@ -74,7 +74,7 @@ function PasswordFormView({ hasPassword: initialHasPassword }: { hasPassword: bo
 
   return (
     <FormScreen>
-      <ThemedText type="subtitle" style={styles.text}>
+      <ThemedText type="title" style={styles.text}>
         {action}
       </ThemedText>
       <ThemedText themeColor="textSecondary" style={styles.text}>
@@ -130,7 +130,7 @@ function PasswordFormView({ hasPassword: initialHasPassword }: { hasPassword: bo
       />
 
       {failure && (
-        <ThemedText type="small" themeColor="danger" accessibilityRole="alert" style={styles.text}>
+        <ThemedText type="small" themeColor="error" accessibilityRole="alert" style={styles.text}>
           {failure}
         </ThemedText>
       )}

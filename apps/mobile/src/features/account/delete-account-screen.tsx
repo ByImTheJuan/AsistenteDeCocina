@@ -72,7 +72,7 @@ export function DeleteAccountScreen() {
 
   return (
     <FormScreen>
-      <ThemedText type="subtitle" style={styles.text}>
+      <ThemedText type="title" style={styles.text}>
         Eliminar cuenta
       </ThemedText>
       <ThemedText themeColor="textSecondary" style={styles.text}>
@@ -108,7 +108,7 @@ export function DeleteAccountScreen() {
       />
 
       {failure && (
-        <ThemedText type="small" themeColor="danger" accessibilityRole="alert" style={styles.text}>
+        <ThemedText type="small" themeColor="error" accessibilityRole="alert" style={styles.text}>
           {failure}
         </ThemedText>
       )}
@@ -122,6 +122,6 @@ const styles = StyleSheet.create({
   },
   list: {
     alignSelf: 'stretch',
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
 });

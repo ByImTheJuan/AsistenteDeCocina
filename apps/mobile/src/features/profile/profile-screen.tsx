@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { summarizeRestrictions } from '@/features/dietary-restrictions/labels';
 import { useDietaryRestrictions } from '@/features/dietary-restrictions/use-dietary-restrictions';
 import type { FoodPreferences } from '@/features/food-preferences/food-preferences-api';
@@ -44,7 +44,7 @@ export function ProfileScreen() {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <SafeAreaView style={styles.content}>
-          <ThemedText type="subtitle">Perfil</ThemedText>
+          <ThemedText type="title">Perfil</ThemedText>
           <ThemedText themeColor="textSecondary">
             Cuéntanos cómo comes para que las recetas encajen contigo. Todo es opcional y puedes
             cambiarlo cuando quieras.
@@ -79,7 +79,7 @@ function Entry({ title, summary, href }: { title: string; summary: string; href:
       accessibilityLabel={`${title}: ${summary}`}
       onPress={() => router.push(href)}
       style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView type="backgroundElement" style={styles.entry}>
+      <ThemedView type="surface" style={styles.entry}>
         <View style={styles.entryText}>
           <ThemedText type="smallBold">{title}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
@@ -102,22 +102,22 @@ const styles = StyleSheet.create({
   },
   content: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.four,
-    paddingBottom: BottomTabInset + Spacing.four,
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: BottomTabInset + Spacing.xl,
     maxWidth: MaxContentWidth,
   },
   entry: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderRadius: Spacing.four,
+    gap: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: Radius.lg,
   },
   entryText: {
     flex: 1,
-    gap: Spacing.one,
+    gap: Spacing.xs,
   },
   pressed: {
     opacity: 0.7,

@@ -71,7 +71,7 @@ export function SignInScreen() {
   if (session.status === 'unavailable') {
     return (
       <FormScreen>
-        <ThemedText type="subtitle" style={styles.text}>
+        <ThemedText type="title" style={styles.text}>
           Sin conexión
         </ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.text}>
@@ -84,7 +84,7 @@ export function SignInScreen() {
 
   return (
     <FormScreen>
-      <ThemedText type="subtitle" style={styles.text}>
+      <ThemedText type="title" style={styles.text}>
         Asistente de Cocina
       </ThemedText>
       <ThemedText themeColor="textSecondary" style={styles.text}>
@@ -137,7 +137,7 @@ export function SignInScreen() {
       />
 
       {failure && (
-        <ThemedText type="small" themeColor="danger" accessibilityRole="alert" style={styles.text}>
+        <ThemedText type="small" themeColor="error" accessibilityRole="alert" style={styles.text}>
           {failureMessages[failure]}
         </ThemedText>
       )}

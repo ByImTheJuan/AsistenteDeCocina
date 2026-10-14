@@ -43,7 +43,7 @@ export function SignUpScreen() {
 
   return (
     <FormScreen>
-      <ThemedText type="subtitle" style={styles.text}>
+      <ThemedText type="title" style={styles.text}>
         Crear cuenta
       </ThemedText>
       <ThemedText themeColor="textSecondary" style={styles.text}>
@@ -109,7 +109,7 @@ export function SignUpScreen() {
       <PrimaryButton label="Crear cuenta" loading={submitting} onPress={() => void submit()} />
 
       {failure && (
-        <ThemedText type="small" themeColor="danger" accessibilityRole="alert" style={styles.text}>
+        <ThemedText type="small" themeColor="error" accessibilityRole="alert" style={styles.text}>
           {failureMessages[failure]}
         </ThemedText>
       )}
