@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { categoryLabel, type Ingredient } from './ingredients-api';
 import { useIngredientSearch } from './use-ingredient-search';
 
+import { Notice } from '@/components/notice';
 import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -69,9 +70,7 @@ export function IngredientPicker({
             keyboardShouldPersistTaps="handled">
             {error ? (
               <View style={styles.message}>
-                <ThemedText themeColor="error" accessibilityRole="alert" style={styles.centered}>
-                  {apiErrorMessage(error)}
-                </ThemedText>
+                <Notice tone="error">{apiErrorMessage(error)}</Notice>
                 <PrimaryButton
                   label="Reintentar"
                   variant="secondary"
@@ -104,13 +103,23 @@ export function IngredientPicker({
                         styles.row,
                         {
                           backgroundColor:
-                            theme[checked ? 'surfaceSecondary' : 'surface'],
+                            theme[
+                              blocked ? 'disabledSurface' : checked ? 'surfaceSecondary' : 'surface'
+                            ],
+                          borderColor:
+                            theme[
+                              blocked ? 'disabledBorder' : checked ? 'textPrimary' : 'borderStrong'
+                            ],
                         },
-                        (pressed || blocked) && styles.dimmed,
+                        pressed && styles.pressed,
                       ]}>
                       <View style={styles.rowText}>
-                        <ThemedText>{ingredient.name}</ThemedText>
-                        <ThemedText type="small" themeColor="textSecondary">
+                        <ThemedText themeColor={blocked ? 'disabledText' : 'textPrimary'}>
+                          {ingredient.name}
+                        </ThemedText>
+                        <ThemedText
+                          type="small"
+                          themeColor={blocked ? 'disabledText' : 'textSecondary'}>
                           {blocked ? unavailable?.reason : categoryLabel(ingredient.category)}
                         </ThemedText>
                       </View>
@@ -165,12 +174,13 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
+    borderWidth: 1,
     borderRadius: Radius.md,
   },
   rowText: {
     flex: 1,
   },
-  dimmed: {
-    opacity: 0.5,
+  pressed: {
+    opacity: 0.7,
   },
 });

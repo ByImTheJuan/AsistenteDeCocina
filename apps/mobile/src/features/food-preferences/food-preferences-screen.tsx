@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useForm, useFormState, useWatch } from 'react-hook-form';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { diets, type Diet, type FoodPreferences } from './food-preferences-api';
@@ -8,6 +8,9 @@ import { foodPreferencesErrorMessage } from './food-preferences-errors';
 import { dietDescriptions, dietLabels, listLabels, type PreferenceList } from './labels';
 import { useFoodPreferences, useSaveFoodPreferences } from './use-food-preferences';
 
+import { Notice } from '@/components/notice';
+import { ScreenState } from '@/components/screen-state';
+import { Card } from '@/components/card';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -22,26 +25,18 @@ export function FoodPreferencesScreen() {
   const { data: preferences, isPending, error, refetch, isRefetching } = useFoodPreferences();
 
   if (isPending) {
-    return (
-      <ThemedView style={styles.centered}>
-        <ActivityIndicator accessibilityLabel="Cargando tus preferencias" />
-      </ThemedView>
-    );
+    return <ScreenState kind="loading" label="Cargando tus preferencias" />;
   }
 
   if (!preferences) {
     return (
-      <ThemedView style={styles.centered}>
-        <View style={styles.message}>
-          <ThemedText type="title" style={styles.centeredText}>
-            No se han podido cargar tus preferencias
-          </ThemedText>
-          <ThemedText themeColor="textSecondary" style={styles.centeredText}>
-            {foodPreferencesErrorMessage(error)}
-          </ThemedText>
-          <PrimaryButton label="Reintentar" loading={isRefetching} onPress={() => void refetch()} />
-        </View>
-      </ThemedView>
+      <ScreenState
+        kind="error"
+        title="No se han podido cargar tus preferencias"
+        message={foodPreferencesErrorMessage(error)}
+        retrying={isRefetching}
+        onRetry={() => void refetch()}
+      />
     );
   }
 
@@ -143,24 +138,8 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
             loading={save.isPending}
             onPress={() => void submit()}
           />
-          {failure && (
-            <ThemedText
-              type="small"
-              themeColor="error"
-              accessibilityRole="alert"
-              style={styles.centeredText}>
-              {failure} Tus cambios siguen aquí, sin guardar.
-            </ThemedText>
-          )}
-          {justSaved && (
-            <ThemedText
-              type="small"
-              themeColor="textSecondary"
-              accessibilityLiveRegion="polite"
-              style={styles.centeredText}>
-              Preferencias guardadas.
-            </ThemedText>
-          )}
+          {failure && <Notice tone="error">{failure} Tus cambios siguen aquí, sin guardar.</Notice>}
+          {justSaved && <Notice tone="success">Preferencias guardadas.</Notice>}
         </SafeAreaView>
       </ScrollView>
 
@@ -182,12 +161,12 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <ThemedView type="surface" style={styles.section}>
-      <ThemedText type="smallBold" accessibilityRole="header">
+    <Card style={styles.section}>
+      <ThemedText type="heading" accessibilityRole="header">
         {title}
       </ThemedText>
       {children}
-    </ThemedView>
+    </Card>
   );
 }
 
@@ -285,19 +264,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  centeredText: {
-    textAlign: 'center',
-  },
-  message: {
-    alignSelf: 'stretch',
-    gap: Spacing.lg,
-  },
   scroll: {
     flexGrow: 1,
     alignItems: 'center',
@@ -311,8 +277,6 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: Spacing.lg,
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
   },
   options: {
     gap: Spacing.sm,
@@ -339,7 +303,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    minHeight: 40,
+    minHeight: 44,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.xl,
   },

@@ -1,14 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { Controller, useForm, useFormState, type Control } from 'react-hook-form';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -26,11 +19,14 @@ import {
 } from './nutrition-goals-form';
 import { useNutritionGoals, useSaveNutritionGoals } from './use-nutrition-goals';
 
+import { Notice } from '@/components/notice';
+import { ScreenState } from '@/components/screen-state';
+import { Card } from '@/components/card';
 import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 
 /** Calories and protein the user wants to aim for. */
@@ -38,26 +34,18 @@ export function NutritionGoalsScreen() {
   const { data: goals, isPending, error, refetch, isRefetching } = useNutritionGoals();
 
   if (isPending) {
-    return (
-      <ThemedView style={styles.centered}>
-        <ActivityIndicator accessibilityLabel="Cargando tus objetivos" />
-      </ThemedView>
-    );
+    return <ScreenState kind="loading" label="Cargando tus objetivos" />;
   }
 
   if (!goals) {
     return (
-      <ThemedView style={styles.centered}>
-        <View style={styles.message}>
-          <ThemedText type="title" style={styles.centeredText}>
-            No se han podido cargar tus objetivos nutricionales
-          </ThemedText>
-          <ThemedText themeColor="textSecondary" style={styles.centeredText}>
-            {nutritionGoalsErrorMessage(error)}
-          </ThemedText>
-          <PrimaryButton label="Reintentar" loading={isRefetching} onPress={() => void refetch()} />
-        </View>
-      </ThemedView>
+      <ScreenState
+        kind="error"
+        title="No se han podido cargar tus objetivos nutricionales"
+        message={nutritionGoalsErrorMessage(error)}
+        retrying={isRefetching}
+        onRetry={() => void refetch()}
+      />
     );
   }
 
@@ -114,23 +102,9 @@ function NutritionGoalsFormView({ saved }: { saved: NutritionGoals }) {
               onPress={() => void submit()}
             />
             {failure && (
-              <ThemedText
-                type="small"
-                themeColor="error"
-                accessibilityRole="alert"
-                style={styles.centeredText}>
-                {failure} Tus cambios siguen aquí, sin guardar.
-              </ThemedText>
+              <Notice tone="error">{failure} Tus cambios siguen aquí, sin guardar.</Notice>
             )}
-            {justSaved && (
-              <ThemedText
-                type="small"
-                themeColor="textSecondary"
-                accessibilityLiveRegion="polite"
-                style={styles.centeredText}>
-                Objetivos guardados.
-              </ThemedText>
-            )}
+            {justSaved && <Notice tone="success">Objetivos guardados.</Notice>}
           </SafeAreaView>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -162,8 +136,8 @@ function GoalSection({
           ?.message;
 
         return (
-          <ThemedView type="surface" style={styles.section}>
-            <ThemedText type="smallBold" accessibilityRole="header">
+          <Card style={styles.section}>
+            <ThemedText type="heading" accessibilityRole="header">
               {title}
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
@@ -204,7 +178,7 @@ function GoalSection({
                 }}
               />
             </View>
-          </ThemedView>
+          </Card>
         );
       }}
     />
@@ -214,19 +188,6 @@ function GoalSection({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  centeredText: {
-    textAlign: 'center',
-  },
-  message: {
-    alignSelf: 'stretch',
-    gap: Spacing.lg,
   },
   scroll: {
     flexGrow: 1,
@@ -241,8 +202,6 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: Spacing.lg,
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
   },
   switchRow: {
     flexDirection: 'row',

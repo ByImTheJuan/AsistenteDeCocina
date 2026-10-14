@@ -2,9 +2,10 @@ import { useRouter, type Href } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Card } from '@/components/card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { summarizeRestrictions } from '@/features/dietary-restrictions/labels';
 import { useDietaryRestrictions } from '@/features/dietary-restrictions/use-dietary-restrictions';
 import type { FoodPreferences } from '@/features/food-preferences/food-preferences-api';
@@ -79,7 +80,7 @@ function Entry({ title, summary, href }: { title: string; summary: string; href:
       accessibilityLabel={`${title}: ${summary}`}
       onPress={() => router.push(href)}
       style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView type="surface" style={styles.entry}>
+      <Card style={styles.entry}>
         <View style={styles.entryText}>
           <ThemedText type="smallBold">{title}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
@@ -87,7 +88,7 @@ function Entry({ title, summary, href }: { title: string; summary: string; href:
           </ThemedText>
         </View>
         <ThemedText themeColor="textSecondary">›</ThemedText>
-      </ThemedView>
+      </Card>
     </Pressable>
   );
 }
@@ -112,8 +113,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.lg,
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
   },
   entryText: {
     flex: 1,

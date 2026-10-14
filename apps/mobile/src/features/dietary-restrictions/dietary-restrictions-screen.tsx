@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useForm, useFormState, useWatch } from 'react-hook-form';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -13,6 +13,9 @@ import { dietaryRestrictionsErrorMessage } from './dietary-restrictions-errors';
 import { allergenLabels } from './labels';
 import { useDietaryRestrictions, useSaveDietaryRestrictions } from './use-dietary-restrictions';
 
+import { Notice } from '@/components/notice';
+import { ScreenState } from '@/components/screen-state';
+import { Card } from '@/components/card';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -27,26 +30,18 @@ export function DietaryRestrictionsScreen() {
   const { data: restrictions, isPending, error, refetch, isRefetching } = useDietaryRestrictions();
 
   if (isPending) {
-    return (
-      <ThemedView style={styles.centered}>
-        <ActivityIndicator accessibilityLabel="Cargando tus restricciones" />
-      </ThemedView>
-    );
+    return <ScreenState kind="loading" label="Cargando tus restricciones" />;
   }
 
   if (!restrictions) {
     return (
-      <ThemedView style={styles.centered}>
-        <View style={styles.message}>
-          <ThemedText type="title" style={styles.centeredText}>
-            No se han podido cargar tus alergias e intolerancias
-          </ThemedText>
-          <ThemedText themeColor="textSecondary" style={styles.centeredText}>
-            {dietaryRestrictionsErrorMessage(error)}
-          </ThemedText>
-          <PrimaryButton label="Reintentar" loading={isRefetching} onPress={() => void refetch()} />
-        </View>
-      </ThemedView>
+      <ScreenState
+        kind="error"
+        title="No se han podido cargar tus alergias e intolerancias"
+        message={dietaryRestrictionsErrorMessage(error)}
+        retrying={isRefetching}
+        onRetry={() => void refetch()}
+      />
     );
   }
 
@@ -117,12 +112,10 @@ function DietaryRestrictionsForm({ saved }: { saved: DietaryRestrictions }) {
             Lo que marques aquí es una restricción de seguridad, no un gusto: la aplicación lo
             tratará como algo que no puedes comer.
           </ThemedText>
-          <View style={[styles.notice, { borderColor: theme.error }]}>
-            <ThemedText type="small">
-              La aplicación no puede garantizar la ausencia de trazas ni de contaminación cruzada.
-              Comprueba siempre el etiquetado de los productos.
-            </ThemedText>
-          </View>
+          <Notice tone="warning">
+            La aplicación no puede garantizar la ausencia de trazas ni de contaminación cruzada.
+            Comprueba siempre el etiquetado de los productos.
+          </Notice>
 
           <Section title="Alérgenos e intolerancias">
             <View style={styles.options}>
@@ -172,17 +165,14 @@ function DietaryRestrictionsForm({ saved }: { saved: DietaryRestrictions }) {
           </Section>
 
           {conflicts.length > 0 && (
-            <View
-              accessible
-              accessibilityLabel="Conflicto con tus preferencias"
-              style={[styles.notice, { borderColor: theme.error }]}>
-              <ThemedText type="smallBold">Conflicto con tus preferencias</ThemedText>
-              <ThemedText type="small">
-                En «Me gustan» tienes alimentos que chocan con las restricciones guardadas:{' '}
-                {conflicts.map(({ name }) => name).join(', ')}. La restricción manda. Puedes
-                quitarlos en Preferencias alimentarias.
-              </ThemedText>
-            </View>
+            <Notice
+              tone="warning"
+              title="Conflicto con tus preferencias"
+              accessibilityLabel="Conflicto con tus preferencias">
+              En «Me gustan» tienes alimentos que chocan con las restricciones guardadas:{' '}
+              {conflicts.map(({ name }) => name).join(', ')}. La restricción manda. Puedes quitarlos
+              en Preferencias alimentarias.
+            </Notice>
           )}
 
           <PrimaryButton
@@ -191,24 +181,8 @@ function DietaryRestrictionsForm({ saved }: { saved: DietaryRestrictions }) {
             loading={save.isPending}
             onPress={() => void submit()}
           />
-          {failure && (
-            <ThemedText
-              type="small"
-              themeColor="error"
-              accessibilityRole="alert"
-              style={styles.centeredText}>
-              {failure} Tus cambios siguen aquí, sin guardar.
-            </ThemedText>
-          )}
-          {justSaved && (
-            <ThemedText
-              type="small"
-              themeColor="textSecondary"
-              accessibilityLiveRegion="polite"
-              style={styles.centeredText}>
-              Restricciones guardadas.
-            </ThemedText>
-          )}
+          {failure && <Notice tone="error">{failure} Tus cambios siguen aquí, sin guardar.</Notice>}
+          {justSaved && <Notice tone="success">Restricciones guardadas.</Notice>}
         </SafeAreaView>
       </ScrollView>
 
@@ -226,12 +200,12 @@ function DietaryRestrictionsForm({ saved }: { saved: DietaryRestrictions }) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <ThemedView type="surface" style={styles.section}>
-      <ThemedText type="smallBold" accessibilityRole="header">
+    <Card style={styles.section}>
+      <ThemedText type="heading" accessibilityRole="header">
         {title}
       </ThemedText>
       {children}
-    </ThemedView>
+    </Card>
   );
 }
 
@@ -275,19 +249,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  centeredText: {
-    textAlign: 'center',
-  },
-  message: {
-    alignSelf: 'stretch',
-    gap: Spacing.lg,
-  },
   scroll: {
     flexGrow: 1,
     alignItems: 'center',
@@ -299,16 +260,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
     maxWidth: MaxContentWidth,
   },
-  notice: {
-    gap: Spacing.xs,
-    padding: Spacing.lg,
-    borderWidth: 1,
-    borderRadius: Radius.md,
-  },
   section: {
     gap: Spacing.lg,
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
   },
   options: {
     gap: Spacing.sm,
@@ -335,7 +288,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    minHeight: 40,
+    minHeight: 44,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.xl,
   },
