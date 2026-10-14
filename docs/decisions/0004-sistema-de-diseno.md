@@ -11,7 +11,7 @@ El nombre «Modern Kitchen» es provisional: no se usa en código, paquetes, ide
 
 ## Decisión
 
-- **Un único módulo de tokens**, `apps/mobile/src/constants/theme.ts`, con `Colors`, `Spacing`, `Radius`, `FontFamily`, `Typography` y `ControlHeight`. Ninguna pantalla usa valores hexadecimales: una prueba (`no-hardcoded-colors.test.ts`) lo comprueba, con una lista explícita de excepciones para los restos de la plantilla de la pestaña «Home».
+- **Un único módulo de tokens**, `apps/mobile/src/constants/theme.ts`, con `Colors`, `Spacing`, `Radius`, `FontFamily`, `Typography`, `ControlHeight` y `CardShadow`. Ninguna pantalla usa valores hexadecimales: una prueba (`no-hardcoded-colors.test.ts`) lo comprueba, con una lista explícita de excepciones para los restos de la plantilla de la pestaña «Home».
 - **Solo modo claro** en esta iteración: `userInterfaceStyle: "light"` en `app.json` y `useTheme()` devuelve siempre la paleta clara. `Colors.dark` existe con los mismos nombres de token y, por ahora, los mismos valores, para que el modo oscuro se añada solo con valores.
 - **Nunito Sans** (`@expo-google-fonts/nunito-sans`), cargada en tiempo de ejecución con `useFonts` en el layout raíz. Funciona en Expo Go, a diferencia del plugin de `expo-font`. La pantalla de inicio sigue visible hasta que la fuente carga o falla; si falla, la app arranca con la fuente del sistema.
 - **Un peso, una familia:** se cargan 400, 600 y 700, y cada estilo de texto elige la familia de su peso (`NunitoSans_700Bold`) en lugar de usar `fontWeight`, que en Android con fuentes propias puede sintetizar negritas.
@@ -61,6 +61,7 @@ Los tres valores de una celda corresponden a `background`, `surface` y `surfaceS
   - `title`: 31 pt, negrita. Título de pantalla.
   - `heading`: 22 pt, seminegrita. Título de sección.
   - `default`: 16 pt.
+  - `defaultBold`: 16 pt, seminegrita. Nombre de un elemento en una lista.
   - `small`: 14 pt, auxiliar.
   - `smallBold`: 14 pt, seminegrita.
   - `label`: 13 pt, seminegrita. Etiquetas y metadatos.
@@ -68,7 +69,10 @@ Los tres valores de una celda corresponden a `background`, `surface` y `surfaceS
   No se desactiva el escalado de texto del sistema.
 - **Espaciado** (`Spacing`): `xs` 4, `sm` 8, `md` 12, `lg` 16, `xl` 24 y `xxl` 32.
 - **Radios** (`Radius`): `sm` 8, `md` 12, `lg` 16 y `xl` 24.
-- **Controles:** botones y campos con altura mínima de 52 (`ControlHeight`), nunca fija, para que el texto grande no se recorte. Sin sombras; las tarjetas se separan del fondo con `surface` y un borde `border` fino.
+- **Controles:** botones y campos con altura mínima de 52 (`ControlHeight`), nunca fija, para que el texto grande no se recorte.
+- **Tarjetas:** `surface` con un borde `border` de 1 pt y una sombra suave de un solo nivel (`CardShadow`). El blanco sobre el crema de `background` apenas se distingue: la primera versión, con un borde de 0,5 pt y sin sombra, hacía que las tarjetas desaparecieran en el teléfono y solo se viera texto apilado. No se usan sombras más marcadas.
+- **Listas de categorías** (como la pestaña «Perfil»): una `Card` por categoría con un icono sobre `primary`, el nombre en `defaultBold`, el resumen en `small` y un chevron. Al presionar, el fondo pasa a `surfaceSecondary`.
+- **Iconos:** `SymbolView` de `expo-symbols`, con SF Symbols en iOS y Material Symbols en Android, en el color de un token.
 
 ## Reglas de uso
 
