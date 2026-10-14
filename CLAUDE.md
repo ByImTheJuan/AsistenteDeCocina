@@ -357,7 +357,7 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 
 ## 6. Estructura y estado actual del proyecto
 
-> **Estado a 13-10-2026.** Esta sección describe lo que existe realmente. Actualízala al cerrar cada historia o cambio de infraestructura, y comprueba el repositorio antes de fiarte de ella: si el código y esta sección discrepan, manda el código.
+> **Estado a 14-10-2026.** Esta sección describe lo que existe realmente. Actualízala al cerrar cada historia o cambio de infraestructura, y comprueba el repositorio antes de fiarte de ella: si el código y esta sección discrepan, manda el código.
 
 ### Estructura
 
@@ -401,7 +401,8 @@ No existe `packages/shared`. No lo crees hasta que haya un contrato compartido r
 - **Alérgenos de los ingredientes:** tabla `ingredient_allergens`, sembrada por migración, y columna `ingredients.allergensUncertain` para los elaborados de composición variable. Toda respuesta con ingredientes incluye `allergens` y `allergensUncertain` (usar `withAllergens` de `src/ingredients/ingredient-with-allergens.ts`). **El mapeo no procede de una fuente validada** y un ingrediente sin alérgenos asociados no es por ello seguro. Criterio y límites en `docs/decisions/0003-alergenos-y-restricciones.md`.
 - **Cuenta:** módulo `account` de la API (`GET /account`, `PUT`/`DELETE /account/password`, `PUT`/`DELETE /account/google`, `POST /account/delete`) y pestaña «Cuenta» en la app (`src/features/account`, rutas en `src/app/(app)/account`). Las acciones sensibles piden la contraseña actual si la cuenta tiene una y responden 403 (no 401) cuando es incorrecta; no se puede quitar el último método de acceso; solo se vincula el Google con el mismo email. Los errores de negocio llevan un `code` que la app traduce a mensajes (`ApiError.code`).
 - **Eliminación de datos:** `docs/data-retention-policy.md`. Toda tabla nueva con datos de un usuario debe borrarse en cascada con `users` (`onDelete: Cascade`), salvo el contenido público, que se anonimiza (`onDelete: SetNull`), e incluir una prueba de qué ocurre al eliminar la cuenta.
-- **Datos del servidor en la app:** TanStack Query, con las llamadas autenticadas a través de `useSession().request`; la caché se vacía al cerrar sesión. Los componentes de formulario compartidos están en `src/components` (`PrimaryButton`, `TextField`, `FormScreen`).
+- **Datos del servidor en la app:** TanStack Query, con las llamadas autenticadas a través de `useSession().request`; la caché se vacía al cerrar sesión. Los componentes compartidos están en `src/components` (`PrimaryButton`, `TextField`, `FormScreen`, `Card`, `Notice`, `ScreenState`).
+- **Sistema de diseño** (nombre provisional «Modern Kitchen», que no debe usarse en código, paquetes ni identificadores): tokens en `src/constants/theme.ts` (`Colors`, `Spacing`, `Radius`, `Typography`, `FontFamily`, `ControlHeight`), leídos con `useTheme()` y `ThemedText`. **Ninguna pantalla usa colores literales**; lo comprueba `no-hardcoded-colors.test.ts`, y `theme-contrast.test.ts` comprueba el contraste de cada par de colores. La app está **solo en modo claro** (`userInterfaceStyle: "light"`); `Colors.dark` existe con los mismos valores para añadir el oscuro después. Fuente Nunito Sans (400, 600 y 700), cargada con `useFonts` en el layout raíz e importada por peso. Mostaza (`primary`) solo como fondo con texto oscuro encima, nunca como texto; los errores y estados llevan texto e icono además del color (`Notice`); los estados de carga, error y vacío de pantalla completa usan `ScreenState`. Detalles en `docs/decisions/0004-sistema-de-diseno.md`.
 - **Autenticación:** tres formas de obtener sesión: `POST /auth/register` y `POST /auth/login` (email y contraseña, con hash scrypt) y `POST /auth/google` (ID token obtenido con `@react-native-google-signin/google-signin`). En los tres casos la API emite un JWT de acceso (15 min) y un refresh token rotatorio guardado con hash. Hay una cuenta por email (guardado en minúsculas); contraseña y Google son métodos de acceso independientes de la misma cuenta: entrar con Google a una cuenta con contraseña la vincula y conserva la contraseña. Registrarse con un email que ya tiene cuenta se rechaza siempre. Esos tres endpoints tienen límite de peticiones por IP (`@nestjs/throttler`, en memoria). Para proteger un endpoint: `@UseGuards(JwtAuthGuard)` y `@CurrentUser()` (el módulo debe importar `AuthModule`). En la app, las llamadas autenticadas pasan por `sessionManager.authorizedRequest` y el estado de sesión se lee con `useSession()`.
 
 ### Comandos
@@ -439,7 +440,7 @@ Las dependencias de la app móvil se añaden con `npx expo install <paquete>` de
 
 ### Decisiones ya tomadas
 
-Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md` (el catálogo de ingredientes, en `0002-catalogo-de-ingredientes.md`; los alérgenos y las restricciones, en `0003-alergenos-y-restricciones.md`):
+Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md` (el catálogo de ingredientes, en `0002-catalogo-de-ingredientes.md`; los alérgenos y las restricciones, en `0003-alergenos-y-restricciones.md`; el sistema de diseño, en `0004-sistema-de-diseno.md`):
 
 - La API usa **Vitest y oxlint**, los valores por defecto del generador de NestJS 12. Jest y React Native Testing Library se usan en la app móvil.
 - **Prisma fijado en 7.10.0**: el dist-tag `latest` de npm apuntaba a una versión candidata 8.0.0-rc.
@@ -450,6 +451,8 @@ Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md` (el catá
 
 - **Validar US-002 en dispositivo.** En Expo Go se puede probar todo salvo vincular y desvincular Google.
 - **Validar US-004 en dispositivo.** Se puede probar entera en Expo Go.
+- **Validar el sistema de diseño en Expo Go, en iOS y en Android:** acceso, cuenta, perfil y sus tres secciones, con el texto grande del sistema activado. Comprobar en Android que la fuente no muestra negritas sintéticas. Solo tiene pruebas automatizadas y bundles de `expo export`.
+- La pestaña «Home», el icono y la pantalla de inicio (`app.json`) siguen siendo los de la plantilla y quedan fuera del sistema de diseño hasta que se construya la pantalla principal y se decida la marca.
 - **US-013 y US-015 deben cubrir el criterio 4 de US-004:** comparar las recetas y las recomendaciones con los objetivos activos cuando haya datos nutricionales suficientes.
 - **Validar en Expo Go el aviso al salir sin guardar** de las pantallas de preferencias y de alergias (botón atrás de Android, flecha de la cabecera y gesto de iOS). Se añadió después de la validación de US-003 y US-005 y solo tiene pruebas automatizadas.
 - **Revisar el mapeo de alérgenos** (`seed_ingredient_allergens`) con una fuente fiable antes de usarlo para excluir recetas; fructosa, histamina y sorbitol son aproximaciones.
