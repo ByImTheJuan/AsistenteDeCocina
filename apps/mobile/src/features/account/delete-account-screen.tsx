@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { accountErrorMessage, isWrongCurrentPassword } from './account-errors';
 import { useAccount, useDeleteAccount } from './use-account';
 
 import { FormScreen } from '@/components/form-screen';
+import { Notice } from '@/components/notice';
+import { ScreenState } from '@/components/screen-state';
 import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -29,11 +31,7 @@ export function DeleteAccountScreen() {
   const [failure, setFailure] = useState<string | null>(null);
 
   if (!account) {
-    return (
-      <FormScreen>
-        <ActivityIndicator accessibilityLabel="Cargando tu cuenta" />
-      </FormScreen>
-    );
+    return <ScreenState kind="loading" label="Cargando tu cuenta" />;
   }
   const hasPassword = account.signInMethods.password;
 
@@ -107,11 +105,7 @@ export function DeleteAccountScreen() {
         onPress={askForConfirmation}
       />
 
-      {failure && (
-        <ThemedText type="small" themeColor="error" accessibilityRole="alert" style={styles.text}>
-          {failure}
-        </ThemedText>
-      )}
+      {failure && <Notice tone="error">{failure}</Notice>}
     </FormScreen>
   );
 }

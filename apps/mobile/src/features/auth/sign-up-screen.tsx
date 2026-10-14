@@ -6,6 +6,7 @@ import { StyleSheet } from 'react-native';
 
 import { FormScreen } from '@/components/form-screen';
 import { signUpSchema, type SignUpForm } from './credentials-schema';
+import { Notice } from '@/components/notice';
 import { PrimaryButton } from '@/components/primary-button';
 import type { RegisterFailure } from './session-manager';
 import { useSession } from './session-provider';
@@ -14,7 +15,8 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 
 const failureMessages: Record<RegisterFailure, string> = {
-  'email-taken': 'Ya existe una cuenta con ese email. Inicia sesión con tu contraseña o con Google.',
+  'email-taken':
+    'Ya existe una cuenta con ese email. Inicia sesión con tu contraseña o con Google.',
   'invalid-data': 'El servidor no ha aceptado los datos. Revísalos e inténtalo de nuevo.',
   'rate-limited': 'Has hecho demasiados intentos. Espera un minuto y vuelve a intentarlo.',
   network: 'No hemos podido conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.',
@@ -108,11 +110,7 @@ export function SignUpScreen() {
       />
       <PrimaryButton label="Crear cuenta" loading={submitting} onPress={() => void submit()} />
 
-      {failure && (
-        <ThemedText type="small" themeColor="error" accessibilityRole="alert" style={styles.text}>
-          {failureMessages[failure]}
-        </ThemedText>
-      )}
+      {failure && <Notice tone="error">{failureMessages[failure]}</Notice>}
 
       <Link href="/sign-in" accessibilityRole="link">
         <ThemedText type="small" themeColor="textSecondary">

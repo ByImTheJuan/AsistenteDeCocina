@@ -1,16 +1,19 @@
 import { Link, useRouter, type Href } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Account } from './account-api';
 import { accountErrorMessage } from './account-errors';
 import { useAccount, useLinkGoogle } from './use-account';
 
+import { Notice } from '@/components/notice';
+import { ScreenState } from '@/components/screen-state';
+import { Card } from '@/components/card';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { requestGoogleIdToken } from '@/features/auth/google-sign-in';
 import { useSession } from '@/features/auth/session-provider';
 
@@ -35,18 +38,14 @@ export function AccountScreen() {
   const { data: account, isPending, error, refetch, isRefetching } = useAccount();
 
   if (isPending) {
-    return (
-      <ThemedView style={styles.centered}>
-        <ActivityIndicator accessibilityLabel="Cargando tu cuenta" />
-      </ThemedView>
-    );
+    return <ScreenState kind="loading" label="Cargando tu cuenta" />;
   }
 
   if (!account) {
     return (
       <ThemedView style={styles.centered}>
         <View style={styles.message}>
-          <ThemedText type="title" style={styles.centeredText}>
+          <ThemedText type="heading" style={styles.centeredText}>
             No se ha podido cargar tu cuenta
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.centeredText}>
@@ -140,11 +139,7 @@ function SignInMethods({ account }: { account: Account }) {
         {google && password && (
           <ActionButton href="/account/remove-method?method=google" label="Desvincular Google" />
         )}
-        {linkError && (
-          <ThemedText type="small" themeColor="error" accessibilityRole="alert">
-            {linkError}
-          </ThemedText>
-        )}
+        {linkError && <Notice tone="error">{linkError}</Notice>}
       </Method>
 
       {password !== google && (
@@ -176,12 +171,12 @@ function SignOutButton() {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <ThemedView type="surface" style={styles.section}>
-      <ThemedText type="smallBold" accessibilityRole="header">
+    <Card style={styles.section}>
+      <ThemedText type="heading" accessibilityRole="header">
         {title}
       </ThemedText>
       {children}
-    </ThemedView>
+    </Card>
   );
 }
 
@@ -196,15 +191,7 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Method({
-  name,
-  status,
-  children,
-}: {
-  name: string;
-  status: string;
-  children: ReactNode;
-}) {
+function Method({ name, status, children }: { name: string; status: string; children: ReactNode }) {
   return (
     <View style={styles.method}>
       <View accessible accessibilityLabel={`${name}: ${status}`} style={styles.methodHeader}>
@@ -255,8 +242,6 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: Spacing.lg,
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
   },
   method: {
     gap: Spacing.sm,

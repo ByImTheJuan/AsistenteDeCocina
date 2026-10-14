@@ -2,13 +2,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { z } from 'zod';
 
 import { accountErrorMessage, isWrongCurrentPassword } from './account-errors';
 import { useAccount, useSetPassword } from './use-account';
 
 import { FormScreen } from '@/components/form-screen';
+import { Notice } from '@/components/notice';
+import { ScreenState } from '@/components/screen-state';
 import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -18,9 +20,7 @@ import { signUpSchema } from '@/features/auth/credentials-schema';
 // asked for, and required, when the account already has a password.
 function passwordFormSchema(hasPassword: boolean) {
   return z.object({
-    currentPassword: hasPassword
-      ? z.string().min(1, 'Escribe tu contraseña actual.')
-      : z.string(),
+    currentPassword: hasPassword ? z.string().min(1, 'Escribe tu contraseña actual.') : z.string(),
     newPassword: signUpSchema.shape.password,
   });
 }
@@ -32,11 +32,7 @@ export function PasswordScreen() {
   const { data: account } = useAccount();
 
   if (!account) {
-    return (
-      <FormScreen>
-        <ActivityIndicator accessibilityLabel="Cargando tu cuenta" />
-      </FormScreen>
-    );
+    return <ScreenState kind="loading" label="Cargando tu cuenta" />;
   }
   return <PasswordFormView hasPassword={account.signInMethods.password} />;
 }
@@ -123,17 +119,9 @@ function PasswordFormView({ hasPassword: initialHasPassword }: { hasPassword: bo
           />
         )}
       />
-      <PrimaryButton
-        label={action}
-        loading={setPassword.isPending}
-        onPress={() => void submit()}
-      />
+      <PrimaryButton label={action} loading={setPassword.isPending} onPress={() => void submit()} />
 
-      {failure && (
-        <ThemedText type="small" themeColor="error" accessibilityRole="alert" style={styles.text}>
-          {failure}
-        </ThemedText>
-      )}
+      {failure && <Notice tone="error">{failure}</Notice>}
     </FormScreen>
   );
 }
