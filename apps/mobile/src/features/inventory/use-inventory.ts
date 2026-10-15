@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import * as inventoryApi from './inventory-api';
-import type { Inventory, InventoryItem, QuantityInput } from './inventory-api';
+import type { Inventory, InventoryItem, InventoryItemInput } from './inventory-api';
 
 import { useSession } from '@/features/auth/session-provider';
 
@@ -38,7 +38,7 @@ export function useAddInventoryItem() {
   const { request } = useSession();
   const updateCache = useUpdateCachedInventory();
   return useMutation({
-    mutationFn: (item: QuantityInput & { ingredientId: string }) =>
+    mutationFn: (item: InventoryItemInput & { ingredientId: string }) =>
       inventoryApi.addInventoryItem(request, item),
     onSuccess: (added) => updateCache((items) => sorted([...items, added])),
   });
@@ -48,8 +48,8 @@ export function useUpdateInventoryItem(id: string) {
   const { request } = useSession();
   const updateCache = useUpdateCachedInventory();
   return useMutation({
-    mutationFn: (quantity: QuantityInput) =>
-      inventoryApi.updateInventoryItem(request, id, quantity),
+    mutationFn: (input: InventoryItemInput) =>
+      inventoryApi.updateInventoryItem(request, id, input),
     onSuccess: (updated) =>
       updateCache((items) => items.map((item) => (item.id === updated.id ? updated : item))),
   });

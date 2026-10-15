@@ -18,6 +18,25 @@ jest.mock('expo-router', () => ({
   ...jest.requireActual('expo-router'),
   useRouter: () => mockRouter,
 }));
+// The platform's calendar is native; this stand-in picks a fixed day.
+jest.mock('@react-native-community/datetimepicker', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    __esModule: true,
+    default: ({ onChange }: { onChange(event: unknown, date?: Date): void }) =>
+      React.createElement(
+        Pressable,
+        {
+          accessibilityRole: 'button',
+          accessibilityLabel: 'Elegir el 20 de octubre de 2026',
+          onPress: () => onChange({ type: 'set' }, new Date(2026, 9, 20, 12)),
+        },
+        React.createElement(Text, null, 'Calendario'),
+      ),
+    DateTimePickerAndroid: { open: jest.fn() },
+  };
+});
 // Leaving with unsaved changes is covered in the hook's own test; here only
 // when the screen asks for the warning.
 const mockUnsavedChangesWarning = jest.fn();
@@ -40,8 +59,9 @@ const tomate = {
   defaultUnit: 'PIECE' as const,
   units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
 };
+const noStorage = { expiresOn: null, dateKind: null, location: null };
 const inventory: Inventory = {
-  items: [{ id: 'item-1', ingredient: tomate, quantity: 3, unit: 'PIECE' }],
+  items: [{ id: 'item-1', ingredient: tomate, quantity: 3, unit: 'PIECE', ...noStorage }],
 };
 
 type Handler = (body: unknown) => unknown;
@@ -64,8 +84,13 @@ describe('NewInventoryItemScreen', () => {
 
   const addButton = () => screen.getByRole('button', { name: 'Añadir a la despensa' });
   const unitButton = (name: string) => screen.getByRole('button', { name: `Unidad: ${name}` });
+  // The unit list opens over the form, which has its own options too.
+  const unitNames = ['Unidades', 'Gramos', 'Kilos', 'Mililitros', 'Litros'];
   const unitOptions = () =>
-    screen.getAllByRole('radio').map((option) => option.props.accessibilityLabel);
+    screen
+      .getAllByRole('radio')
+      .map((option) => option.props.accessibilityLabel)
+      .filter((label) => unitNames.includes(label));
   async function chooseUnit(from: string, to: string) {
     await user.press(unitButton(from));
     await user.press(screen.getByRole('radio', { name: to }));
@@ -112,12 +137,12 @@ describe('NewInventoryItemScreen', () => {
 
     await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
     expect(test.sentTo('POST /inventory')).toEqual([
-      { ingredientId: 'ing_arroz', quantity: 1.5, unit: 'KILOGRAM' },
+      { ingredientId: 'ing_arroz', quantity: 1.5, unit: 'KILOGRAM', ...noStorage },
     ]);
     // The inventory is updated with what the API stored, in its order.
     expect(test.queryClient.getQueryData(['inventory'])).toEqual({
       items: [
-        { id: 'item-2', ingredient: arroz, quantity: 1.5, unit: 'KILOGRAM' },
+        { id: 'item-2', ingredient: arroz, quantity: 1.5, unit: 'KILOGRAM', ...noStorage },
         inventory.items[0],
       ],
     });
@@ -153,7 +178,7 @@ describe('NewInventoryItemScreen', () => {
 
     await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
     expect(test.sentTo('POST /inventory')).toEqual([
-      { ingredientId: 'ing_arroz', quantity: null, unit: null },
+      { ingredientId: 'ing_arroz', quantity: null, unit: null, ...noStorage },
     ]);
   });
 

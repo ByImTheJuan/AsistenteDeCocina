@@ -1,7 +1,7 @@
 import { Controller, useWatch, type Control } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 
-import type { QuantityForm } from './inventory-item-form';
+import type { InventoryItemForm } from './inventory-item-form';
 import { UnitSelect } from './unit-select';
 
 import { TextField } from '@/components/text-field';
@@ -10,7 +10,7 @@ import { Spacing } from '@/constants/theme';
 import { parseQuantity, type Unit } from '@/features/units/units';
 
 type QuantityFieldsProps = {
-  control: Control<QuantityForm>;
+  control: Control<InventoryItemForm>;
   /** The units the food is measured in. */
   units: Unit[];
   /** Called on every edit, before the value changes. */

@@ -3,6 +3,15 @@ import { SymbolView } from 'expo-symbols';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import {
+  describeExpiry,
+  isExpiringSoon,
+  isPastUseBy,
+  storageLocationLabels,
+  storageLocations,
+  today,
+  type StorageLocation,
+} from './expiry';
 import type { InventoryItem } from './inventory-api';
 import { inventoryErrorMessage } from './inventory-errors';
 import { describeQuantity } from './inventory-item-form';
@@ -16,7 +25,16 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/** The foods the user has at home; each one opens to change or remove it. */
+// The pantry is grouped by where each food is kept, in this order.
+const groups: { location: StorageLocation | null; title: string }[] = [
+  ...storageLocations.map((location) => ({ location, title: storageLocationLabels[location] })),
+  { location: null, title: 'Sin ubicación' },
+];
+
+/**
+ * The foods the user has at home, grouped by location, with those that expire
+ * soon first; each one opens to change or remove it.
+ */
 export function InventoryScreen() {
   const router = useRouter();
   const { data: inventory, isPending, error, refetch, isRefetching } = useInventory();
@@ -49,6 +67,12 @@ export function InventoryScreen() {
     );
   }
 
+  // Expiry depends on the day it is for the user, so it is worked out here.
+  const on = today();
+  const expiringSoon = inventory.items
+    .filter((item) => isExpiringSoon(item, on))
+    .sort((a, b) => (a.expiresOn ?? '').localeCompare(b.expiresOn ?? ''));
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -58,31 +82,57 @@ export function InventoryScreen() {
               Mi despensa
             </ThemedText>
             <ThemedText themeColor="textSecondary">
-              Lo que tienes en casa. Toca un alimento para cambiar su cantidad o eliminarlo.
+              Lo que tienes en casa. Toca un alimento para cambiarlo o eliminarlo.
             </ThemedText>
           </View>
 
           <PrimaryButton label="Añadir alimento" onPress={addItem} />
 
-          <View style={styles.items}>
-            {inventory.items.map((item) => (
-              <ItemRow key={item.id} item={item} />
-            ))}
-          </View>
+          {expiringSoon.length > 0 && (
+            <View style={styles.group}>
+              <ThemedText type="heading" accessibilityRole="header">
+                Caducan pronto
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Caducados y los que vencen en los próximos 3 días. Revisa siempre el estado del
+                alimento antes de consumirlo.
+              </ThemedText>
+              {expiringSoon.map((item) => (
+                <ItemRow key={item.id} item={item} on={on} />
+              ))}
+            </View>
+          )}
+
+          {groups.map(({ location, title }) => {
+            const items = inventory.items.filter((item) => item.location === location);
+            return (
+              items.length > 0 && (
+                <View key={title} style={styles.group}>
+                  <ThemedText type="heading" accessibilityRole="header">
+                    {title}
+                  </ThemedText>
+                  {items.map((item) => (
+                    <ItemRow key={item.id} item={item} on={on} />
+                  ))}
+                </View>
+              )
+            );
+          })}
         </SafeAreaView>
       </ScrollView>
     </ThemedView>
   );
 }
 
-function ItemRow({ item }: { item: InventoryItem }) {
+function ItemRow({ item, on }: { item: InventoryItem; on: string }) {
   const router = useRouter();
   const theme = useTheme();
   const quantity = describeQuantity(item);
+  const expiry = describeExpiry(item, on);
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${item.ingredient.name}: ${quantity}`}
+      accessibilityLabel={`${item.ingredient.name}: ${quantity}, ${expiry}`}
       onPress={() => router.push({ pathname: '/inventory/[id]', params: { id: item.id } })}>
       {({ pressed }) => (
         <Card style={[styles.item, pressed && { backgroundColor: theme.surfaceSecondary }]}>
@@ -90,6 +140,12 @@ function ItemRow({ item }: { item: InventoryItem }) {
             <ThemedText type="defaultBold">{item.ingredient.name}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {quantity}
+            </ThemedText>
+            {/* A use-by date reached is said in words and in the error colour. */}
+            <ThemedText
+              type={isPastUseBy(item, on) ? 'smallBold' : 'small'}
+              themeColor={isPastUseBy(item, on) ? 'error' : 'textSecondary'}>
+              {expiry}
             </ThemedText>
           </View>
           <SymbolView
@@ -122,7 +178,7 @@ const styles = StyleSheet.create({
   header: {
     gap: Spacing.sm,
   },
-  items: {
+  group: {
     gap: Spacing.md,
   },
   item: {

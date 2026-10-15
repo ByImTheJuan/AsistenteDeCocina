@@ -31,11 +31,12 @@ const tomate = {
   units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
 };
 
+const noStorage = { expiresOn: null, dateKind: null, location: null };
 const inventory: Inventory = {
   items: [
-    { id: 'item-1', ingredient: arroz, quantity: 1.5, unit: 'KILOGRAM' },
-    { id: 'item-2', ingredient: tomate, quantity: 3, unit: 'PIECE' },
-    { id: 'item-3', ingredient: tomate, quantity: null, unit: null },
+    { id: 'item-1', ingredient: arroz, quantity: 1.5, unit: 'KILOGRAM', ...noStorage },
+    { id: 'item-2', ingredient: tomate, quantity: 3, unit: 'PIECE', ...noStorage },
+    { id: 'item-3', ingredient: tomate, quantity: null, unit: null, ...noStorage },
   ],
 };
 
@@ -68,7 +69,7 @@ describe('InventoryScreen', () => {
     expect(await screen.findByText('No se ha podido cargar tu despensa')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Reintentar' }));
 
-    expect(await screen.findByRole('button', { name: 'Arroz: 1,5 kg' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Arroz: 1,5 kg, Sin fecha' })).toBeOnTheScreen();
   });
 
   it('invites to add the first food when it is empty', async () => {
@@ -88,16 +89,16 @@ describe('InventoryScreen', () => {
       screen.getAllByRole('button').map((button) => button.props.accessibilityLabel),
     ).toEqual([
       'Añadir alimento',
-      'Arroz: 1,5 kg',
-      'Tomate: 3 unidades',
-      'Tomate: Siempre disponible',
+      'Arroz: 1,5 kg, Sin fecha',
+      'Tomate: 3 unidades, Sin fecha',
+      'Tomate: Siempre disponible, Sin fecha',
     ]);
   });
 
   it('opens a food to change it', async () => {
     await renderScreen(() => inventory);
 
-    await user.press(await screen.findByRole('button', { name: 'Tomate: 3 unidades' }));
+    await user.press(await screen.findByRole('button', { name: 'Tomate: 3 unidades, Sin fecha' }));
 
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/inventory/[id]',

@@ -7,8 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { InventoryItem } from './inventory-api';
 import { inventoryErrorMessage } from './inventory-errors';
-import { quantityFormSchema, toForm, toQuantity, type QuantityForm } from './inventory-item-form';
+import {
+  inventoryItemFormSchema,
+  toForm,
+  toRequest,
+  type InventoryItemForm,
+} from './inventory-item-form';
 import { QuantityFields } from './quantity-fields';
+import { StorageFields } from './storage-fields';
 import { useInventory, useRemoveInventoryItem, useUpdateInventoryItem } from './use-inventory';
 
 import { Card } from '@/components/card';
@@ -68,8 +74,8 @@ function EditForm({ item }: { item: InventoryItem }) {
   const update = useUpdateInventoryItem(item.id);
   const remove = useRemoveInventoryItem(item.id);
   // The form holds a draft; nothing reaches the API until it is saved.
-  const { control, handleSubmit } = useForm<QuantityForm>({
-    resolver: zodResolver(quantityFormSchema),
+  const { control, handleSubmit } = useForm<InventoryItemForm>({
+    resolver: zodResolver(inventoryItemFormSchema),
     defaultValues: toForm(item, item.ingredient),
   });
   const { isDirty } = useFormState({ control });
@@ -87,7 +93,7 @@ function EditForm({ item }: { item: InventoryItem }) {
   const submit = handleSubmit(async (values) => {
     setFailure(null);
     try {
-      await update.mutateAsync(toQuantity(values));
+      await update.mutateAsync(toRequest(values));
       setFinished(true);
     } catch (error) {
       setFailure(`${inventoryErrorMessage(error)} Tus cambios siguen aquí, sin guardar.`);
@@ -134,6 +140,13 @@ function EditForm({ item }: { item: InventoryItem }) {
                 units={item.ingredient.units}
                 onChange={() => setFailure(null)}
               />
+            </Card>
+
+            <Card style={styles.section}>
+              <ThemedText type="heading" accessibilityRole="header">
+                Conservación
+              </ThemedText>
+              <StorageFields control={control} onChange={() => setFailure(null)} />
             </Card>
 
             <PrimaryButton
