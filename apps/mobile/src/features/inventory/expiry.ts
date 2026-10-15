@@ -107,6 +107,23 @@ export function describeExpiry({ expiresOn, dateKind }: Dated, on: string): stri
   return days < 0 ? `Consumo preferente pasado: ${when}` : `Consumo preferente: ${when}`;
 }
 
+/**
+ * The foods with a date, from the nearest to the furthest (expired ones
+ * first; the same day by name), and apart those without a date.
+ */
+export function byExpiry<Item extends Dated & { ingredient: { name: string } }>(
+  items: Item[],
+): { dated: Item[]; undated: Item[] } {
+  const dated = items
+    .filter((item) => item.expiresOn !== null)
+    .sort(
+      (a, b) =>
+        (a.expiresOn ?? '').localeCompare(b.expiresOn ?? '') ||
+        a.ingredient.name.localeCompare(b.ingredient.name, 'es'),
+    );
+  return { dated, undated: items.filter((item) => item.expiresOn === null) };
+}
+
 /** True for a use-by date that has passed or is today: the food may not be safe. */
 export function isPastUseBy({ expiresOn, dateKind }: Dated, on: string): boolean {
   return dateKind === 'USE_BY' && expiresOn !== null && daysUntil(expiresOn, on) <= 0;

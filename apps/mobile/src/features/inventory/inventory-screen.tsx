@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
+  byExpiry,
   describeExpiry,
   isExpiringSoon,
   isPastUseBy,
@@ -25,6 +26,7 @@ import {
   FloatingActionButtonClearance,
 } from '@/components/floating-action-button';
 import { ScreenState } from '@/components/screen-state';
+import { SegmentedControl } from '@/components/segmented-control';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -36,17 +38,27 @@ const groups: { location: StorageLocation | null; title: string }[] = [
   { location: null, title: 'Sin ubicación' },
 ];
 
+// The pantry is listed grouped by location, or ordered by date.
+type PantryView = 'location' | 'date';
+const pantryViews: { value: PantryView; label: string }[] = [
+  { value: 'location', label: 'Ubicación' },
+  { value: 'date', label: 'Fecha' },
+];
+
 const EXPIRING_SOON = 'Caducan pronto';
+const DATED = 'Con fecha';
+const UNDATED = 'Sin fecha';
 
 /**
- * The foods the user has at home, grouped by location, with those that expire
- * soon first; each one opens to change or remove it.
+ * The foods the user has at home, grouped by location with those that expire
+ * soon first, or ordered by date; each one opens to change or remove it.
  */
 export function InventoryScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { data: inventory, isPending, error, refetch, isRefetching } = useInventory();
   const addItem = () => router.push('/inventory/new');
+  const [view, setView] = useState<PantryView>('location');
   // Sections the user has folded; they stay folded while the screen is open.
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const toggle = (title: string) =>
@@ -87,9 +99,8 @@ export function InventoryScreen() {
 
   // Expiry depends on the day it is for the user, so it is worked out here.
   const on = today();
-  const expiringSoon = inventory.items
-    .filter((item) => isExpiringSoon(item, on))
-    .sort((a, b) => (a.expiresOn ?? '').localeCompare(b.expiresOn ?? ''));
+  const byDate = byExpiry(inventory.items);
+  const expiringSoon = byDate.dated.filter((item) => isExpiringSoon(item, on));
 
   return (
     <ThemedView style={styles.container}>
@@ -104,7 +115,37 @@ export function InventoryScreen() {
             </ThemedText>
           </View>
 
-          {expiringSoon.length > 0 && (
+          <SegmentedControl
+            label="Ver por"
+            options={pantryViews}
+            value={view}
+            onChange={(next) => setView(next)}
+          />
+
+          {view === 'date' && (
+            <>
+              {byDate.dated.length > 0 && (
+                <Section title={DATED} collapsed={collapsed.has(DATED)} onToggle={toggle}>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Del más próximo al más lejano, con los caducados primero. Revisa siempre el
+                    estado del alimento antes de consumirlo.
+                  </ThemedText>
+                  {byDate.dated.map((item) => (
+                    <ItemRow key={item.id} item={item} on={on} />
+                  ))}
+                </Section>
+              )}
+              {byDate.undated.length > 0 && (
+                <Section title={UNDATED} collapsed={collapsed.has(UNDATED)} onToggle={toggle}>
+                  {byDate.undated.map((item) => (
+                    <ItemRow key={item.id} item={item} on={on} />
+                  ))}
+                </Section>
+              )}
+            </>
+          )}
+
+          {view === 'location' && expiringSoon.length > 0 && (
             <>
               <Section
                 title={EXPIRING_SOON}
@@ -127,7 +168,7 @@ export function InventoryScreen() {
             </>
           )}
 
-          {groups.map(({ location, title }) => {
+          {view === 'location' && groups.map(({ location, title }) => {
             const items = inventory.items.filter((item) => item.location === location);
             return (
               items.length > 0 && (
