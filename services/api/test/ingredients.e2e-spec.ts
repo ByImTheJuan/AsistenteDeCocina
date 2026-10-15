@@ -48,7 +48,11 @@ describe('Ingredients (e2e)', () => {
   it('finds ingredients whose name contains the text', async () => {
     const response = await search({ search: 'pimiento' }).expect(200);
 
-    const plain = { allergens: [], allergensUncertain: false };
+    const plain = {
+      allergens: [],
+      allergensUncertain: false,
+      defaultUnit: 'PIECE',
+    };
     expect(response.body).toEqual([
       {
         id: 'ing_pimiento_rojo',
@@ -75,8 +79,75 @@ describe('Ingredients (e2e)', () => {
         category: 'OTHER',
         allergens: ['EGG', 'MUSTARD'],
         allergensUncertain: true,
+        defaultUnit: 'GRAM',
       },
     ]);
+  });
+
+  it('suggests the unit each ingredient is usually measured in', async () => {
+    const unitOf = async (name: string) =>
+      (await search({ search: name }).expect(200)).body.find(
+        (ingredient: { name: string }) => ingredient.name === name,
+      ).defaultUnit;
+
+    expect(await unitOf('Leche')).toBe('LITER');
+    expect(await unitOf('Huevo')).toBe('PIECE');
+    expect(await unitOf('Harina de trigo')).toBe('GRAM');
+    expect(await unitOf('Espinacas')).toBe('GRAM');
+    expect(await unitOf('Salsa de soja')).toBe('MILLILITER');
+    expect(await unitOf('Tortillas de trigo')).toBe('PACKAGE');
+  });
+
+  it('finds an ingredient by any of its synonyms', async () => {
+    expect(names((await search({ search: 'papa' }).expect(200)).body)).toEqual([
+      'Patata',
+    ]);
+    expect(
+      names((await search({ search: 'huevos' }).expect(200)).body),
+    ).toEqual(['Huevo']);
+    expect(
+      names((await search({ search: 'CHICHAROS' }).expect(200)).body),
+    ).toEqual(['Guisantes']);
+  });
+
+  it('returns each ingredient once when its name and synonyms match', async () => {
+    // "Tomate" matches by name and through "Tomates"; "Tomate frito" too.
+    const response = await search({ search: 'tomate' }).expect(200);
+
+    expect(names(response.body)).toEqual(['Tomate', 'Tomate frito']);
+  });
+
+  it('lists the ingredients a shared word matches by name or synonym', async () => {
+    const response = await search({ search: 'leche' }).expect(200);
+
+    expect(names(response.body)).toEqual([
+      'Bebida de almendras',
+      'Bebida de avena',
+      'Bebida de soja',
+      'Leche',
+      'Nata',
+    ]);
+  });
+
+  it('keeps every synonym distinct from the catalogue names', async () => {
+    const aliases = await prisma.ingredientAlias.findMany({
+      include: { ingredient: true },
+    });
+    const catalogue = await prisma.ingredient.findMany();
+    const normalise = (text: string) =>
+      text
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .toLowerCase();
+    const catalogueNames = new Set(
+      catalogue.map(({ name }) => normalise(name)),
+    );
+
+    expect(aliases.length).toBeGreaterThan(0);
+    for (const { alias, ingredient } of aliases) {
+      expect(catalogueNames.has(normalise(alias))).toBe(false);
+      expect(normalise(alias)).not.toBe(normalise(ingredient.name));
+    }
   });
 
   it('ignores case and accents', async () => {
