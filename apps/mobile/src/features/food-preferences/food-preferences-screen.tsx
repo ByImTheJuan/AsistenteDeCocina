@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useForm, useFormState, useWatch } from 'react-hook-form';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { diets, type Diet, type FoodPreferences } from './food-preferences-api';
@@ -8,12 +8,15 @@ import { foodPreferencesErrorMessage } from './food-preferences-errors';
 import { dietDescriptions, dietLabels, listLabels, type PreferenceList } from './labels';
 import { useFoodPreferences, useSaveFoodPreferences } from './use-food-preferences';
 
+import { Notice } from '@/components/notice';
+import { ScreenState } from '@/components/screen-state';
+import { Card } from '@/components/card';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
 import type { Ingredient } from '@/features/ingredients/ingredients-api';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 
@@ -22,26 +25,18 @@ export function FoodPreferencesScreen() {
   const { data: preferences, isPending, error, refetch, isRefetching } = useFoodPreferences();
 
   if (isPending) {
-    return (
-      <ThemedView style={styles.centered}>
-        <ActivityIndicator accessibilityLabel="Cargando tus preferencias" />
-      </ThemedView>
-    );
+    return <ScreenState kind="loading" label="Cargando tus preferencias" />;
   }
 
   if (!preferences) {
     return (
-      <ThemedView style={styles.centered}>
-        <View style={styles.message}>
-          <ThemedText type="subtitle" style={styles.centeredText}>
-            No se han podido cargar tus preferencias
-          </ThemedText>
-          <ThemedText themeColor="textSecondary" style={styles.centeredText}>
-            {foodPreferencesErrorMessage(error)}
-          </ThemedText>
-          <PrimaryButton label="Reintentar" loading={isRefetching} onPress={() => void refetch()} />
-        </View>
-      </ThemedView>
+      <ScreenState
+        kind="error"
+        title="No se han podido cargar tus preferencias"
+        message={foodPreferencesErrorMessage(error)}
+        retrying={isRefetching}
+        onRetry={() => void refetch()}
+      />
     );
   }
 
@@ -98,7 +93,7 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.content}>
-          <ThemedText type="subtitle">Preferencias alimentarias</ThemedText>
+          <ThemedText type="title">Preferencias alimentarias</ThemedText>
 
           <Section title="Dieta">
             <View accessibilityRole="radiogroup" style={styles.options}>
@@ -143,24 +138,8 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
             loading={save.isPending}
             onPress={() => void submit()}
           />
-          {failure && (
-            <ThemedText
-              type="small"
-              themeColor="danger"
-              accessibilityRole="alert"
-              style={styles.centeredText}>
-              {failure} Tus cambios siguen aquí, sin guardar.
-            </ThemedText>
-          )}
-          {justSaved && (
-            <ThemedText
-              type="small"
-              themeColor="textSecondary"
-              accessibilityLiveRegion="polite"
-              style={styles.centeredText}>
-              Preferencias guardadas.
-            </ThemedText>
-          )}
+          {failure && <Notice tone="error">{failure} Tus cambios siguen aquí, sin guardar.</Notice>}
+          {justSaved && <Notice tone="success">Preferencias guardadas.</Notice>}
         </SafeAreaView>
       </ScrollView>
 
@@ -182,12 +161,12 @@ function FoodPreferencesForm({ saved }: { saved: FoodPreferences }) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <ThemedView type="backgroundElement" style={styles.section}>
-      <ThemedText type="smallBold" accessibilityRole="header">
+    <Card style={styles.section}>
+      <ThemedText type="heading" accessibilityRole="header">
         {title}
       </ThemedText>
       {children}
-    </ThemedView>
+    </Card>
   );
 }
 
@@ -212,8 +191,8 @@ function DietOption({
       onPress={onPress}
       style={({ pressed }) => [
         styles.option,
-        { borderColor: checked ? theme.text : theme.backgroundSelected },
-        checked && { backgroundColor: theme.backgroundSelected },
+        { borderColor: checked ? theme.textPrimary : theme.borderStrong },
+        checked && { backgroundColor: theme.surfaceSecondary },
         pressed && styles.pressed,
       ]}>
       <View style={styles.optionText}>
@@ -265,7 +244,7 @@ function IngredientList({
               onPress={() => onRemove(ingredient)}
               style={({ pressed }) => [
                 styles.chip,
-                { backgroundColor: theme.backgroundSelected },
+                { backgroundColor: theme.surfaceSecondary },
                 pressed && styles.pressed,
               ]}>
               <ThemedText type="small">{ingredient.name}</ThemedText>
@@ -285,47 +264,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-  },
-  centeredText: {
-    textAlign: 'center',
-  },
-  message: {
-    alignSelf: 'stretch',
-    gap: Spacing.three,
-  },
   scroll: {
     flexGrow: 1,
     alignItems: 'center',
   },
   content: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.four,
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.xl,
     maxWidth: MaxContentWidth,
   },
   section: {
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderRadius: Spacing.four,
+    gap: Spacing.lg,
   },
   options: {
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
+    gap: Spacing.lg,
     minHeight: 48,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
     borderWidth: 1,
-    borderRadius: Spacing.three,
+    borderRadius: Radius.md,
   },
   optionText: {
     flex: 1,
@@ -333,15 +297,15 @@ const styles = StyleSheet.create({
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
-    minHeight: 40,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.four,
+    gap: Spacing.sm,
+    minHeight: 44,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.xl,
   },
   pressed: {
     opacity: 0.7,

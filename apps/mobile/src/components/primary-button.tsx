@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { ControlHeight, Radius, Spacing, type ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type PrimaryButtonProps = {
@@ -16,6 +16,32 @@ type PrimaryButtonProps = {
   variant?: 'primary' | 'secondary' | 'danger';
 };
 
+type Appearance = {
+  background: ThemeColor;
+  pressed: ThemeColor;
+  text: ThemeColor;
+  border?: ThemeColor;
+};
+
+const appearances: Record<NonNullable<PrimaryButtonProps['variant']>, Appearance> = {
+  // Dark text on mustard: white on it does not reach the contrast for text.
+  primary: { background: 'primary', pressed: 'primaryPressed', text: 'onPrimary' },
+  secondary: {
+    background: 'surfaceSecondary',
+    pressed: 'border',
+    text: 'textPrimary',
+    border: 'borderStrong',
+  },
+  danger: { background: 'error', pressed: 'error', text: 'onError' },
+};
+
+const disabledAppearance: Appearance = {
+  background: 'disabledSurface',
+  pressed: 'disabledSurface',
+  text: 'disabledText',
+  border: 'disabledBorder',
+};
+
 export function PrimaryButton({
   label,
   onPress,
@@ -25,13 +51,8 @@ export function PrimaryButton({
 }: PrimaryButtonProps) {
   const theme = useTheme();
   const inactive = loading || disabled;
-  const background =
-    variant === 'primary'
-      ? theme.text
-      : variant === 'danger'
-        ? theme.danger
-        : theme.backgroundSelected;
-  const foreground = variant === 'secondary' ? 'text' : 'background';
+  // A button that is only busy keeps its colours so it does not look disabled.
+  const appearance = disabled ? disabledAppearance : appearances[variant];
 
   return (
     <Pressable
@@ -42,13 +63,18 @@ export function PrimaryButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: background },
-        (pressed || inactive) && styles.dimmed,
+        {
+          backgroundColor: theme[pressed ? appearance.pressed : appearance.background],
+          borderColor: appearance.border ? theme[appearance.border] : 'transparent',
+        },
+        pressed && variant === 'danger' && styles.pressedDanger,
       ]}>
       {loading ? (
-        <ActivityIndicator color={theme[foreground]} />
+        <ActivityIndicator color={theme[appearance.text]} />
       ) : (
-        <ThemedText themeColor={foreground}>{label}</ThemedText>
+        <ThemedText type="smallBold" themeColor={appearance.text} style={styles.label}>
+          {label}
+        </ThemedText>
       )}
     </Pressable>
   );
@@ -59,11 +85,19 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 48,
-    paddingHorizontal: Spacing.four,
-    borderRadius: Spacing.three,
+    minHeight: ControlHeight,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+    borderWidth: 1,
   },
-  dimmed: {
-    opacity: 0.7,
+  label: {
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  // The destructive red has no darker token; dimming it is enough feedback.
+  pressedDanger: {
+    opacity: 0.85,
   },
 });

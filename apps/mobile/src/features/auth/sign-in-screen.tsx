@@ -2,17 +2,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { FormScreen } from '@/components/form-screen';
 import { signInSchema, type SignInForm } from './credentials-schema';
+import { Notice } from '@/components/notice';
+import { ScreenState } from '@/components/screen-state';
 import { PrimaryButton } from '@/components/primary-button';
 import type { PasswordSignInFailure, SignInFailure } from './session-manager';
 import { useSession } from './session-provider';
 import { TextField } from '@/components/text-field';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 
 type Failure = SignInFailure | PasswordSignInFailure;
 
@@ -61,17 +62,13 @@ export function SignInScreen() {
   );
 
   if (session.status === 'loading') {
-    return (
-      <ThemedView style={styles.centered}>
-        <ActivityIndicator accessibilityLabel="Recuperando tu sesión" />
-      </ThemedView>
-    );
+    return <ScreenState kind="loading" label="Recuperando tu sesión" />;
   }
 
   if (session.status === 'unavailable') {
     return (
       <FormScreen>
-        <ThemedText type="subtitle" style={styles.text}>
+        <ThemedText type="title" style={styles.text}>
           Sin conexión
         </ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.text}>
@@ -84,7 +81,7 @@ export function SignInScreen() {
 
   return (
     <FormScreen>
-      <ThemedText type="subtitle" style={styles.text}>
+      <ThemedText type="title" style={styles.text}>
         Asistente de Cocina
       </ThemedText>
       <ThemedText themeColor="textSecondary" style={styles.text}>
@@ -136,11 +133,7 @@ export function SignInScreen() {
         onPress={() => void submitPassword()}
       />
 
-      {failure && (
-        <ThemedText type="small" themeColor="danger" accessibilityRole="alert" style={styles.text}>
-          {failureMessages[failure]}
-        </ThemedText>
-      )}
+      {failure && <Notice tone="error">{failureMessages[failure]}</Notice>}
 
       <ThemedText type="small" themeColor="textSecondary">
         o
@@ -163,11 +156,6 @@ export function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   text: {
     textAlign: 'center',
   },
