@@ -15,6 +15,10 @@ function ingredient(
     measure: 'WEIGHT',
     defaultUnit: 'GRAM',
     createdAt: new Date(0),
+    kcalPer100g: null,
+    proteinPer100g: null,
+    gramsPerPiece: null,
+    gramsPerMilliliter: null,
     allergens: allergens.map((allergen) => ({ ingredientId: id, allergen })),
   };
 }

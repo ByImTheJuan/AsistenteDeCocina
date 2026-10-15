@@ -39,6 +39,17 @@ describe('Recipes (e2e)', () => {
           .set(auth)
           .send({ allergens, ingredientIds })
           .expect(200),
+      setGoals: (goals: object) =>
+        http()
+          .put('/nutrition-goals')
+          .set(auth)
+          .send({
+            dailyCalories: null,
+            mealCalories: null,
+            dailyProtein: null,
+            ...goals,
+          })
+          .expect(200),
     };
   };
   const register = async (): Promise<Session> =>
@@ -217,6 +228,54 @@ describe('Recipes (e2e)', () => {
       });
     });
 
+    it('estimates the calories and protein of a serving from its ingredients', async () => {
+      const session = await register();
+
+      const { body } = await as(session)
+        .detail('rec_tortilla_patatas')
+        .expect(200);
+
+      // 720 g of potato, 330 g of egg, 150 g of onion and 184 g of oil, for
+      // 4 servings; the salt goes to taste.
+      expect(body.nutrition).toEqual({
+        perServing: { calories: 678, protein: 14.4 },
+        estimated: true,
+        missingIngredients: [],
+        excludesToTaste: true,
+      });
+      expect(body.goals).toEqual([]);
+    });
+
+    it('compares a serving with the goals in use only', async () => {
+      const session = await register();
+      await as(session).setGoals({
+        dailyCalories: { value: 2000, enabled: true },
+        mealCalories: { value: 600, enabled: true },
+        dailyProtein: { value: 120, enabled: false },
+      });
+
+      const { body } = await as(session)
+        .detail('rec_tortilla_patatas')
+        .expect(200);
+
+      expect(body.goals).toEqual([
+        {
+          kind: 'DAILY_CALORIES',
+          target: 2000,
+          comparable: true,
+          percent: 34,
+          withinGoal: null,
+        },
+        {
+          kind: 'MEAL_CALORIES',
+          target: 600,
+          comparable: true,
+          percent: null,
+          withinGoal: false,
+        },
+      ]);
+    });
+
     it('answers 404 for a recipe that is not in the catalogue', async () => {
       const session = await register();
 
@@ -269,6 +328,20 @@ describe('Recipes (e2e)', () => {
             expect(line.quantity!.toNumber(), what).toBeGreaterThan(0);
           }
         }
+      }
+    });
+
+    it('has the nutrition data of every recipe', async () => {
+      const session = await register();
+      const { body } = await as(session).catalogue().expect(200);
+
+      for (const { id } of body.recipes as Summary[]) {
+        const detail = await as(session).detail(id).expect(200);
+        expect(detail.body.nutrition.missingIngredients, id).toEqual([]);
+        expect(detail.body.nutrition.perServing.calories, id).toBeGreaterThan(
+          0,
+        );
+        expect(detail.body.nutrition.perServing.protein, id).not.toBeNull();
       }
     });
   });
