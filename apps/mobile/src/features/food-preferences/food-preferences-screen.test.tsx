@@ -17,10 +17,20 @@ jest.mock('@/hooks/use-unsaved-changes-warning', () => ({
     mockUnsavedChangesWarning(hasUnsavedChanges),
 }));
 
-const tomate = { id: 'ing_tomate', name: 'Tomate', category: 'VEGETABLE' };
-const tomillo = { id: 'ing_tomillo', name: 'Tomillo', category: 'HERB_SPICE' };
-const ajo = { id: 'ing_ajo', name: 'Ajo', category: 'VEGETABLE' };
-const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT' };
+const tomate = {
+  id: 'ing_tomate',
+  name: 'Tomate',
+  category: 'VEGETABLE',
+  defaultUnit: 'PIECE' as const,
+};
+const tomillo = {
+  id: 'ing_tomillo',
+  name: 'Tomillo',
+  category: 'HERB_SPICE',
+  defaultUnit: 'GRAM' as const,
+};
+const ajo = { id: 'ing_ajo', name: 'Ajo', category: 'VEGETABLE', defaultUnit: 'PIECE' as const };
+const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT', defaultUnit: 'GRAM' as const };
 
 const empty: FoodPreferences = { diet: null, liked: [], avoided: [] };
 const configured: FoodPreferences = {

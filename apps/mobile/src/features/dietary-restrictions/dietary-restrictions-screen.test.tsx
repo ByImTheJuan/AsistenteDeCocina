@@ -17,10 +17,25 @@ jest.mock('@/hooks/use-unsaved-changes-warning', () => ({
     mockUnsavedChangesWarning(hasUnsavedChanges),
 }));
 
-const kiwi = { id: 'ing_kiwi', name: 'Kiwi', category: 'FRUIT' };
-const melocoton = { id: 'ing_melocoton', name: 'Melocotón', category: 'FRUIT' };
-const leche = { id: 'ing_leche', name: 'Leche', category: 'DAIRY_EGG' };
-const queso = { id: 'ing_queso', name: 'Queso', category: 'DAIRY_EGG' };
+const kiwi = { id: 'ing_kiwi', name: 'Kiwi', category: 'FRUIT', defaultUnit: 'PIECE' as const };
+const melocoton = {
+  id: 'ing_melocoton',
+  name: 'Melocotón',
+  category: 'FRUIT',
+  defaultUnit: 'PIECE' as const,
+};
+const leche = {
+  id: 'ing_leche',
+  name: 'Leche',
+  category: 'DAIRY_EGG',
+  defaultUnit: 'LITER' as const,
+};
+const queso = {
+  id: 'ing_queso',
+  name: 'Queso',
+  category: 'DAIRY_EGG',
+  defaultUnit: 'GRAM' as const,
+};
 
 const empty: DietaryRestrictions = {
   allergens: [],

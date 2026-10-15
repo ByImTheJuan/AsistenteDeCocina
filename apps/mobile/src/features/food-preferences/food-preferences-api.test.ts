@@ -1,7 +1,12 @@
 import { getFoodPreferences, saveFoodPreferences } from './food-preferences-api';
 
-const tomate = { id: 'ing_tomate', name: 'Tomate', category: 'VEGETABLE' };
-const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT' };
+const tomate = {
+  id: 'ing_tomate',
+  name: 'Tomate',
+  category: 'VEGETABLE',
+  defaultUnit: 'PIECE' as const,
+};
+const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT', defaultUnit: 'GRAM' as const };
 const preferences = {
   diet: 'VEGETARIAN' as const,
   liked: [tomate],

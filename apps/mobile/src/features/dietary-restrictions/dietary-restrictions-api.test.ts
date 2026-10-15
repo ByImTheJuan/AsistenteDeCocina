@@ -8,8 +8,13 @@ import { allergenLabels, summarizeRestrictions } from './labels';
 
 import { ApiError, NetworkError } from '@/lib/api-client';
 
-const kiwi = { id: 'ing_kiwi', name: 'Kiwi', category: 'FRUIT' };
-const leche = { id: 'ing_leche', name: 'Leche', category: 'DAIRY_EGG' };
+const kiwi = { id: 'ing_kiwi', name: 'Kiwi', category: 'FRUIT', defaultUnit: 'PIECE' as const };
+const leche = {
+  id: 'ing_leche',
+  name: 'Leche',
+  category: 'DAIRY_EGG',
+  defaultUnit: 'LITER' as const,
+};
 const restrictions = {
   allergens: ['MILK' as const, 'LACTOSE' as const],
   ingredients: [kiwi],

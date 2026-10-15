@@ -1,17 +1,24 @@
 import { z } from 'zod';
 
 import type { AuthorizedRequest } from '@/features/account/account-api';
+import { unitSchema } from '@/features/units/units';
 
 export const ingredientSchema = z.object({
   id: z.string(),
   name: z.string(),
   // Left open: the catalogue may gain categories this version does not know.
   category: z.string(),
+  // The unit to offer first when recording a quantity. A unit this version
+  // does not know falls back to pieces rather than rejecting the ingredient.
+  defaultUnit: unitSchema.catch('PIECE'),
 });
 
 export type Ingredient = z.infer<typeof ingredientSchema>;
 
-/** Ingredients whose name contains `search`; the start of the catalogue without it. */
+/**
+ * Ingredients whose name or a synonym contains `search` ("papa" finds
+ * "Patata"); the start of the catalogue without it.
+ */
 export async function searchIngredients(
   request: AuthorizedRequest,
   search: string,
