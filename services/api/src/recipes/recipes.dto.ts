@@ -1,6 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Allergen, Unit } from '../generated/prisma/enums.js';
+import {
+  Allergen,
+  NutritionGoalKind,
+  Unit,
+} from '../generated/prisma/enums.js';
 import { IngredientResponse } from '../ingredients/ingredients.dto.js';
+import type { GoalFit } from './nutrition-goals-fit.js';
+import type { RecipeNutrition } from './recipe-nutrition.js';
 import type { RecipeSafety } from './recipe-safety.js';
 import type {
   RecipeCatalogue,
@@ -181,6 +187,90 @@ export class RecipeSafetyResponse {
   }
 }
 
+export class NutrientsResponse {
+  @ApiProperty({
+    type: 'number',
+    nullable: true,
+    example: 320,
+    description:
+      'Kilocalories. Null when some ingredient lacks the data to work them out.',
+  })
+  calories: number | null;
+
+  @ApiProperty({
+    type: 'number',
+    nullable: true,
+    example: 14.5,
+    description:
+      'Grams of protein. Null when some ingredient lacks the data to work them out.',
+  })
+  protein: number | null;
+}
+
+export class RecipeNutritionResponse {
+  @ApiProperty({ type: NutrientsResponse, description: 'For one serving.' })
+  perServing: NutrientsResponse;
+
+  @ApiProperty({
+    description:
+      'Always true: the values are estimated from average values of the ingredients, with no validated source.',
+  })
+  estimated: boolean;
+
+  @ApiProperty({
+    type: [RecipeIngredientNameResponse],
+    description:
+      'Ingredients that lack the data to estimate some value; that value is then null.',
+  })
+  missingIngredients: RecipeIngredientNameResponse[];
+
+  @ApiProperty({
+    description:
+      'Some ingredient goes to taste and is not counted. Pinches are not counted either.',
+  })
+  excludesToTaste: boolean;
+
+  static from(nutrition: RecipeNutrition): RecipeNutritionResponse {
+    return { ...nutrition, estimated: true };
+  }
+}
+
+export class RecipeGoalFitResponse {
+  @ApiProperty({ enum: NutritionGoalKind, enumName: 'NutritionGoalKind' })
+  kind: NutritionGoalKind;
+
+  @ApiProperty({
+    description: 'The goal the user set: kcal, or grams of protein.',
+  })
+  target: number;
+
+  @ApiProperty({
+    description:
+      'False when the recipe lacks the data to compare with the goal.',
+  })
+  comparable: boolean;
+
+  @ApiProperty({
+    type: 'number',
+    nullable: true,
+    example: 32,
+    description:
+      'For the daily goals: share of the goal one serving takes, in whole percent.',
+  })
+  percent: number | null;
+
+  @ApiProperty({
+    type: 'boolean',
+    nullable: true,
+    description: 'For the goal per meal: whether one serving stays within it.',
+  })
+  withinGoal: boolean | null;
+
+  static from(fit: GoalFit): RecipeGoalFitResponse {
+    return { ...fit };
+  }
+}
+
 export class RecipeDetailResponse {
   @ApiProperty({ example: 'rec_tortilla_patatas' })
   id: string;
@@ -216,6 +306,16 @@ export class RecipeDetailResponse {
   })
   safety: RecipeSafetyResponse;
 
+  @ApiProperty({ type: RecipeNutritionResponse })
+  nutrition: RecipeNutritionResponse;
+
+  @ApiProperty({
+    type: [RecipeGoalFitResponse],
+    description:
+      'One serving against each nutrition goal the user has switched on, in the order daily calories, calories per meal, daily protein. Empty without goals in use.',
+  })
+  goals: RecipeGoalFitResponse[];
+
   static from(recipe: RecipeDetail): RecipeDetailResponse {
     return {
       id: recipe.id,
@@ -234,6 +334,8 @@ export class RecipeDetailResponse {
       steps: recipe.steps.map(({ text }) => text),
       rating: null,
       safety: RecipeSafetyResponse.from(recipe.safety),
+      nutrition: RecipeNutritionResponse.from(recipe.nutrition),
+      goals: recipe.goals.map((fit) => RecipeGoalFitResponse.from(fit)),
     };
   }
 }
