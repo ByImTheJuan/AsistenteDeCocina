@@ -1,12 +1,15 @@
 import { Link, useRouter, type Href } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Account } from './account-api';
 import { accountErrorMessage } from './account-errors';
 import { useAccount, useLinkGoogle } from './use-account';
 
+import { Notice } from '@/components/notice';
+import { ScreenState } from '@/components/screen-state';
+import { Card } from '@/components/card';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -35,18 +38,14 @@ export function AccountScreen() {
   const { data: account, isPending, error, refetch, isRefetching } = useAccount();
 
   if (isPending) {
-    return (
-      <ThemedView style={styles.centered}>
-        <ActivityIndicator accessibilityLabel="Cargando tu cuenta" />
-      </ThemedView>
-    );
+    return <ScreenState kind="loading" label="Cargando tu cuenta" />;
   }
 
   if (!account) {
     return (
       <ThemedView style={styles.centered}>
         <View style={styles.message}>
-          <ThemedText type="subtitle" style={styles.centeredText}>
+          <ThemedText type="heading" style={styles.centeredText}>
             No se ha podido cargar tu cuenta
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.centeredText}>
@@ -63,7 +62,7 @@ export function AccountScreen() {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <SafeAreaView style={styles.content}>
-          <ThemedText type="subtitle">Cuenta</ThemedText>
+          <ThemedText type="title">Cuenta</ThemedText>
 
           <Section title="Tus datos">
             <Field label="Nombre" value={account.name ?? 'Sin nombre'} />
@@ -82,7 +81,7 @@ export function AccountScreen() {
               Borra tu cuenta y todos tus datos de forma definitiva.
             </ThemedText>
             <Link href="/account/delete" accessibilityRole="link">
-              <ThemedText type="smallBold" themeColor="danger">
+              <ThemedText type="smallBold" themeColor="error">
                 Eliminar mi cuenta
               </ThemedText>
             </Link>
@@ -140,11 +139,7 @@ function SignInMethods({ account }: { account: Account }) {
         {google && password && (
           <ActionButton href="/account/remove-method?method=google" label="Desvincular Google" />
         )}
-        {linkError && (
-          <ThemedText type="small" themeColor="danger" accessibilityRole="alert">
-            {linkError}
-          </ThemedText>
-        )}
+        {linkError && <Notice tone="error">{linkError}</Notice>}
       </Method>
 
       {password !== google && (
@@ -176,12 +171,12 @@ function SignOutButton() {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <ThemedView type="backgroundElement" style={styles.section}>
-      <ThemedText type="smallBold" accessibilityRole="header">
+    <Card style={styles.section}>
+      <ThemedText type="heading" accessibilityRole="header">
         {title}
       </ThemedText>
       {children}
-    </ThemedView>
+    </Card>
   );
 }
 
@@ -196,15 +191,7 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Method({
-  name,
-  status,
-  children,
-}: {
-  name: string;
-  status: string;
-  children: ReactNode;
-}) {
+function Method({ name, status, children }: { name: string; status: string; children: ReactNode }) {
   return (
     <View style={styles.method}>
       <View accessible accessibilityLabel={`${name}: ${status}`} style={styles.methodHeader}>
@@ -232,14 +219,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: Spacing.xl,
   },
   centeredText: {
     textAlign: 'center',
   },
   message: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
+    gap: Spacing.lg,
   },
   scroll: {
     flexGrow: 1,
@@ -247,19 +234,17 @@ const styles = StyleSheet.create({
   },
   content: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.four,
-    paddingBottom: BottomTabInset + Spacing.four,
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: BottomTabInset + Spacing.xl,
     maxWidth: MaxContentWidth,
   },
   section: {
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderRadius: Spacing.four,
+    gap: Spacing.lg,
   },
   method: {
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   methodHeader: {
     flexDirection: 'row',

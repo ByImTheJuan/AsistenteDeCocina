@@ -1,12 +1,18 @@
+// One import per weight: the package index would bundle all sixteen files.
+import { NunitoSans_400Regular } from '@expo-google-fonts/nunito-sans/400Regular';
+import { NunitoSans_600SemiBold } from '@expo-google-fonts/nunito-sans/600SemiBold';
+import { NunitoSans_700Bold } from '@expo-google-fonts/nunito-sans/700Bold';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { useFonts } from 'expo-font';
+import { DefaultTheme, Stack, ThemeProvider, type Theme } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { ConfigurationErrorScreen } from '@/components/configuration-error-screen';
 import { envError } from '@/config/app-env';
+import { Colors, FontFamily } from '@/constants/theme';
 import { SessionProvider, useSession } from '@/features/auth/session-provider';
 import { NetworkError } from '@/lib/api-client';
 
@@ -21,6 +27,27 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Headers and tabs drawn by the navigator use the same tokens as the screens.
+const navigationTheme: Theme = {
+  ...DefaultTheme,
+  dark: false,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: Colors.light.textPrimary,
+    background: Colors.light.background,
+    card: Colors.light.background,
+    text: Colors.light.textPrimary,
+    border: Colors.light.border,
+    notification: Colors.light.error,
+  },
+  fonts: {
+    regular: { fontFamily: FontFamily.regular, fontWeight: 'normal' },
+    medium: { fontFamily: FontFamily.semiBold, fontWeight: 'normal' },
+    bold: { fontFamily: FontFamily.bold, fontWeight: 'normal' },
+    heavy: { fontFamily: FontFamily.bold, fontWeight: 'normal' },
+  },
+};
 
 // The private area is only reachable with a session; everything else lands
 // on the sign-in screen. Expo Router redirects when a guard changes.
@@ -49,12 +76,24 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+  // The splash screen stays up while the fonts load. If they fail, the app
+  // starts anyway with the system font.
+  const [fontsLoaded, fontError] = useFonts({
+    NunitoSans_400Regular,
+    NunitoSans_600SemiBold,
+    NunitoSans_700Bold,
+  });
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
+  const theme = navigationTheme;
 
   if (envError) {
     return (
       <ThemeProvider value={theme}>
+        <StatusBar style="dark" />
         <AnimatedSplashOverlay />
         <ConfigurationErrorScreen message={envError} />
       </ThemeProvider>
@@ -65,6 +104,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
         <ThemeProvider value={theme}>
+          <StatusBar style="dark" />
           <AnimatedSplashOverlay />
           <RootNavigator />
         </ThemeProvider>

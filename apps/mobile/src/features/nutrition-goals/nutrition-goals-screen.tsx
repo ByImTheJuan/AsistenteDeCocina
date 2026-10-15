@@ -1,14 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { Controller, useForm, useFormState, type Control } from 'react-hook-form';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -26,6 +19,9 @@ import {
 } from './nutrition-goals-form';
 import { useNutritionGoals, useSaveNutritionGoals } from './use-nutrition-goals';
 
+import { Notice } from '@/components/notice';
+import { ScreenState } from '@/components/screen-state';
+import { Card } from '@/components/card';
 import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -38,26 +34,18 @@ export function NutritionGoalsScreen() {
   const { data: goals, isPending, error, refetch, isRefetching } = useNutritionGoals();
 
   if (isPending) {
-    return (
-      <ThemedView style={styles.centered}>
-        <ActivityIndicator accessibilityLabel="Cargando tus objetivos" />
-      </ThemedView>
-    );
+    return <ScreenState kind="loading" label="Cargando tus objetivos" />;
   }
 
   if (!goals) {
     return (
-      <ThemedView style={styles.centered}>
-        <View style={styles.message}>
-          <ThemedText type="subtitle" style={styles.centeredText}>
-            No se han podido cargar tus objetivos nutricionales
-          </ThemedText>
-          <ThemedText themeColor="textSecondary" style={styles.centeredText}>
-            {nutritionGoalsErrorMessage(error)}
-          </ThemedText>
-          <PrimaryButton label="Reintentar" loading={isRefetching} onPress={() => void refetch()} />
-        </View>
-      </ThemedView>
+      <ScreenState
+        kind="error"
+        title="No se han podido cargar tus objetivos nutricionales"
+        message={nutritionGoalsErrorMessage(error)}
+        retrying={isRefetching}
+        onRetry={() => void refetch()}
+      />
     );
   }
 
@@ -97,7 +85,7 @@ function NutritionGoalsFormView({ saved }: { saved: NutritionGoals }) {
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.content}>
-            <ThemedText type="subtitle">Objetivos nutricionales</ThemedText>
+            <ThemedText type="title">Objetivos nutricionales</ThemedText>
             <ThemedText themeColor="textSecondary">
               Los eliges tú y todos son opcionales. La aplicación no los calcula ni sustituye el
               consejo de un profesional.
@@ -114,23 +102,9 @@ function NutritionGoalsFormView({ saved }: { saved: NutritionGoals }) {
               onPress={() => void submit()}
             />
             {failure && (
-              <ThemedText
-                type="small"
-                themeColor="danger"
-                accessibilityRole="alert"
-                style={styles.centeredText}>
-                {failure} Tus cambios siguen aquí, sin guardar.
-              </ThemedText>
+              <Notice tone="error">{failure} Tus cambios siguen aquí, sin guardar.</Notice>
             )}
-            {justSaved && (
-              <ThemedText
-                type="small"
-                themeColor="textSecondary"
-                accessibilityLiveRegion="polite"
-                style={styles.centeredText}>
-                Objetivos guardados.
-              </ThemedText>
-            )}
+            {justSaved && <Notice tone="success">Objetivos guardados.</Notice>}
           </SafeAreaView>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -162,8 +136,8 @@ function GoalSection({
           ?.message;
 
         return (
-          <ThemedView type="backgroundElement" style={styles.section}>
-            <ThemedText type="smallBold" accessibilityRole="header">
+          <Card style={styles.section}>
+            <ThemedText type="heading" accessibilityRole="header">
               {title}
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
@@ -204,7 +178,7 @@ function GoalSection({
                 }}
               />
             </View>
-          </ThemedView>
+          </Card>
         );
       }}
     />
@@ -215,39 +189,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-  },
-  centeredText: {
-    textAlign: 'center',
-  },
-  message: {
-    alignSelf: 'stretch',
-    gap: Spacing.three,
-  },
   scroll: {
     flexGrow: 1,
     alignItems: 'center',
   },
   content: {
     alignSelf: 'stretch',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.four,
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.xl,
     maxWidth: MaxContentWidth,
   },
   section: {
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderRadius: Spacing.four,
+    gap: Spacing.lg,
   },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
+    gap: Spacing.lg,
   },
   switchText: {
     flex: 1,

@@ -182,6 +182,7 @@ Si la rama ya existe, comprueba su estado y reutilízala solo si corresponde ine
 - Evita cambios incompatibles con datos existentes sin una estrategia de migración explícita.
 - Para funciones de IA, reconocimiento de imágenes o datos externos, trata los resultados como información no verificada y permite los mecanismos de revisión previstos en el producto.
 - No marques como completa una funcionalidad que solo tenga una interfaz visual si el criterio de aceptación requiere persistencia, reglas de negocio o integración real.
+- Toda pantalla o componente nuevo, y toda pantalla existente que se modifique, sigue el sistema de diseño de la sección 5 («Sistema de diseño»). Una interfaz sin aplicarlo no está terminada.
 
 ### Fase 6 — Commits
 
@@ -346,6 +347,7 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 
 - [ ] La implementación satisface todos los criterios de aceptación acordados.
 - [ ] La funcionalidad móvil está implementada para iOS y Android, y se ha indicado qué se validó en cada plataforma (dispositivo físico, simulador/emulador o solo pruebas automatizadas).
+- [ ] Las pantallas nuevas o modificadas siguen el sistema de diseño (sección 5): tokens, componentes compartidos y reglas de accesibilidad.
 - [ ] Las dependencias funcionales y técnicas están resueltas o documentadas.
 - [ ] Se han añadido pruebas para los caminos principales y los errores relevantes.
 - [ ] Todas las pruebas obligatorias ejecutables pasan.
@@ -377,6 +379,20 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 - Comparte el código entre iOS y Android por defecto. Usa código específico de plataforma (`Platform.select`, archivos `.ios.tsx`/`.android.tsx`) solo cuando exista una diferencia real entre plataformas; mantenlo aislado y justifícalo en el plan.
 - No añadas dependencias que solo funcionen en una de las dos plataformas sin aprobación del usuario.
 - La aplicación móvil solo obtiene y modifica datos del backend a través de la API REST.
+
+### Sistema de diseño (obligatorio)
+
+Todas las implementaciones de la app móvil, presentes y futuras, siguen el sistema de diseño definido en `docs/decisions/0004-sistema-de-diseno.md`. Antes de crear o modificar una pantalla, lee ese documento y revisa los componentes de `src/components`.
+
+- **Tokens, nunca valores sueltos.** Colores con `useTheme()` o `themeColor`; espaciado con `Spacing`, radios con `Radius`, texto con las variantes de `ThemedText` (`title`, `heading`, `defaultBold`, `default`, `small`, `smallBold`, `label`), altura de controles con `ControlHeight` y sombra de tarjeta con `CardShadow`, todo de `src/constants/theme.ts`. Si falta un token, añádelo allí, comprueba su contraste en `theme-contrast.test.ts` y documéntalo en el ADR; no lo resuelvas con un literal en la pantalla. `no-hardcoded-colors.test.ts` falla si aparece un color hexadecimal fuera de los tokens.
+- **Reutiliza los componentes compartidos** antes de crear otros: `PrimaryButton` (variantes `primary`, `secondary`, `danger`), `TextField`, `FormScreen`, `Card`, `Notice` (error, éxito o aviso) y `ScreenState` (carga, error con reintento y vacío). Un patrón nuevo que se vaya a repetir se convierte en componente de `src/components`.
+- **Estructura de pantalla:** fondo `background`, título `title` y una descripción en `textSecondary`, el contenido agrupado en `Card` con su cabecera `heading`, y márgenes y separaciones de la escala de `Spacing`. Las listas de categorías o de navegación usan filas en `Card` con icono, nombre (`defaultBold`), resumen (`small`) y chevron, como la pestaña «Perfil».
+- **Color:** la mostaza (`primary`) se usa como fondo con texto o icono `onPrimary` encima, nunca como texto ni como único indicador de estado. `accent` es solo decorativo. Los bordes de los controles usan `borderStrong`; `border` es solo para separadores y contornos decorativos.
+- **Estados:** toda pantalla con datos del servidor contempla carga, error, vacío y éxito con `ScreenState` y `Notice`. Los controles deshabilitados usan los tokens `disabled*`. El estado presionado cambia el fondo (`primaryPressed`, `surfaceSecondary`).
+- **Accesibilidad:** los errores y estados llevan texto e icono además del color; los mensajes de error tienen `accessibilityRole="alert"`; las áreas táctiles miden al menos 44 pt; las alturas son mínimas (`minHeight`), nunca fijas; no se desactiva el escalado de texto.
+- **Iconos:** `SymbolView` de `expo-symbols` con nombre para iOS (SF Symbols) y Android/web (Material Symbols), en el color de un token.
+- **Plataformas:** el mismo diseño en iOS y Android. Solo modo claro mientras no se implemente el oscuro; no uses `useColorScheme` en las pantallas.
+- **Validación:** al cerrar una historia con interfaz, indica en el PR si se revisó visualmente en dispositivo o simulador. Las pruebas automatizadas no demuestran que la pantalla se vea bien.
 
 ### API y datos
 
@@ -412,7 +428,7 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 
 ## 6. Estructura y estado actual del proyecto
 
-> **Estado a 13-10-2026.** Esta sección describe lo que existe realmente. Actualízala al cerrar cada historia o cambio de infraestructura, y comprueba el repositorio antes de fiarte de ella: si el código y esta sección discrepan, manda el código.
+> **Estado a 14-10-2026.** Esta sección describe lo que existe realmente. Actualízala al cerrar cada historia o cambio de infraestructura, y comprueba el repositorio antes de fiarte de ella: si el código y esta sección discrepan, manda el código.
 
 ### Estructura
 
@@ -456,7 +472,8 @@ No existe `packages/shared`. No lo crees hasta que haya un contrato compartido r
 - **Alérgenos de los ingredientes:** tabla `ingredient_allergens`, sembrada por migración, y columna `ingredients.allergensUncertain` para los elaborados de composición variable. Toda respuesta con ingredientes incluye `allergens` y `allergensUncertain` (usar `withAllergens` de `src/ingredients/ingredient-with-allergens.ts`). **El mapeo no procede de una fuente validada** y un ingrediente sin alérgenos asociados no es por ello seguro. Criterio y límites en `docs/decisions/0003-alergenos-y-restricciones.md`.
 - **Cuenta:** módulo `account` de la API (`GET /account`, `PUT`/`DELETE /account/password`, `PUT`/`DELETE /account/google`, `POST /account/delete`) y pestaña «Cuenta» en la app (`src/features/account`, rutas en `src/app/(app)/account`). Las acciones sensibles piden la contraseña actual si la cuenta tiene una y responden 403 (no 401) cuando es incorrecta; no se puede quitar el último método de acceso; solo se vincula el Google con el mismo email. Los errores de negocio llevan un `code` que la app traduce a mensajes (`ApiError.code`).
 - **Eliminación de datos:** `docs/data-retention-policy.md`. Toda tabla nueva con datos de un usuario debe borrarse en cascada con `users` (`onDelete: Cascade`), salvo el contenido público, que se anonimiza (`onDelete: SetNull`), e incluir una prueba de qué ocurre al eliminar la cuenta.
-- **Datos del servidor en la app:** TanStack Query, con las llamadas autenticadas a través de `useSession().request`; la caché se vacía al cerrar sesión. Los componentes de formulario compartidos están en `src/components` (`PrimaryButton`, `TextField`, `FormScreen`).
+- **Datos del servidor en la app:** TanStack Query, con las llamadas autenticadas a través de `useSession().request`; la caché se vacía al cerrar sesión. Los componentes compartidos están en `src/components` (`PrimaryButton`, `TextField`, `FormScreen`, `Card`, `Notice`, `ScreenState`).
+- **Sistema de diseño** (nombre provisional «Modern Kitchen», que no debe usarse en código, paquetes ni identificadores): tokens en `src/constants/theme.ts` (`Colors`, `Spacing`, `Radius`, `Typography`, `FontFamily`, `ControlHeight`, `CardShadow`), leídos con `useTheme()` y `ThemedText`. **Ninguna pantalla usa colores literales**; lo comprueba `no-hardcoded-colors.test.ts`, y `theme-contrast.test.ts` comprueba el contraste de cada par de colores. La app está **solo en modo claro** (`userInterfaceStyle: "light"`); `Colors.dark` existe con los mismos valores para añadir el oscuro después. Fuente Nunito Sans (400, 600 y 700), cargada con `useFonts` en el layout raíz e importada por peso. Mostaza (`primary`) solo como fondo con texto oscuro encima, nunca como texto; los errores y estados llevan texto e icono además del color (`Notice`); los estados de carga, error y vacío de pantalla completa usan `ScreenState`. Detalles en `docs/decisions/0004-sistema-de-diseno.md`; reglas obligatorias en la sección 5 («Sistema de diseño»).
 - **Autenticación:** tres formas de obtener sesión: `POST /auth/register` y `POST /auth/login` (email y contraseña, con hash scrypt) y `POST /auth/google` (ID token obtenido con `@react-native-google-signin/google-signin`). En los tres casos la API emite un JWT de acceso (15 min) y un refresh token rotatorio guardado con hash. Hay una cuenta por email (guardado en minúsculas); contraseña y Google son métodos de acceso independientes de la misma cuenta: entrar con Google a una cuenta con contraseña la vincula y conserva la contraseña. Registrarse con un email que ya tiene cuenta se rechaza siempre. Esos tres endpoints tienen límite de peticiones por IP (`@nestjs/throttler`, en memoria). Para proteger un endpoint: `@UseGuards(JwtAuthGuard)` y `@CurrentUser()` (el módulo debe importar `AuthModule`). En la app, las llamadas autenticadas pasan por `sessionManager.authorizedRequest` y el estado de sesión se lee con `useSession()`.
 
 ### Comandos
@@ -500,7 +517,7 @@ Las dependencias de la app móvil se añaden con `npx expo install <paquete>` de
 
 ### Decisiones ya tomadas
 
-Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md` (el catálogo de ingredientes, en `0002-catalogo-de-ingredientes.md`; los alérgenos y las restricciones, en `0003-alergenos-y-restricciones.md`):
+Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md` (el catálogo de ingredientes, en `0002-catalogo-de-ingredientes.md`; los alérgenos y las restricciones, en `0003-alergenos-y-restricciones.md`; el sistema de diseño, en `0004-sistema-de-diseno.md`):
 
 - La API usa **Vitest y oxlint**, los valores por defecto del generador de NestJS 12. Jest y React Native Testing Library se usan en la app móvil.
 - **Prisma fijado en 7.10.0**: el dist-tag `latest` de npm apuntaba a una versión candidata 8.0.0-rc.
@@ -512,6 +529,8 @@ Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md` (el catá
 - **Poner al día los issues con lo acordado antes de usar GitHub como fuente de verdad.** Los issues de US-003, US-004 y US-005 (#21, #22 y #23) están cerrados sin marcar sus criterios diferidos, y los de destino (US-013 y US-015, #31 y #33) no los incluyen. Además, todos los issues repiten la línea de prioridad y terminan en «Fuente funcional: ProductBacklog.md.», y EP-01 (#9) sigue en `Todo` con todas sus historias cerradas.
 - **Validar US-002 en dispositivo.** En Expo Go se puede probar todo salvo vincular y desvincular Google.
 - **Validar US-004 en dispositivo.** Se puede probar entera en Expo Go.
+- **Validar el sistema de diseño en Expo Go, en iOS y en Android:** acceso, cuenta, perfil y sus tres secciones, con el texto grande del sistema activado. Comprobar en Android que la fuente no muestra negritas sintéticas. Solo tiene pruebas automatizadas y bundles de `expo export`.
+- La pestaña «Home», el icono y la pantalla de inicio (`app.json`) siguen siendo los de la plantilla y quedan fuera del sistema de diseño hasta que se construya la pantalla principal y se decida la marca.
 - **US-013 y US-015 deben cubrir el criterio 4 de US-004:** comparar las recetas y las recomendaciones con los objetivos activos cuando haya datos nutricionales suficientes.
 - **Validar en Expo Go el aviso al salir sin guardar** de las pantallas de preferencias y de alergias (botón atrás de Android, flecha de la cabecera y gesto de iOS). Se añadió después de la validación de US-003 y US-005 y solo tiene pruebas automatizadas.
 - **Revisar el mapeo de alérgenos** (`seed_ingredient_allergens`) con una fuente fiable antes de usarlo para excluir recetas; fructosa, histamina y sorbitol son aproximaciones.

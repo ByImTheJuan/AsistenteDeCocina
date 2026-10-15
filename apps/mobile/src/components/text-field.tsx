@@ -1,7 +1,7 @@
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { ControlHeight, FontFamily, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type TextFieldProps = Omit<TextInputProps, 'style'> & {
@@ -12,6 +12,7 @@ type TextFieldProps = Omit<TextInputProps, 'style'> & {
 /** Labelled text input that shows its validation error underneath. */
 export function TextField({ label, error, ...inputProps }: TextFieldProps) {
   const theme = useTheme();
+  const disabled = inputProps.editable === false;
 
   return (
     <View style={styles.field}>
@@ -24,17 +25,28 @@ export function TextField({ label, error, ...inputProps }: TextFieldProps) {
         style={[
           styles.input,
           {
-            color: theme.text,
-            backgroundColor: theme.backgroundElement,
-            borderColor: error ? theme.danger : theme.backgroundSelected,
+            color: disabled ? theme.disabledText : theme.textPrimary,
+            backgroundColor: disabled ? theme.disabledSurface : theme.surface,
+            borderColor: error ? theme.error : disabled ? theme.disabledBorder : theme.borderStrong,
           },
+          error !== undefined && styles.inputInvalid,
         ]}
         {...inputProps}
       />
       {error && (
-        <ThemedText type="small" themeColor="danger">
-          {error}
-        </ThemedText>
+        // The icon and the text carry the error, not only the red.
+        <View style={styles.error}>
+          <ThemedText type="small" themeColor="error" importantForAccessibility="no" aria-hidden>
+            ⚠
+          </ThemedText>
+          <ThemedText
+            type="small"
+            themeColor="error"
+            accessibilityRole="alert"
+            style={styles.errorText}>
+            {error}
+          </ThemedText>
+        </View>
       )}
     </View>
   );
@@ -43,13 +55,25 @@ export function TextField({ label, error, ...inputProps }: TextFieldProps) {
 const styles = StyleSheet.create({
   field: {
     alignSelf: 'stretch',
-    gap: Spacing.one,
+    gap: Spacing.xs,
   },
   input: {
-    minHeight: 48,
-    paddingHorizontal: Spacing.three,
+    minHeight: ControlHeight,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
     borderWidth: 1,
-    borderRadius: Spacing.three,
+    borderRadius: Radius.md,
+    fontFamily: FontFamily.regular,
     fontSize: 16,
+  },
+  error: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  errorText: {
+    flex: 1,
+  },
+  inputInvalid: {
+    borderWidth: 2,
   },
 });

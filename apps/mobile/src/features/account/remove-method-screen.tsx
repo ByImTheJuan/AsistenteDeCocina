@@ -7,6 +7,7 @@ import { accountErrorMessage, isWrongCurrentPassword } from './account-errors';
 import { useRemoveSignInMethod } from './use-account';
 
 import { FormScreen } from '@/components/form-screen';
+import { Notice } from '@/components/notice';
 import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -57,7 +58,7 @@ export function RemoveMethodScreen({ method }: { method: SignInMethod }) {
 
   return (
     <FormScreen>
-      <ThemedText type="subtitle" style={styles.text}>
+      <ThemedText type="title" style={styles.text}>
         {title}
       </ThemedText>
       <ThemedText themeColor="textSecondary" style={styles.text}>
@@ -83,11 +84,7 @@ export function RemoveMethodScreen({ method }: { method: SignInMethod }) {
         onPress={() => void handleRemove()}
       />
 
-      {failure && (
-        <ThemedText type="small" themeColor="danger" accessibilityRole="alert" style={styles.text}>
-          {failure}
-        </ThemedText>
-      )}
+      {failure && <Notice tone="error">{failure}</Notice>}
     </FormScreen>
   );
 }

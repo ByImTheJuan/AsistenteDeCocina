@@ -5,11 +5,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { categoryLabel, type Ingredient } from './ingredients-api';
 import { useIngredientSearch } from './use-ingredient-search';
 
+import { Notice } from '@/components/notice';
 import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { apiErrorMessage } from '@/lib/api-error-message';
 
@@ -52,7 +53,7 @@ export function IngredientPicker({
     <Modal animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.content}>
-          <ThemedText type="subtitle">{title}</ThemedText>
+          <ThemedText type="title">{title}</ThemedText>
           <TextField
             label="Buscar alimento"
             placeholder="Por ejemplo, tomate"
@@ -69,9 +70,7 @@ export function IngredientPicker({
             keyboardShouldPersistTaps="handled">
             {error ? (
               <View style={styles.message}>
-                <ThemedText themeColor="danger" accessibilityRole="alert" style={styles.centered}>
-                  {apiErrorMessage(error)}
-                </ThemedText>
+                <Notice tone="error">{apiErrorMessage(error)}</Notice>
                 <PrimaryButton
                   label="Reintentar"
                   variant="secondary"
@@ -104,13 +103,23 @@ export function IngredientPicker({
                         styles.row,
                         {
                           backgroundColor:
-                            theme[checked ? 'backgroundSelected' : 'backgroundElement'],
+                            theme[
+                              blocked ? 'disabledSurface' : checked ? 'surfaceSecondary' : 'surface'
+                            ],
+                          borderColor:
+                            theme[
+                              blocked ? 'disabledBorder' : checked ? 'textPrimary' : 'borderStrong'
+                            ],
                         },
-                        (pressed || blocked) && styles.dimmed,
+                        pressed && styles.pressed,
                       ]}>
                       <View style={styles.rowText}>
-                        <ThemedText>{ingredient.name}</ThemedText>
-                        <ThemedText type="small" themeColor="textSecondary">
+                        <ThemedText themeColor={blocked ? 'disabledText' : 'textPrimary'}>
+                          {ingredient.name}
+                        </ThemedText>
+                        <ThemedText
+                          type="small"
+                          themeColor={blocked ? 'disabledText' : 'textSecondary'}>
                           {blocked ? unavailable?.reason : categoryLabel(ingredient.category)}
                         </ThemedText>
                       </View>
@@ -142,18 +151,18 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignSelf: 'stretch',
-    gap: Spacing.three,
-    padding: Spacing.four,
+    gap: Spacing.lg,
+    padding: Spacing.xl,
     maxWidth: MaxContentWidth,
   },
   results: {
     flex: 1,
   },
   resultsContent: {
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   message: {
-    gap: Spacing.three,
+    gap: Spacing.lg,
   },
   centered: {
     textAlign: 'center',
@@ -161,16 +170,17 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
+    gap: Spacing.lg,
     minHeight: 48,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderWidth: 1,
+    borderRadius: Radius.md,
   },
   rowText: {
     flex: 1,
   },
-  dimmed: {
-    opacity: 0.5,
+  pressed: {
+    opacity: 0.7,
   },
 });

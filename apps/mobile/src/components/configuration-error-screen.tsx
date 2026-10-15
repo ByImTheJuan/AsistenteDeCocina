@@ -16,7 +16,7 @@ export function ConfigurationErrorScreen({ message }: ConfigurationErrorScreenPr
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.content}>
-        <ThemedText type="subtitle" style={styles.centered}>
+        <ThemedText type="title" style={styles.centered}>
           Falta configuración
         </ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.centered}>
@@ -41,8 +41,8 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
     maxWidth: MaxContentWidth,
   },
   centered: {
