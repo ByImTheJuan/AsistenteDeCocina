@@ -9,7 +9,7 @@ US-003 pide que el usuario seleccione los alimentos que le gustan y los que pref
 
 ## Decisión
 
-- Se crea ya la tabla `ingredients` con lo mínimo: identificador, nombre en español (único) y categoría. **No** modela unidades, equivalencias ni alérgenos; eso sigue perteneciendo a US-044 y US-005.
+- Se crea ya la tabla `ingredients` con lo mínimo: identificador, nombre en español (único) y categoría. **No** modela unidades, equivalencias ni alérgenos; eso sigue perteneciendo a US-044 y US-005 (resueltos después en los ADR 0005 y 0003).
 - Las filas iniciales (175 alimentos comunes) viajan en una **migración de datos** (`seed_ingredient_catalog`), no en un script de seed. Son datos de referencia que deben existir en todos los entornos, y así llegan a desarrollo, pruebas, CI y producción con `prisma migrate deploy`, sin un paso adicional que pueda olvidarse ni dependencias nuevas para ejecutar TypeScript fuera de Nest.
 - Los identificadores sembrados son fijos y legibles (`ing_tomate`), de modo que migraciones e historias posteriores pueden referirse a ellos. Las filas que se creen más adelante desde la aplicación usarán el `cuid()` por defecto.
 - La búsqueda (`GET /ingredients?search=`) usa `LIKE` sobre el nombre. La intercalación de la columna (`utf8mb4_unicode_ci`) ignora mayúsculas y tildes, así que «platano» encuentra «Plátano» sin normalizar nada en el código. Devuelve como máximo 50 resultados.
