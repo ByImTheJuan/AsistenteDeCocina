@@ -223,8 +223,8 @@ describe('InventoryScreen', () => {
         'Mi despensa',
         'Caducan pronto',
         'Nevera',
-        'Congelador',
         'Despensa',
+        'Congelador',
         'Sin ubicación',
       ]);
       expect(foodRows()).toEqual([
@@ -234,10 +234,10 @@ describe('InventoryScreen', () => {
         // Fridge
         'Leche: 1 kg, Caduca mañana',
         'Yogur: 2 unidades, Caduca el 19 oct',
-        // Freezer
-        'Pollo: 1 kg, Caducó el 12 oct',
         // Pantry
         'Arroz: 1,5 kg, Consumo preferente: 1 mar 2027',
+        // Freezer
+        'Pollo: 1 kg, Caducó el 12 oct',
         // No location
         'Sal: Siempre disponible, Sin fecha',
       ]);
@@ -254,8 +254,8 @@ describe('InventoryScreen', () => {
       expect(foodRows()).toEqual([
         'Leche: 1 kg, Caduca mañana',
         'Yogur: 2 unidades, Caduca el 19 oct',
-        'Pollo: 1 kg, Caducó el 12 oct',
         'Arroz: 1,5 kg, Consumo preferente: 1 mar 2027',
+        'Pollo: 1 kg, Caducó el 12 oct',
         'Sal: Siempre disponible, Sin fecha',
       ]);
     });

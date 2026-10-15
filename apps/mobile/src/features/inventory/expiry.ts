@@ -8,7 +8,7 @@ export const expiryKindSchema = z.enum(['USE_BY', 'BEST_BEFORE']);
 export type ExpiryKind = z.infer<typeof expiryKindSchema>;
 
 /** In the order they are offered and the pantry is grouped. */
-export const storageLocations = ['FRIDGE', 'FREEZER', 'PANTRY'] as const;
+export const storageLocations = ['FRIDGE', 'PANTRY', 'FREEZER'] as const;
 export const storageLocationSchema = z.enum(storageLocations);
 export type StorageLocation = z.infer<typeof storageLocationSchema>;
 
