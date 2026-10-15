@@ -39,7 +39,7 @@ La visión funcional incluye:
 - Guardar recetas favoritas y, en una fase posterior, acceder a ellas sin conexión.
 - En futuras iteraciones, escanear códigos de barras, reconocer alimentos mediante fotografías, comparar precios de supermercados y crear/publicar/valorar recetas.
 
-La especificación funcional completa se encuentra en [`ProductBacklog.md`](ProductBacklog.md). Ese archivo es la fuente de verdad para las historias de usuario y sus criterios de aceptación.
+El backlog vigente está en los [issues de GitHub](https://github.com/ByImTheJuan/AsistenteDeCocina/issues), uno por épica y por historia de usuario, organizados en el [Project AsistenteDeCocina](https://github.com/users/ByImTheJuan/projects/4). Los issues son la fuente de verdad para las historias y sus criterios de aceptación. [`ProductBacklog.md`](ProductBacklog.md) es la especificación inicial a partir de la cual se crearon y no recoge los cambios posteriores.
 
 ## MVP
 
@@ -242,8 +242,8 @@ Las pruebas de integración de la API (`test:e2e`) necesitan MySQL en marcha (`n
 
 `CLAUDE.md` define las instrucciones obligatorias para Claude Code. Antes de iniciar una historia de usuario, Claude Code debe:
 
-1. Inspeccionar el repositorio y leer `ProductBacklog.md`.
-2. Localizar la historia solicitada y leer sus criterios de aceptación.
+1. Inspeccionar el repositorio.
+2. Localizar el issue de la historia solicitada en GitHub y leer sus criterios de aceptación y comentarios.
 3. Analizar dependencias, requisitos técnicos, riesgos y pruebas necesarias.
 4. Preguntar por información faltante que pueda cambiar significativamente el comportamiento o el diseño.
 5. Presentar un plan de implementación y esperar aprobación, salvo que el usuario haya autorizado expresamente proceder sin esa pausa.
@@ -446,12 +446,13 @@ El orden funcional de referencia es:
 8. Endurecimiento de errores, sincronización y calidad.
 9. Evoluciones posteriores: códigos de barras, reconocimiento por imagen, recetas offline, recetas creadas por usuarios, reseñas y comparación de precios.
 
-Este roadmap no reemplaza el orden de dependencias de `ProductBacklog.md`. Antes de iniciar cada historia, consulta el backlog y sigue el proceso definido en `CLAUDE.md`.
+Este roadmap no reemplaza el orden de dependencias del backlog. Antes de iniciar cada historia, consulta su issue en GitHub y sigue el proceso definido en `CLAUDE.md`.
 
 ## Documentación del proyecto
 
 - [`CLAUDE.md`](CLAUDE.md): contexto, stack, convenciones y flujo de trabajo obligatorio para Claude Code.
-- [`ProductBacklog.md`](ProductBacklog.md): fuente de verdad para épicas, historias de usuario y criterios de aceptación.
+- [Issues](https://github.com/ByImTheJuan/AsistenteDeCocina/issues) y [Project](https://github.com/users/ByImTheJuan/projects/4) de GitHub: fuente de verdad para épicas, historias de usuario y criterios de aceptación.
+- [`ProductBacklog.md`](ProductBacklog.md): especificación funcional inicial, visión del producto y convenciones de prioridad. No se actualiza con los cambios de las historias.
 - [`docs/google-sign-in-setup.md`](docs/google-sign-in-setup.md): alta de las credenciales de Google y variables de entorno del inicio de sesión.
 - [`docs/data-retention-policy.md`](docs/data-retention-policy.md): qué se borra y qué se conserva al eliminar una cuenta, y las reglas que deben seguir las tablas con datos de usuario.
 - `docs/architecture/`: documentación de arquitectura, cuando exista.
