@@ -23,17 +23,18 @@ const quantityProperty = {
   minimum: QUANTITY_RANGE.min,
   maximum: QUANTITY_RANGE.max,
   description:
-    'How much there is, with up to three decimals. Null when the user does not say; then the unit is null too.',
+    'How much there is, with up to three decimals. Null for a food that is always available in the kitchen; then the unit is null too.',
 };
 
 const unitProperty = {
   enum: Unit,
   enumName: 'Unit',
   nullable: true,
-  description: 'Unit of the quantity. Null exactly when the quantity is.',
+  description:
+    "Unit of the quantity, one of the ingredient's `units`. Null exactly when the quantity is.",
 };
 
-// Both fields are required but nullable: null means "not stated".
+// Both fields are required but nullable: null means "always available".
 export class UpdateInventoryItemRequest implements QuantityInput {
   @ApiProperty(quantityProperty)
   @ValidateIf((body: UpdateInventoryItemRequest) => body.quantity !== null)

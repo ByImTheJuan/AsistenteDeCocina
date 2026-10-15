@@ -1,12 +1,12 @@
-import { Unit } from '../generated/prisma/enums.js';
+import { IngredientMeasure, Unit } from '../generated/prisma/enums.js';
 
 // Rules for comparing and adding quantities. Only units of the same kind
 // convert into each other: weight, volume and pieces are never mixed, because
 // the equivalences between them depend on the food and are not reliable. A
-// pinch or a package has no known content, so it converts to nothing.
+// pinch has no known content, so it converts to nothing.
 // Criteria in docs/decisions/0005-unidades-y-equivalencias.md.
 
-export type UnitKind = 'MASS' | 'VOLUME' | 'COUNT' | 'PINCH' | 'PACKAGE';
+export type UnitKind = 'MASS' | 'VOLUME' | 'COUNT' | 'PINCH';
 
 type UnitDefinition = {
   kind: UnitKind;
@@ -23,7 +23,6 @@ export const UNITS: Record<Unit, UnitDefinition> = {
   TEASPOON: { kind: 'VOLUME', factor: 5 },
   PIECE: { kind: 'COUNT', factor: 1 },
   PINCH: { kind: 'PINCH', factor: 1 },
-  PACKAGE: { kind: 'PACKAGE', factor: 1 },
 };
 
 const BASE_UNIT: Record<UnitKind, Unit> = {
@@ -31,7 +30,18 @@ const BASE_UNIT: Record<UnitKind, Unit> = {
   VOLUME: Unit.MILLILITER,
   COUNT: Unit.PIECE,
   PINCH: Unit.PINCH,
-  PACKAGE: Unit.PACKAGE,
+};
+
+/**
+ * The units a food can be recorded in at home, by how it is measured, in the
+ * order they are offered. Spoons and pinches are left out: they measure
+ * recipes, not what there is in the kitchen.
+ */
+export const MEASURE_UNITS: Record<IngredientMeasure, Unit[]> = {
+  WEIGHT: [Unit.GRAM, Unit.KILOGRAM],
+  VOLUME: [Unit.MILLILITER, Unit.LITER],
+  COUNT: [Unit.PIECE],
+  COUNT_OR_WEIGHT: [Unit.PIECE, Unit.GRAM, Unit.KILOGRAM],
 };
 
 // From this amount of the base unit on, totals are shown in the larger one.

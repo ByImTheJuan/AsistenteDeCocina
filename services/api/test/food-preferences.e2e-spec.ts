@@ -24,12 +24,14 @@ const tomate = {
   allergens: ['HISTAMINE'],
   allergensUncertain: false,
   defaultUnit: 'PIECE',
+  units: ['PIECE', 'GRAM', 'KILOGRAM'],
 };
 const ajo = {
   id: 'ing_ajo',
   name: 'Ajo',
   category: 'VEGETABLE',
   defaultUnit: 'PIECE',
+  units: ['PIECE', 'GRAM', 'KILOGRAM'],
   ...plain,
 };
 const pollo = {
@@ -37,6 +39,7 @@ const pollo = {
   name: 'Pollo',
   category: 'MEAT',
   defaultUnit: 'GRAM',
+  units: ['GRAM', 'KILOGRAM'],
   ...plain,
 };
 const cilantro = {
@@ -44,6 +47,7 @@ const cilantro = {
   name: 'Cilantro',
   category: 'HERB_SPICE',
   defaultUnit: 'GRAM',
+  units: ['GRAM', 'KILOGRAM'],
   ...plain,
 };
 

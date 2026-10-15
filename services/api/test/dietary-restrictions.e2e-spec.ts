@@ -23,6 +23,7 @@ const kiwi = {
   allergens: ['FRUCTOSE', 'HISTAMINE'],
   allergensUncertain: false,
   defaultUnit: 'PIECE',
+  units: ['PIECE', 'GRAM', 'KILOGRAM'],
 };
 const pollo = {
   id: 'ing_pollo',
@@ -31,6 +32,7 @@ const pollo = {
   allergens: [],
   allergensUncertain: false,
   defaultUnit: 'GRAM',
+  units: ['GRAM', 'KILOGRAM'],
 };
 const leche = {
   id: 'ing_leche',
@@ -39,6 +41,7 @@ const leche = {
   allergens: ['MILK', 'LACTOSE'],
   allergensUncertain: false,
   defaultUnit: 'LITER',
+  units: ['MILLILITER', 'LITER'],
 };
 const almendras = {
   id: 'ing_almendras',
@@ -47,6 +50,7 @@ const almendras = {
   allergens: ['TREE_NUTS'],
   allergensUncertain: false,
   defaultUnit: 'GRAM',
+  units: ['GRAM', 'KILOGRAM'],
 };
 
 const nothing = { allergens: [], ingredientIds: [] };

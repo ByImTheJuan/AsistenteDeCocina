@@ -79,7 +79,8 @@ enum IngredientCategory {
 
 // Units a quantity can be expressed in. Only units of the same kind convert
 // into each other (src/units/units.ts); see
-// docs/decisions/0005-unidades-y-equivalencias.md.
+// docs/decisions/0005-unidades-y-equivalencias.md. Spoons and pinches are for
+// recipes: the inventory only takes the units of each food's measure.
 enum Unit {
   GRAM
   KILOGRAM
@@ -89,7 +90,15 @@ enum Unit {
   TEASPOON
   PIECE
   PINCH
-  PACKAGE
+}
+
+// How a food is measured at home, which decides the units offered for it
+// (src/units/units.ts): by weight, by volume, by pieces, or by pieces or weight.
+enum IngredientMeasure {
+  WEIGHT
+  VOLUME
+  COUNT
+  COUNT_OR_WEIGHT
 }
 
 // Catalogue of foods the user can refer to. Its rows are reference data,
@@ -102,8 +111,9 @@ model Ingredient {
   // True for processed foods whose recipe changes with the brand: the
   // allergens listed are the usual ones, not all it may contain.
   allergensUncertain Boolean            @default(false)
-  // The unit the food is usually measured in, offered first to the user.
-  // A suggestion only: any unit can be used.
+  // The units the food can be recorded in at home.
+  measure            IngredientMeasure
+  // The unit of its measure offered first to the user.
   defaultUnit        Unit
   createdAt          DateTime           @default(now())
 
@@ -235,7 +245,8 @@ model NutritionGoal {
 
 // A food the user has at home. The same food can appear several times (say,
 // one opened pack and one closed). The quantity is optional: null means the
-// user did not say how much there is, and then the unit is null too.
+// food is always available in the kitchen (salt, oil...), and then the unit is
+// null too. A quantity is in one of the units of the food's measure.
 model InventoryItem {
   id           String     @id @default(cuid())
   userId       String

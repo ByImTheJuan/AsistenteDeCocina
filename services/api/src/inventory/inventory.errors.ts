@@ -9,13 +9,14 @@ import {
 export type InventoryErrorCode =
   | 'unknown_ingredient'
   | 'incomplete_quantity'
+  | 'unit_not_allowed'
   | 'inventory_item_not_found'
   | 'inventory_full';
 
 export function inventoryBadRequest(
   code: Extract<
     InventoryErrorCode,
-    'unknown_ingredient' | 'incomplete_quantity'
+    'unknown_ingredient' | 'incomplete_quantity' | 'unit_not_allowed'
   >,
   message: string,
 ): BadRequestException {

@@ -5,6 +5,7 @@ import {
   IngredientCategory,
   Unit,
 } from '../generated/prisma/enums.js';
+import { MEASURE_UNITS } from '../units/units.js';
 import type { IngredientWithAllergens } from './ingredient-with-allergens.js';
 
 const allergenOrder = Object.values(Allergen);
@@ -54,10 +55,18 @@ export class IngredientResponse {
   @ApiProperty({
     enum: Unit,
     enumName: 'Unit',
-    description:
-      'Unit the food is usually measured in. A suggestion for the user, not a restriction.',
+    description: 'Unit offered first for the food. Always one of `units`.',
   })
   defaultUnit: Unit;
+
+  @ApiProperty({
+    enum: Unit,
+    enumName: 'Unit',
+    isArray: true,
+    description:
+      'Units the food can be recorded in at home, in the order they are offered. Spoons and pinches are never among them.',
+  })
+  units: Unit[];
 
   static from(ingredient: IngredientWithAllergens): IngredientResponse {
     return {
@@ -69,6 +78,7 @@ export class IngredientResponse {
       ),
       allergensUncertain: ingredient.allergensUncertain,
       defaultUnit: ingredient.defaultUnit,
+      units: MEASURE_UNITS[ingredient.measure],
     };
   }
 }

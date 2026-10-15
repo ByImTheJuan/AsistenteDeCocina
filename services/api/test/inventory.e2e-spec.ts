@@ -25,6 +25,7 @@ const tomate = {
   allergens: ['HISTAMINE'],
   allergensUncertain: false,
   defaultUnit: 'PIECE',
+  units: ['PIECE', 'GRAM', 'KILOGRAM'],
 };
 const arroz = {
   id: 'ing_arroz',
@@ -33,6 +34,7 @@ const arroz = {
   allergens: [],
   allergensUncertain: false,
   defaultUnit: 'GRAM',
+  units: ['GRAM', 'KILOGRAM'],
 };
 
 const noQuantity = { quantity: null, unit: null };
@@ -149,7 +151,7 @@ describe('Inventory (e2e)', () => {
       ]);
     });
 
-    it('adds a food without saying how much there is', async () => {
+    it('adds a food that is always available, without a quantity', async () => {
       const session = await register();
 
       const response = await as(session)
@@ -168,14 +170,14 @@ describe('Inventory (e2e)', () => {
         .add({ ingredientId: arroz.id, quantity: 500, unit: 'GRAM' })
         .expect(201);
       await as(session)
-        .add({ ingredientId: arroz.id, quantity: 1, unit: 'PACKAGE' })
+        .add({ ingredientId: arroz.id, quantity: 1, unit: 'KILOGRAM' })
         .expect(201);
 
       const { items } = (await as(session).list().expect(200)).body;
 
       expect(summary(items)).toEqual([
         ['Arroz', 500, 'GRAM'],
-        ['Arroz', 1, 'PACKAGE'],
+        ['Arroz', 1, 'KILOGRAM'],
       ]);
     });
 
@@ -190,6 +192,33 @@ describe('Inventory (e2e)', () => {
         expect(response.body.code).toBe('incomplete_quantity');
       }
       expect(await prisma.inventoryItem.count()).toBe(0);
+    });
+
+    it.each([
+      ['rice in litres', arroz.id, 'LITER'],
+      ['rice in pieces', arroz.id, 'PIECE'],
+      ['tomatoes in tablespoons', tomate.id, 'TABLESPOON'],
+      ['tomatoes in pinches', tomate.id, 'PINCH'],
+    ])(
+      'rejects %s, a unit the food is not measured in',
+      async (_, ingredientId, unit) => {
+        const session = await register();
+
+        const response = await as(session)
+          .add({ ingredientId, quantity: 1, unit })
+          .expect(400);
+
+        expect(response.body.code).toBe('unit_not_allowed');
+        expect(await prisma.inventoryItem.count()).toBe(0);
+      },
+    );
+
+    it('rejects the package, which is no longer a unit', async () => {
+      const session = await register();
+
+      await as(session)
+        .add({ ingredientId: arroz.id, quantity: 1, unit: 'PACKAGE' })
+        .expect(400);
     });
 
     it('rejects an ingredient that is not in the catalogue', async () => {
@@ -325,6 +354,24 @@ describe('Inventory (e2e)', () => {
         .update(added.id, { ingredientId: tomate.id, ...noQuantity })
         .expect(400);
 
+      expect(
+        summary((await as(session).list().expect(200)).body.items),
+      ).toEqual([['Arroz', 1, 'KILOGRAM']]);
+    });
+
+    it('rejects a unit the food is not measured in and keeps the item', async () => {
+      const session = await register();
+      const added = (
+        await as(session)
+          .add({ ingredientId: arroz.id, quantity: 1, unit: 'KILOGRAM' })
+          .expect(201)
+      ).body;
+
+      const response = await as(session)
+        .update(added.id, { quantity: 1, unit: 'LITER' })
+        .expect(400);
+
+      expect(response.body.code).toBe('unit_not_allowed');
       expect(
         summary((await as(session).list().expect(200)).body.items),
       ).toEqual([['Arroz', 1, 'KILOGRAM']]);

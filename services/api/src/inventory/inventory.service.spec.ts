@@ -25,7 +25,7 @@ describe('InventoryService', () => {
   });
 
   it('adds nothing when the account no longer exists', async () => {
-    ingredient.findUnique.mockResolvedValue({ id: 'ing_arroz' });
+    ingredient.findUnique.mockResolvedValue({ measure: 'WEIGHT' });
     user.findUnique.mockResolvedValue(null);
 
     await expect(

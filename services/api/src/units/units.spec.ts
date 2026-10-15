@@ -1,5 +1,11 @@
-import { Unit } from '../generated/prisma/enums.js';
-import { canConvert, combineQuantities, convert, UNITS } from './units.js';
+import { IngredientMeasure, Unit } from '../generated/prisma/enums.js';
+import {
+  canConvert,
+  combineQuantities,
+  convert,
+  MEASURE_UNITS,
+  UNITS,
+} from './units.js';
 
 describe('units', () => {
   it('defines every unit of the enum', () => {
@@ -24,11 +30,30 @@ describe('units', () => {
       [Unit.LITER, Unit.KILOGRAM],
       [Unit.PINCH, Unit.GRAM],
       [Unit.TEASPOON, Unit.PINCH],
-      [Unit.PACKAGE, Unit.PIECE],
-      [Unit.PACKAGE, Unit.GRAM],
     ])('does not convert %s into %s', (from, to) => {
       expect(canConvert(from, to)).toBe(false);
       expect(convert(1, from, to)).toBeNull();
+    });
+  });
+
+  describe('MEASURE_UNITS', () => {
+    it('gives every measure units that convert into each other or count', () => {
+      expect(Object.keys(MEASURE_UNITS).sort()).toEqual(
+        Object.values(IngredientMeasure).sort(),
+      );
+      expect(MEASURE_UNITS.VOLUME).toEqual([Unit.MILLILITER, Unit.LITER]);
+      expect(MEASURE_UNITS.COUNT_OR_WEIGHT).toEqual([
+        Unit.PIECE,
+        Unit.GRAM,
+        Unit.KILOGRAM,
+      ]);
+    });
+
+    it('offers no spoons or pinches for the inventory', () => {
+      const offered = Object.values(MEASURE_UNITS).flat();
+      for (const recipeUnit of [Unit.TABLESPOON, Unit.TEASPOON, Unit.PINCH]) {
+        expect(offered).not.toContain(recipeUnit);
+      }
     });
   });
 
@@ -67,18 +92,16 @@ describe('units', () => {
       ]);
     });
 
-    it('never combines a pinch or a package with other units', () => {
+    it('never combines a pinch with other units', () => {
       expect(
         combineQuantities([
           { ingredientId: 'ing_canela', quantity: 1, unit: Unit.PINCH },
           { ingredientId: 'ing_canela', quantity: 1, unit: Unit.TEASPOON },
-          { ingredientId: 'ing_canela', quantity: 1, unit: Unit.PACKAGE },
           { ingredientId: 'ing_canela', quantity: 1, unit: Unit.PINCH },
         ]),
       ).toEqual([
         { ingredientId: 'ing_canela', quantity: 2, unit: Unit.PINCH },
         { ingredientId: 'ing_canela', quantity: 5, unit: Unit.MILLILITER },
-        { ingredientId: 'ing_canela', quantity: 1, unit: Unit.PACKAGE },
       ]);
     });
 
