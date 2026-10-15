@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 // the list with the platform's back navigation.
 export default function InventoryLayout() {
   return (
-    <Stack screenOptions={{ headerBackTitle: 'Inventario', title: '' }}>
+    <Stack screenOptions={{ headerBackTitle: 'Mi despensa', title: '' }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="new" />
       <Stack.Screen name="[id]" />

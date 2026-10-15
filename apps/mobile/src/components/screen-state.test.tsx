@@ -48,7 +48,7 @@ describe('ScreenState', () => {
     await render(
       <ScreenState
         kind="empty"
-        title="Tu inventario está vacío"
+        title="Tu despensa está vacía"
         action={{ label: 'Añadir alimento', onPress }}
       />,
     );

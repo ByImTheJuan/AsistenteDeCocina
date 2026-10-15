@@ -62,7 +62,7 @@ describe('NewInventoryItemScreen', () => {
     return test;
   }
 
-  const addButton = () => screen.getByRole('button', { name: 'Añadir al inventario' });
+  const addButton = () => screen.getByRole('button', { name: 'Añadir a la despensa' });
   const unitButton = (name: string) => screen.getByRole('button', { name: `Unidad: ${name}` });
   const unitOptions = () =>
     screen.getAllByRole('radio').map((option) => option.props.accessibilityLabel);
@@ -183,7 +183,7 @@ describe('NewInventoryItemScreen', () => {
 
     expect(
       await screen.findByText(
-        'Tu inventario ha llegado al máximo de 500 alimentos. Elimina alguno para añadir más. ' +
+        'Tu despensa ha llegado al máximo de 500 alimentos. Elimina alguno para añadir más. ' +
           'Tus cambios siguen aquí, sin guardar.',
       ),
     ).toBeOnTheScreen();

@@ -23,14 +23,14 @@ export function InventoryScreen() {
   const addItem = () => router.push('/inventory/new');
 
   if (isPending) {
-    return <ScreenState kind="loading" label="Cargando tu inventario" />;
+    return <ScreenState kind="loading" label="Cargando tu despensa" />;
   }
 
   if (!inventory) {
     return (
       <ScreenState
         kind="error"
-        title="No se ha podido cargar tu inventario"
+        title="No se ha podido cargar tu despensa"
         message={inventoryErrorMessage(error)}
         retrying={isRefetching}
         onRetry={() => void refetch()}
@@ -42,7 +42,7 @@ export function InventoryScreen() {
     return (
       <ScreenState
         kind="empty"
-        title="Tu inventario está vacío"
+        title="Tu despensa está vacía"
         message="Añade lo que tienes en casa para encontrar recetas con lo que ya tienes."
         action={{ label: 'Añadir alimento', onPress: addItem }}
       />
@@ -55,7 +55,7 @@ export function InventoryScreen() {
         <SafeAreaView edges={['top', 'left', 'right']} style={styles.content}>
           <View style={styles.header}>
             <ThemedText type="title" accessibilityRole="header">
-              Inventario
+              Mi despensa
             </ThemedText>
             <ThemedText themeColor="textSecondary">
               Lo que tienes en casa. Toca un alimento para cambiar su cantidad o eliminarlo.

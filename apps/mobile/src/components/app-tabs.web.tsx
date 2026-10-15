@@ -26,7 +26,7 @@ export default function AppTabs() {
             <TabButton>Home</TabButton>
           </TabTrigger>
           <TabTrigger name="inventory" href="/inventory" asChild>
-            <TabButton>Inventario</TabButton>
+            <TabButton>Mi despensa</TabButton>
           </TabTrigger>
           <TabTrigger name="profile" href="/profile" asChild>
             <TabButton>Perfil</TabButton>

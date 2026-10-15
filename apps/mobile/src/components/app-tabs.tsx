@@ -22,7 +22,7 @@ export default function AppTabs() {
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="inventory">
-        <NativeTabs.Trigger.Label>Inventario</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Mi despensa</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="refrigerator" md="kitchen" />
       </NativeTabs.Trigger>
 

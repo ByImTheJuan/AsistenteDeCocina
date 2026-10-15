@@ -46,7 +46,7 @@ export function EditInventoryItemScreen() {
     return (
       <ScreenState
         kind="error"
-        title="No se ha podido cargar tu inventario"
+        title="No se ha podido cargar tu despensa"
         message={inventoryErrorMessage(error)}
         retrying={isRefetching}
         onRetry={() => void refetch()}
@@ -57,7 +57,7 @@ export function EditInventoryItemScreen() {
   return (
     <ScreenState
       kind="empty"
-      title="Este alimento ya no está en tu inventario"
+      title="Este alimento ya no está en tu despensa"
       message="Puede que lo hayas eliminado desde otro dispositivo."
     />
   );
@@ -106,7 +106,7 @@ function EditForm({ item }: { item: InventoryItem }) {
   function askToRemove() {
     setFailure(null);
     Alert.alert(
-      `¿Eliminar ${item.ingredient.name} del inventario?`,
+      `¿Eliminar ${item.ingredient.name} de la despensa?`,
       'Podrás volver a añadirlo cuando quieras.',
       [
         { text: 'Cancelar', style: 'cancel' },
@@ -145,7 +145,7 @@ function EditForm({ item }: { item: InventoryItem }) {
             {failure && <Notice tone="error">{failure}</Notice>}
 
             <PrimaryButton
-              label="Eliminar del inventario"
+              label="Eliminar de la despensa"
               variant="danger"
               disabled={update.isPending}
               loading={remove.isPending}

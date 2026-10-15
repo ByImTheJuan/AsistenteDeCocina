@@ -52,7 +52,7 @@ describe('InventoryScreen', () => {
   it('shows progress while the inventory loads', async () => {
     await renderScreen(() => new Promise(() => {}));
 
-    expect(await screen.findByLabelText('Cargando tu inventario')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Cargando tu despensa')).toBeOnTheScreen();
   });
 
   it('explains a failed load and retries', async () => {
@@ -65,7 +65,7 @@ describe('InventoryScreen', () => {
       return inventory;
     });
 
-    expect(await screen.findByText('No se ha podido cargar tu inventario')).toBeOnTheScreen();
+    expect(await screen.findByText('No se ha podido cargar tu despensa')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Reintentar' }));
 
     expect(await screen.findByRole('button', { name: 'Arroz: 1,5 kg' })).toBeOnTheScreen();
@@ -74,7 +74,7 @@ describe('InventoryScreen', () => {
   it('invites to add the first food when it is empty', async () => {
     await renderScreen(() => ({ items: [] }));
 
-    expect(await screen.findByText('Tu inventario está vacío')).toBeOnTheScreen();
+    expect(await screen.findByText('Tu despensa está vacía')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Añadir alimento' }));
 
     expect(mockPush).toHaveBeenCalledWith('/inventory/new');
@@ -83,7 +83,7 @@ describe('InventoryScreen', () => {
   it('lists each food with its quantity, in the order of the API', async () => {
     await renderScreen(() => inventory);
 
-    await screen.findByText('Inventario');
+    await screen.findByText('Mi despensa');
     expect(
       screen.getAllByRole('button').map((button) => button.props.accessibilityLabel),
     ).toEqual([

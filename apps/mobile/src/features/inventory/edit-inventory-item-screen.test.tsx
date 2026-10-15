@@ -119,7 +119,7 @@ describe('EditInventoryItemScreen', () => {
       },
     });
 
-    expect(await screen.findByText('No se ha podido cargar tu inventario')).toBeOnTheScreen();
+    expect(await screen.findByText('No se ha podido cargar tu despensa')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Reintentar' }));
 
     expect(await screen.findByText('Leche')).toBeOnTheScreen();
@@ -130,7 +130,7 @@ describe('EditInventoryItemScreen', () => {
     await renderScreen();
 
     expect(
-      await screen.findByText('Este alimento ya no está en tu inventario'),
+      await screen.findByText('Este alimento ya no está en tu despensa'),
     ).toBeOnTheScreen();
   });
 
@@ -237,8 +237,8 @@ describe('EditInventoryItemScreen', () => {
     const test = await renderScreen();
     await screen.findByText('Leche');
 
-    await user.press(screen.getByRole('button', { name: 'Eliminar del inventario' }));
-    expect(alert.mock.calls.at(-1)[0]).toBe('¿Eliminar Leche del inventario?');
+    await user.press(screen.getByRole('button', { name: 'Eliminar de la despensa' }));
+    expect(alert.mock.calls.at(-1)[0]).toBe('¿Eliminar Leche de la despensa?');
     await answerDialog('Eliminar');
 
     await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
@@ -254,7 +254,7 @@ describe('EditInventoryItemScreen', () => {
     const test = await renderScreen();
     await screen.findByText('Leche');
 
-    await user.press(screen.getByRole('button', { name: 'Eliminar del inventario' }));
+    await user.press(screen.getByRole('button', { name: 'Eliminar de la despensa' }));
     await answerDialog('Cancelar');
 
     expect(test.sentTo('DELETE /inventory/item-1')).toEqual([]);
@@ -269,11 +269,11 @@ describe('EditInventoryItemScreen', () => {
     });
     await screen.findByText('Leche');
 
-    await user.press(screen.getByRole('button', { name: 'Eliminar del inventario' }));
+    await user.press(screen.getByRole('button', { name: 'Eliminar de la despensa' }));
     await answerDialog('Eliminar');
 
     expect(
-      await screen.findByText('Este alimento ya no está en tu inventario.'),
+      await screen.findByText('Este alimento ya no está en tu despensa.'),
     ).toBeOnTheScreen();
     expect(mockBack).not.toHaveBeenCalled();
   });

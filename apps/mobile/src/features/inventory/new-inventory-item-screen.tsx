@@ -111,7 +111,7 @@ export function NewInventoryItemScreen() {
             )}
 
             <PrimaryButton
-              label="Añadir al inventario"
+              label="Añadir a la despensa"
               disabled={!ingredient}
               loading={add.isPending}
               onPress={() => void submit()}
