@@ -33,6 +33,9 @@ describe('InventoryService', () => {
         ingredientId: 'ing_arroz',
         quantity: 1,
         unit: 'KILOGRAM',
+        expiresOn: null,
+        dateKind: null,
+        location: null,
       }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(inventoryItem.create).not.toHaveBeenCalled();

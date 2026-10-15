@@ -15,7 +15,7 @@ El nombre «Modern Kitchen» es provisional: no se usa en código, paquetes, ide
 - **Solo modo claro** en esta iteración: `userInterfaceStyle: "light"` en `app.json` y `useTheme()` devuelve siempre la paleta clara. `Colors.dark` existe con los mismos nombres de token y, por ahora, los mismos valores, para que el modo oscuro se añada solo con valores.
 - **Nunito Sans** (`@expo-google-fonts/nunito-sans`), cargada en tiempo de ejecución con `useFonts` en el layout raíz. Funciona en Expo Go, a diferencia del plugin de `expo-font`. La pantalla de inicio sigue visible hasta que la fuente carga o falla; si falla, la app arranca con la fuente del sistema.
 - **Un peso, una familia:** se cargan 400, 600 y 700, y cada estilo de texto elige la familia de su peso (`NunitoSans_700Bold`) en lugar de usar `fontWeight`, que en Android con fuentes propias puede sintetizar negritas.
-- **Componentes compartidos** en `src/components`: `PrimaryButton`, `TextField`, `FormScreen`, `Card`, `Notice` y `ScreenState`. Se crean solo cuando un patrón ya se repite.
+- **Componentes compartidos** en `src/components`: `PrimaryButton`, `TextField`, `FormScreen`, `Card`, `Notice`, `ScreenState`, `Badge` y `FloatingActionButton`. Se crean solo cuando un patrón ya se repite.
 
 ## Paleta y contraste
 
@@ -73,6 +73,10 @@ Los tres valores de una celda corresponden a `background`, `surface` y `surfaceS
 - **Controles:** botones y campos con altura mínima de 52 (`ControlHeight`), nunca fija, para que el texto grande no se recorte.
 - **Tarjetas:** `surface` con un borde `border` de 1 pt y una sombra suave de un solo nivel (`CardShadow`). El blanco sobre el crema de `background` apenas se distingue: la primera versión, con un borde de 0,5 pt y sin sombra, hacía que las tarjetas desaparecieran en el teléfono y solo se viera texto apilado. No se usan sombras más marcadas.
 - **Listas de categorías** (como la pestaña «Perfil»): una `Card` por categoría con un icono sobre `primary`, el nombre en `defaultBold`, el resumen en `small` y un chevron. Al presionar, el fondo pasa a `surfaceSecondary`.
+- **Listas con su acción principal:** con la lista vacía, la acción va en el estado vacío (`ScreenState` con `action`). Con elementos, va en un `FloatingActionButton`: un círculo de 56 pt en `primary` con el icono en `onPrimary`, centrado sobre la barra de pestañas y separado de la lista. La pantalla deja al final espacio libre (`FloatingActionButtonClearance`) para que nunca tape el último elemento.
+- **Secciones plegables:** en listas largas agrupadas («Mi despensa»), cada sección tiene junto a su título un botón de 44 pt con un chevron que oculta o muestra su contenido (`accessibilityState.expanded`). El título siempre se ve.
+- **Separadores:** una línea de 1 pt en `border`, oculta a la accesibilidad, para separar bloques de distinta naturaleza (lo que requiere atención y el resto).
+- **Avisos dentro de una fila:** `Badge`, una etiqueta en forma de píldora con un icono de aviso. El tono `warning` (`primary` con texto `onPrimary`, 6,95:1) llama la atención; el tono `danger` (`error` sobre `errorSurface`, 5,61:1) indica que algo puede no ser seguro, como una fecha de caducidad de hoy o ya pasada.
 - **Campo con unidad:** `TextField` admite un elemento `trailing` dentro del mismo borde, tras el texto, para leer valor y unidad en una línea («1,5 kg»). Si hay varias unidades, el elemento abre una lista con ellas sobre el fondo `backdrop`; si solo hay una, es texto.
 - **Iconos:** `SymbolView` de `expo-symbols`, con SF Symbols en iOS y Material Symbols en Android, en el color de un token.
 

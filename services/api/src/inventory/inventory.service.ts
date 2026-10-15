@@ -1,8 +1,10 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { AuthenticatedUser } from '../auth/jwt-auth.guard.js';
 import type {
+  ExpiryKind,
   IngredientMeasure,
   Prisma,
+  StorageLocation,
   Unit,
 } from '../generated/prisma/client.js';
 import { withAllergens } from '../ingredients/ingredient-with-allergens.js';
@@ -33,7 +35,17 @@ export type QuantityInput = {
   unit: Unit | null;
 };
 
-export type NewInventoryItem = QuantityInput & { ingredientId: string };
+/**
+ * Everything about an item the user can change. A date (`YYYY-MM-DD`) and its
+ * kind also go together.
+ */
+export type InventoryItemInput = QuantityInput & {
+  expiresOn: string | null;
+  dateKind: ExpiryKind | null;
+  location: StorageLocation | null;
+};
+
+export type NewInventoryItem = InventoryItemInput & { ingredientId: string };
 
 // The foods each user has at home. Every query is scoped to the user of the
 // access token, so nobody can read or change another user's items.
@@ -63,6 +75,7 @@ export class InventoryService {
     input: NewInventoryItem,
   ): Promise<InventoryItem> {
     checkQuantity(input);
+    checkDate(input);
     const ingredient = await this.prisma.ingredient.findUnique({
       where: { id: input.ingredientId },
       select: { measure: true },
@@ -91,21 +104,21 @@ export class InventoryService {
         data: {
           userId: current.id,
           ingredientId: input.ingredientId,
-          quantity: input.quantity,
-          unit: input.unit,
+          ...toData(input),
         },
         include: withIngredient,
       });
     });
   }
 
-  /** Replaces the quantity and unit of one of the user's items. */
+  /** Replaces what the user can change of one of their items. */
   async update(
     current: AuthenticatedUser,
     id: string,
-    input: QuantityInput,
+    input: InventoryItemInput,
   ): Promise<InventoryItem> {
     checkQuantity(input);
+    checkDate(input);
     return this.prisma.$transaction(async (tx) => {
       const item = await tx.inventoryItem.findFirst({
         where: { id, userId: current.id },
@@ -117,7 +130,7 @@ export class InventoryService {
       checkUnit(input, item.ingredient.measure);
       return tx.inventoryItem.update({
         where: { id },
-        data: { quantity: input.quantity, unit: input.unit },
+        data: toData(input),
         include: withIngredient,
       });
     });
@@ -140,6 +153,30 @@ function checkQuantity({ quantity, unit }: QuantityInput): void {
       'A quantity needs a unit, and a unit needs a quantity',
     );
   }
+}
+
+function checkDate({ expiresOn, dateKind }: InventoryItemInput): void {
+  if ((expiresOn === null) !== (dateKind === null)) {
+    throw inventoryBadRequest(
+      'incomplete_date',
+      'A date needs its kind, and a kind needs a date',
+    );
+  }
+}
+
+// The day is stored at midnight UTC, so it reads back as the same day
+// whatever the time zone.
+function toData(input: InventoryItemInput) {
+  return {
+    quantity: input.quantity,
+    unit: input.unit,
+    expiresOn:
+      input.expiresOn === null
+        ? null
+        : new Date(`${input.expiresOn}T00:00:00Z`),
+    dateKind: input.dateKind,
+    location: input.location,
+  };
 }
 
 // Each food takes only the units of its measure: milk in litres, not grams.

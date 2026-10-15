@@ -38,6 +38,9 @@ const arroz = {
 };
 
 const noQuantity = { quantity: null, unit: null };
+// Date, kind and location are required but nullable; the helpers below send
+// them as null unless a test says otherwise.
+const noStorage = { expiresOn: null, dateKind: null, location: null };
 
 type Session = { accessToken: string; refreshToken: string };
 type Item = {
@@ -56,9 +59,17 @@ describe('Inventory (e2e)', () => {
     const auth = { Authorization: `Bearer ${session.accessToken}` };
     return {
       list: () => http().get('/inventory').set(auth),
-      add: (body: object) => http().post('/inventory').set(auth).send(body),
+      add: (body: object) =>
+        http()
+          .post('/inventory')
+          .set(auth)
+          .send({ ...noStorage, ...body }),
       update: (id: string, body: object) =>
-        http().put(`/inventory/${id}`).set(auth).send(body),
+        http()
+          .put(`/inventory/${id}`)
+          .set(auth)
+          .send({ ...noStorage, ...body }),
+      raw: (body: object) => http().post('/inventory').set(auth).send(body),
       remove: (id: string) => http().delete(`/inventory/${id}`).set(auth),
     };
   };
@@ -143,6 +154,7 @@ describe('Inventory (e2e)', () => {
         ingredient: arroz,
         quantity: 0.25,
         unit: 'KILOGRAM',
+        ...noStorage,
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       });
@@ -293,6 +305,121 @@ describe('Inventory (e2e)', () => {
 
       expect(response.body.code).toBe('inventory_full');
       expect(await prisma.inventoryItem.count()).toBe(MAX_INVENTORY_ITEMS);
+    });
+  });
+
+  describe('expiry date and location', () => {
+    const dated = {
+      ingredientId: arroz.id,
+      quantity: 1,
+      unit: 'KILOGRAM',
+      expiresOn: '2026-10-20',
+      dateKind: 'BEST_BEFORE',
+      location: 'PANTRY',
+    };
+
+    it('stores the date, its kind and where the food is kept', async () => {
+      const session = await register();
+
+      const response = await as(session).add(dated).expect(201);
+
+      expect(response.body).toMatchObject({
+        expiresOn: '2026-10-20',
+        dateKind: 'BEST_BEFORE',
+        location: 'PANTRY',
+      });
+      expect(
+        (await as(session).list().expect(200)).body.items[0],
+      ).toMatchObject({
+        expiresOn: '2026-10-20',
+        dateKind: 'BEST_BEFORE',
+        location: 'PANTRY',
+      });
+    });
+
+    it('keeps the day at the edges of the year', async () => {
+      const session = await register();
+
+      for (const expiresOn of ['2026-12-31', '2027-01-01', '2028-02-29']) {
+        const response = await as(session)
+          .add({ ...dated, expiresOn })
+          .expect(201);
+        expect(response.body.expiresOn).toBe(expiresOn);
+      }
+    });
+
+    it('says when a food has no date or location', async () => {
+      const session = await register();
+
+      const response = await as(session)
+        .add({ ingredientId: arroz.id, ...noQuantity })
+        .expect(201);
+
+      expect(response.body).toMatchObject(noStorage);
+    });
+
+    it('changes, and removes, the date and the location', async () => {
+      const session = await register();
+      const added = (await as(session).add(dated).expect(201)).body;
+
+      const changed = await as(session)
+        .update(added.id, {
+          quantity: 1,
+          unit: 'KILOGRAM',
+          expiresOn: '2026-11-02',
+          dateKind: 'USE_BY',
+          location: 'FRIDGE',
+        })
+        .expect(200);
+      expect(changed.body).toMatchObject({
+        expiresOn: '2026-11-02',
+        dateKind: 'USE_BY',
+        location: 'FRIDGE',
+      });
+
+      const cleared = await as(session)
+        .update(added.id, { quantity: 1, unit: 'KILOGRAM' })
+        .expect(200);
+      expect(cleared.body).toMatchObject(noStorage);
+    });
+
+    it('rejects a date without its kind and a kind without a date', async () => {
+      const session = await register();
+
+      for (const body of [
+        { ...dated, dateKind: null },
+        { ...dated, expiresOn: null },
+      ]) {
+        const response = await as(session).add(body).expect(400);
+        expect(response.body.code).toBe('incomplete_date');
+      }
+      expect(await prisma.inventoryItem.count()).toBe(0);
+    });
+
+    it.each([
+      ['a day that does not exist', { expiresOn: '2026-02-30' }],
+      ['another format', { expiresOn: '20-10-2026' }],
+      ['a date with a time', { expiresOn: '2026-10-20T10:00:00Z' }],
+      ['a date too old', { expiresOn: '1999-12-31' }],
+      ['a date too far', { expiresOn: '2101-01-01' }],
+      ['an unknown kind', { dateKind: 'SELL_BY' }],
+      ['an unknown location', { location: 'CELLAR' }],
+    ])('rejects %s', async (_, change) => {
+      const session = await register();
+
+      await as(session)
+        .add({ ...dated, ...change })
+        .expect(400);
+
+      expect(await prisma.inventoryItem.count()).toBe(0);
+    });
+
+    it('requires the date, kind and location, even when null', async () => {
+      const session = await register();
+
+      await as(session)
+        .raw({ ingredientId: arroz.id, ...noQuantity })
+        .expect(400);
     });
   });
 

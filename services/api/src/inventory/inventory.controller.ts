@@ -38,7 +38,7 @@ const notFound = {
     'The user has no item with that id (`inventory_item_not_found`), whether it does not exist or belongs to someone else',
 };
 const invalidQuantity =
-  'Invalid body, a quantity without a unit or a unit without a quantity (`incomplete_quantity`), or a unit the food is not measured in (`unit_not_allowed`)';
+  'Invalid body, a quantity without a unit or a unit without a quantity (`incomplete_quantity`), a unit the food is not measured in (`unit_not_allowed`), or a date without its kind or a kind without a date (`incomplete_date`)';
 
 // Every route acts on the user of the access token; no user ID is ever taken
 // from the request.

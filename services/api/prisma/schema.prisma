@@ -247,18 +247,37 @@ model NutritionGoal {
 // one opened pack and one closed). The quantity is optional: null means the
 // food is always available in the kitchen (salt, oil...), and then the unit is
 // null too. A quantity is in one of the units of the food's measure.
+// The date, its kind and the location are optional; a date always has a kind.
 model InventoryItem {
-  id           String     @id @default(cuid())
+  id           String           @id @default(cuid())
   userId       String
   ingredientId String
-  quantity     Decimal?   @db.Decimal(10, 3)
+  quantity     Decimal?         @db.Decimal(10, 3)
   unit         Unit?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  // A calendar day, with no time: the same day wherever the user is.
+  expiresOn    DateTime?        @db.Date
+  dateKind     ExpiryKind?
+  location     StorageLocation?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient       @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([ingredientId])
   @@map("inventory_items")
+}
+
+// What the date on a food means: after a use-by date it should not be eaten;
+// after a best-before date it may lose quality but can still be fine.
+enum ExpiryKind {
+  USE_BY
+  BEST_BEFORE
+}
+
+// Where a food is kept at home.
+enum StorageLocation {
+  FRIDGE
+  FREEZER
+  PANTRY
 }

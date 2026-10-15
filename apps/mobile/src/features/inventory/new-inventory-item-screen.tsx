@@ -6,8 +6,14 @@ import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { inventoryErrorMessage } from './inventory-errors';
-import { quantityFormSchema, toQuantity, type QuantityForm } from './inventory-item-form';
+import {
+  inventoryItemFormSchema,
+  newItemForm,
+  toRequest,
+  type InventoryItemForm,
+} from './inventory-item-form';
 import { QuantityFields } from './quantity-fields';
+import { StorageFields } from './storage-fields';
 import { useAddInventoryItem } from './use-inventory';
 
 import { Card } from '@/components/card';
@@ -26,9 +32,9 @@ export function NewInventoryItemScreen() {
   const add = useAddInventoryItem();
   const [ingredient, setIngredient] = useState<Ingredient | null>(null);
   const [picking, setPicking] = useState(false);
-  const { control, handleSubmit, setValue } = useForm<QuantityForm>({
-    resolver: zodResolver(quantityFormSchema),
-    defaultValues: { quantity: '', unit: 'PIECE' },
+  const { control, handleSubmit, setValue } = useForm<InventoryItemForm>({
+    resolver: zodResolver(inventoryItemFormSchema),
+    defaultValues: newItemForm(),
   });
   const { isDirty } = useFormState({ control });
   const [failure, setFailure] = useState<string | null>(null);
@@ -56,7 +62,7 @@ export function NewInventoryItemScreen() {
     }
     setFailure(null);
     try {
-      await add.mutateAsync({ ingredientId: ingredient.id, ...toQuantity(values) });
+      await add.mutateAsync({ ingredientId: ingredient.id, ...toRequest(values) });
       setAdded(true);
     } catch (error) {
       setFailure(inventoryErrorMessage(error));
@@ -70,7 +76,7 @@ export function NewInventoryItemScreen() {
           <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.content}>
             <ThemedText type="title">Añadir alimento</ThemedText>
             <ThemedText themeColor="textSecondary">
-              Elige el alimento en el catálogo e indica cuánto tienes.
+              Elige el alimento en el catálogo e indica cuánto tienes y dónde lo guardas.
             </ThemedText>
 
             <Card style={styles.section}>
@@ -107,6 +113,15 @@ export function NewInventoryItemScreen() {
                   units={ingredient.units}
                   onChange={() => setFailure(null)}
                 />
+              </Card>
+            )}
+
+            {ingredient && (
+              <Card style={styles.section}>
+                <ThemedText type="heading" accessibilityRole="header">
+                  Conservación
+                </ThemedText>
+                <StorageFields control={control} onChange={() => setFailure(null)} />
               </Card>
             )}
 
