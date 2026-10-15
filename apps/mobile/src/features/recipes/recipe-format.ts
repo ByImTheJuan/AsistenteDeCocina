@@ -49,18 +49,23 @@ export function describeAmount({ quantity, unit, note }: RecipeIngredient): stri
   return note ? `${amount}, ${note}` : amount;
 }
 
+// One this version does not know is still a conflict, named generically.
 function allergenName(allergen: string): string {
-  return allergenLabels[allergen as Allergen]?.name ?? allergen;
+  return allergenLabels[allergen as Allergen]?.name ?? 'otro alérgeno';
 }
 
 export function hasConflicts(safety: RecipeSafety): boolean {
   return safety.conflictingAllergens.length > 0 || safety.conflictingIngredients.length > 0;
 }
 
-/** What of the user's restrictions the recipe contains: 'huevo y patata'. */
+/**
+ * What of the user's restrictions the recipe contains, to go inside a
+ * sentence: 'huevo y patata'.
+ */
 export function describeConflicts(safety: RecipeSafety): string {
-  return joinNames([
+  const names = joinNames([
     ...safety.conflictingAllergens.map(allergenName),
     ...safety.conflictingIngredients.map(({ name }) => name),
   ]);
+  return names.charAt(0).toLowerCase() + names.slice(1);
 }
