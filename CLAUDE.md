@@ -315,11 +315,11 @@ Los cambios de definición son decisiones de producto: acuérdalos antes con el 
 
 1. Edita la descripción del issue para que siempre muestre la definición vigente, conservando su formato (épica, prioridad, historia de usuario y criterios de aceptación). Usa `gh issue edit <número> --body-file <archivo>`, con el archivo en un directorio temporal fuera del repositorio.
 2. Añade un comentario (`gh issue comment`) que explique qué cambió, por qué y quién lo acordó, con la fecha. La descripción dice cómo está la historia; los comentarios, cómo llegó a estarlo.
-3. **Criterio diferido:** en la historia de origen, márcalo como diferido con el enlace a la de destino (`Diferido a #33 (US-015)`) en lugar de borrarlo; en la de destino, añádelo como criterio indicando de dónde viene. El issue de origen puede cerrarse cuando el resto de sus criterios esté cubierto.
+3. **Criterio diferido:** añádelo al issue de la historia de destino, en el apartado «Criterios trasladados de otras historias», indicando de dónde procede (`*(Procede de US-004, #22.)*`). El issue de origen no se modifica y puede cerrarse cuando el resto de sus criterios esté cubierto.
 4. **Historia nueva o dividida:** crea el issue con el mismo formato y título (`[US-xxx] Nombre`, con el siguiente número libre), añádelo como sub-issue de su épica y al Project, y actualiza la lista de historias de la épica. Una historia descartada se cierra como `not planned` con un comentario del motivo; no se borra.
 5. **Épica:** su descripción enumera sus historias. Actualízala cuando cambie esa lista.
 
-**Estado en el Project.** `Todo` al crearse, `In Progress` al empezar la rama y `Done` al fusionar el PR. El Project pasa a `Done` los issues cerrados y cierra los que se marcan `Done`; el paso a `In Progress` se hace a mano:
+**Estado en el Project.** `Todo` al crearse, `In Progress` al empezar la rama y `Done` al fusionar el PR. El Project pasa a `Done` los issues cerrados y cierra los que se marcan `Done`, pero comprueba el estado después de cerrar un issue: EP-01 se cerró a mano y se quedó en `Todo`. El paso a `In Progress` se hace a mano:
 
 ```bash
 # id del elemento del Project que corresponde al issue
@@ -428,7 +428,7 @@ Todas las implementaciones de la app móvil, presentes y futuras, siguen el sist
 
 ## 6. Estructura y estado actual del proyecto
 
-> **Estado a 14-10-2026.** Esta sección describe lo que existe realmente. Actualízala al cerrar cada historia o cambio de infraestructura, y comprueba el repositorio antes de fiarte de ella: si el código y esta sección discrepan, manda el código.
+> **Estado a 15-10-2026.** Esta sección describe lo que existe realmente. Actualízala al cerrar cada historia o cambio de infraestructura, y comprueba el repositorio antes de fiarte de ella: si el código y esta sección discrepan, manda el código.
 
 ### Estructura
 
@@ -498,6 +498,7 @@ Las dependencias de la app móvil se añaden con `npx expo install <paquete>` de
 ### Backlog y seguimiento
 
 - Issues `[EP-01]`…`[EP-10]` (#9–#18) y `[US-001]`…`[US-047]` (#19–#65), cada US como sub-issue de su épica, en el Project [AsistenteDeCocina](https://github.com/users/ByImTheJuan/projects/4) (`Status`: `Todo`, `In Progress`, `Done`). Sin etiquetas ni milestones por ahora.
+- EP-01 (#9) está cerrada y en `Done`, como US-001 a US-005. Los criterios que estas historias dejaron aplazados están como «Criterios trasladados de otras historias» en US-013 (#31) y US-015 (#33).
 - Automatizaciones activas del Project: añadir los sub-issues, pasar a `Done` los issues cerrados o con el PR fusionado y cerrar los que se marcan `Done`.
 - Reglas de uso en la sección 3 («Backlog en GitHub»).
 
@@ -526,7 +527,6 @@ Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md` (el catá
 
 ### Pendiente
 
-- **Poner al día los issues con lo acordado antes de usar GitHub como fuente de verdad.** Los issues de US-003, US-004 y US-005 (#21, #22 y #23) están cerrados sin marcar sus criterios diferidos, y los de destino (US-013 y US-015, #31 y #33) no los incluyen. Además, todos los issues repiten la línea de prioridad y terminan en «Fuente funcional: ProductBacklog.md.», y EP-01 (#9) sigue en `Todo` con todas sus historias cerradas.
 - **Validar US-002 en dispositivo.** En Expo Go se puede probar todo salvo vincular y desvincular Google.
 - **Validar US-004 en dispositivo.** Se puede probar entera en Expo Go.
 - **Validar el sistema de diseño en Expo Go, en iOS y en Android:** acceso, cuenta, perfil y sus tres secciones, con el texto grande del sistema activado. Comprobar en Android que la fuente no muestra negritas sintéticas. Solo tiene pruebas automatizadas y bundles de `expo export`.
