@@ -10,6 +10,10 @@ import type { Unit } from '@/features/units/units';
 // The shared session manager created on import is not used here.
 jest.mock('@react-native-google-signin/google-signin', () => ({}));
 jest.mock('expo-secure-store', () => ({}));
+// In the app the tabs provide the safe area; here, the library's stand-in.
+jest.mock('react-native-safe-area-context', () =>
+  jest.requireActual('react-native-safe-area-context/jest/mock').default,
+);
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
   ...jest.requireActual('expo-router'),
@@ -42,6 +46,12 @@ const inventory: Inventory = {
 
 describe('InventoryScreen', () => {
   const user = userEvent.setup();
+  // The rows of foods, by their labels ("Arroz: 1,5 kg, Sin fecha").
+  const foodRows = () =>
+    screen
+      .getAllByRole('button')
+      .map((button) => button.props.accessibilityLabel as string)
+      .filter((label) => label.includes(': '));
 
   const renderScreen = (getInventory: () => unknown) =>
     renderSignedIn(<InventoryScreen />, { 'GET /inventory': getInventory });
@@ -87,10 +97,7 @@ describe('InventoryScreen', () => {
     await renderScreen(() => inventory);
 
     await screen.findByText('Mi despensa');
-    expect(
-      screen.getAllByRole('button').map((button) => button.props.accessibilityLabel),
-    ).toEqual([
-      'Añadir alimento',
+    expect(foodRows()).toEqual([
       'Arroz: 1,5 kg, Sin fecha',
       'Tomate: 3 unidades, Sin fecha',
       'Tomate: Siempre disponible, Sin fecha',
@@ -108,12 +115,32 @@ describe('InventoryScreen', () => {
     });
   });
 
-  it('adds another food', async () => {
+  it('adds another food with the floating button, after the list', async () => {
     await renderScreen(() => inventory);
 
-    await user.press(await screen.findByRole('button', { name: 'Añadir alimento' }));
+    await screen.findByText('Mi despensa');
+    const buttons = screen.getAllByRole('button');
+    expect(buttons.at(-1)).toHaveProp('accessibilityLabel', 'Añadir alimento');
+    await user.press(screen.getByRole('button', { name: 'Añadir alimento' }));
 
     expect(mockPush).toHaveBeenCalledWith('/inventory/new');
+  });
+
+  it('folds a section, keeping its name, and unfolds it', async () => {
+    await renderScreen(() => inventory);
+
+    await user.press(await screen.findByRole('button', { name: 'Ocultar Sin ubicación' }));
+
+    expect(screen.getByText('Sin ubicación')).toBeOnTheScreen();
+    expect(foodRows()).toEqual([]);
+    expect(screen.getByRole('button', { name: 'Mostrar Sin ubicación' })).toHaveProp(
+      'accessibilityState',
+      { expanded: false },
+    );
+
+    await user.press(screen.getByRole('button', { name: 'Mostrar Sin ubicación' }));
+
+    expect(foodRows()).toHaveLength(3);
   });
 
   describe('locations and dates', () => {
@@ -200,10 +227,7 @@ describe('InventoryScreen', () => {
         'Despensa',
         'Sin ubicación',
       ]);
-      expect(
-        screen.getAllByRole('button').map((button) => button.props.accessibilityLabel),
-      ).toEqual([
-        'Añadir alimento',
+      expect(foodRows()).toEqual([
         // Expiring soon, the most urgent first; yogurt (in 4 days) is not.
         'Pollo: 1 kg, Caducó el 12 oct',
         'Leche: 1 kg, Caduca mañana',
@@ -217,6 +241,34 @@ describe('InventoryScreen', () => {
         // No location
         'Sal: Siempre disponible, Sin fecha',
       ]);
+    });
+
+    it('folds each section on its own', async () => {
+      await renderScreen(() => kept);
+
+      await user.press(await screen.findByRole('button', { name: 'Ocultar Caducan pronto' }));
+
+      expect(screen.getByText('Caducan pronto')).toBeOnTheScreen();
+      expect(screen.queryByText(/Revisa siempre el estado/)).not.toBeOnTheScreen();
+      // The foods are still in their locations.
+      expect(foodRows()).toEqual([
+        'Leche: 1 kg, Caduca mañana',
+        'Yogur: 2 unidades, Caduca el 19 oct',
+        'Pollo: 1 kg, Caducó el 12 oct',
+        'Arroz: 1,5 kg, Consumo preferente: 1 mar 2027',
+        'Sal: Siempre disponible, Sin fecha',
+      ]);
+    });
+
+    it('highlights the date of the foods that expire soon', async () => {
+      await renderScreen(() => kept);
+
+      await screen.findByText('Caducan pronto');
+      // Each expiring food shows its date in a label with a warning icon,
+      // once in "Caducan pronto" and once in its location.
+      expect(screen.getAllByText('Caduca mañana')).toHaveLength(2);
+      expect(screen.getAllByText('Caducó el 12 oct')).toHaveLength(2);
+      expect(screen.getAllByText('Caduca el 19 oct')).toHaveLength(1);
     });
 
     it('warns to check the food before eating it', async () => {
