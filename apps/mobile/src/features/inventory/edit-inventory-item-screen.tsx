@@ -70,7 +70,7 @@ function EditForm({ item }: { item: InventoryItem }) {
   // The form holds a draft; nothing reaches the API until it is saved.
   const { control, handleSubmit } = useForm<QuantityForm>({
     resolver: zodResolver(quantityFormSchema),
-    defaultValues: toForm(item, item.ingredient.defaultUnit),
+    defaultValues: toForm(item, item.ingredient),
   });
   const { isDirty } = useFormState({ control });
   const [failure, setFailure] = useState<string | null>(null);
@@ -129,7 +129,11 @@ function EditForm({ item }: { item: InventoryItem }) {
               <ThemedText type="heading" accessibilityRole="header">
                 Cantidad
               </ThemedText>
-              <QuantityFields control={control} onChange={() => setFailure(null)} />
+              <QuantityFields
+                control={control}
+                units={item.ingredient.units}
+                onChange={() => setFailure(null)}
+              />
             </Card>
 
             <PrimaryButton

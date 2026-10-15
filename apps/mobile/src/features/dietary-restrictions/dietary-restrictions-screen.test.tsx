@@ -5,6 +5,7 @@ import { DietaryRestrictionsScreen } from './dietary-restrictions-screen';
 
 import { renderSignedIn } from '@/features/account/account-test-utils';
 import { ApiError, NetworkError } from '@/lib/api-client';
+import type { Unit } from '@/features/units/units';
 
 // The shared session manager created on import is not used here.
 jest.mock('@react-native-google-signin/google-signin', () => ({}));
@@ -17,24 +18,33 @@ jest.mock('@/hooks/use-unsaved-changes-warning', () => ({
     mockUnsavedChangesWarning(hasUnsavedChanges),
 }));
 
-const kiwi = { id: 'ing_kiwi', name: 'Kiwi', category: 'FRUIT', defaultUnit: 'PIECE' as const };
+const kiwi = {
+  id: 'ing_kiwi',
+  name: 'Kiwi',
+  category: 'FRUIT',
+  defaultUnit: 'PIECE' as const,
+  units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
+};
 const melocoton = {
   id: 'ing_melocoton',
   name: 'Melocotón',
   category: 'FRUIT',
   defaultUnit: 'PIECE' as const,
+  units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
 };
 const leche = {
   id: 'ing_leche',
   name: 'Leche',
   category: 'DAIRY_EGG',
   defaultUnit: 'LITER' as const,
+  units: ['MILLILITER', 'LITER'] as Unit[],
 };
 const queso = {
   id: 'ing_queso',
   name: 'Queso',
   category: 'DAIRY_EGG',
   defaultUnit: 'GRAM' as const,
+  units: ['GRAM', 'KILOGRAM'] as Unit[],
 };
 
 const empty: DietaryRestrictions = {

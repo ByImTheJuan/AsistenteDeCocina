@@ -42,6 +42,7 @@ Contraste calculado con la fórmula de WCAG 2.1. Umbrales: 4,5:1 para texto, 3:1
 | `disabledSurface` | `#EDE7DA` | Fondo de un control deshabilitado | — |
 | `disabledText` | `#7D786C` | Texto de un control deshabilitado | 3,57 sobre `disabledSurface` |
 | `disabledBorder` | `#D8D2C5` | Borde de un control deshabilitado | — |
+| `backdrop` | `textPrimary` al 40 % | Oscurece la pantalla detrás de un menú o diálogo propio, como el selector de unidad | — |
 
 Los tres valores de una celda corresponden a `background`, `surface` y `surfaceSecondary`.
 

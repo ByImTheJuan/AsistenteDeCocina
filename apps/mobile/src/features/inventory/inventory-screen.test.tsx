@@ -5,6 +5,7 @@ import { InventoryScreen } from './inventory-screen';
 
 import { renderSignedIn } from '@/features/account/account-test-utils';
 import { NetworkError } from '@/lib/api-client';
+import type { Unit } from '@/features/units/units';
 
 // The shared session manager created on import is not used here.
 jest.mock('@react-native-google-signin/google-signin', () => ({}));
@@ -15,12 +16,19 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-const arroz = { id: 'ing_arroz', name: 'Arroz', category: 'GRAIN', defaultUnit: 'GRAM' as const };
+const arroz = {
+  id: 'ing_arroz',
+  name: 'Arroz',
+  category: 'GRAIN',
+  defaultUnit: 'GRAM' as const,
+  units: ['GRAM', 'KILOGRAM'] as Unit[],
+};
 const tomate = {
   id: 'ing_tomate',
   name: 'Tomate',
   category: 'VEGETABLE',
   defaultUnit: 'PIECE' as const,
+  units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
 };
 
 const inventory: Inventory = {
@@ -82,7 +90,7 @@ describe('InventoryScreen', () => {
       'Añadir alimento',
       'Arroz: 1,5 kg',
       'Tomate: 3 unidades',
-      'Tomate: Cantidad sin indicar',
+      'Tomate: Siempre disponible',
     ]);
   });
 

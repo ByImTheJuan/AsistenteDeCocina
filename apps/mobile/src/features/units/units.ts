@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 // Units a quantity can be written in, as the API defines them. Which ones
-// convert into each other is decided by the API
-// (docs/decisions/0005-unidades-y-equivalencias.md); the app only shows them.
-
-/** In the order they are offered to the user. */
+// convert into each other, and which ones each food takes, is decided by the
+// API (docs/decisions/0005-unidades-y-equivalencias.md); the app only shows
+// them. Spoons and pinches are for recipes: no food offers them for the
+// inventory.
 export const units = [
   'PIECE',
   'GRAM',
@@ -14,7 +14,6 @@ export const units = [
   'TABLESPOON',
   'TEASPOON',
   'PINCH',
-  'PACKAGE',
 ] as const;
 
 export const unitSchema = z.enum(units);
@@ -38,12 +37,17 @@ const unitLabels: Record<Unit, UnitLabel> = {
   TABLESPOON: { one: 'cucharada', many: 'cucharadas', name: 'Cucharadas' },
   TEASPOON: { one: 'cucharadita', many: 'cucharaditas', name: 'Cucharaditas' },
   PINCH: { one: 'pizca', many: 'pizcas', name: 'Pizcas' },
-  PACKAGE: { one: 'envase', many: 'envases', name: 'Envases (paquete, lata o bote)' },
 };
 
 /** Name of a unit, as offered in the unit picker. */
 export function unitName(unit: Unit): string {
   return unitLabels[unit].name;
+}
+
+/** The unit as written after a quantity: "kg", "unidad", "unidades". */
+export function unitSymbol(unit: Unit, quantity: number | null): string {
+  const { one, many } = unitLabels[unit];
+  return quantity === 1 ? one : many;
 }
 
 // The limits the API accepts: three decimals, as it stores them.
@@ -60,8 +64,7 @@ function formatNumber(value: number): string {
 
 /** '500 g', '1 unidad', '1,5 kg', '2 cucharadas'. */
 export function formatQuantity(quantity: number, unit: Unit): string {
-  const { one, many } = unitLabels[unit];
-  return `${formatNumber(quantity)} ${quantity === 1 ? one : many}`;
+  return `${formatNumber(quantity)} ${unitSymbol(unit, quantity)}`;
 }
 
 /** What the quantity field holds when editing: '1,5' rather than '1.5'. */

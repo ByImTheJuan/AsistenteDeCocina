@@ -5,7 +5,13 @@ import {
   updateInventoryItem,
 } from './inventory-api';
 
-const arroz = { id: 'ing_arroz', name: 'Arroz', category: 'GRAIN', defaultUnit: 'GRAM' };
+const arroz = {
+  id: 'ing_arroz',
+  name: 'Arroz',
+  category: 'GRAIN',
+  defaultUnit: 'GRAM',
+  units: ['GRAM', 'KILOGRAM'],
+};
 const item = { id: 'item-1', ingredient: arroz, quantity: 1.5, unit: 'KILOGRAM' };
 
 describe('inventory API', () => {

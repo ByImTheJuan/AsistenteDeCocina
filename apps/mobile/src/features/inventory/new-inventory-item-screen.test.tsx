@@ -6,6 +6,7 @@ import { NewInventoryItemScreen } from './new-inventory-item-screen';
 
 import { renderSignedIn } from '@/features/account/account-test-utils';
 import { ApiError, NetworkError } from '@/lib/api-client';
+import type { Unit } from '@/features/units/units';
 
 // The shared session manager created on import is not used here.
 jest.mock('@react-native-google-signin/google-signin', () => ({}));
@@ -25,12 +26,19 @@ jest.mock('@/hooks/use-unsaved-changes-warning', () => ({
     mockUnsavedChangesWarning(hasUnsavedChanges),
 }));
 
-const arroz = { id: 'ing_arroz', name: 'Arroz', category: 'GRAIN', defaultUnit: 'GRAM' as const };
+const arroz = {
+  id: 'ing_arroz',
+  name: 'Arroz',
+  category: 'GRAIN',
+  defaultUnit: 'GRAM' as const,
+  units: ['GRAM', 'KILOGRAM'] as Unit[],
+};
 const tomate = {
   id: 'ing_tomate',
   name: 'Tomate',
   category: 'VEGETABLE',
   defaultUnit: 'PIECE' as const,
+  units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
 };
 const inventory: Inventory = {
   items: [{ id: 'item-1', ingredient: tomate, quantity: 3, unit: 'PIECE' }],
@@ -55,7 +63,13 @@ describe('NewInventoryItemScreen', () => {
   }
 
   const addButton = () => screen.getByRole('button', { name: 'Añadir al inventario' });
-  const unit = (name: string) => screen.getByRole('radio', { name });
+  const unitButton = (name: string) => screen.getByRole('button', { name: `Unidad: ${name}` });
+  const unitOptions = () =>
+    screen.getAllByRole('radio').map((option) => option.props.accessibilityLabel);
+  async function chooseUnit(from: string, to: string) {
+    await user.press(unitButton(from));
+    await user.press(screen.getByRole('radio', { name: to }));
+  }
 
   async function chooseArroz() {
     await user.press(screen.getByRole('button', { name: 'Elegir alimento' }));
@@ -76,6 +90,8 @@ describe('NewInventoryItemScreen', () => {
     await renderScreen();
 
     expect(screen.getByText('Todavía no has elegido ninguno.')).toBeOnTheScreen();
+    // The units depend on the food, so there is no quantity to fill in yet.
+    expect(screen.queryByLabelText('Cantidad')).not.toBeOnTheScreen();
     expect(addButton()).toBeDisabled();
     expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(false);
   });
@@ -86,9 +102,12 @@ describe('NewInventoryItemScreen', () => {
     await chooseArroz();
     expect(screen.getByText('Arroz')).toBeOnTheScreen();
     // The usual unit of the food is offered first.
-    expect(unit('Gramos')).toBeChecked();
+    expect(unitButton('Gramos')).toBeOnTheScreen();
     await user.type(screen.getByLabelText('Cantidad'), '1,5');
-    await user.press(unit('Kilos'));
+    await chooseUnit('Gramos', 'Kilos');
+    // Number and unit read together in the field.
+    expect(screen.getByLabelText('Cantidad')).toHaveDisplayValue('1,5');
+    expect(unitButton('Kilos')).toHaveTextContent('kg');
     await user.press(addButton());
 
     await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
@@ -104,7 +123,29 @@ describe('NewInventoryItemScreen', () => {
     });
   });
 
-  it('adds a food without saying how much there is', async () => {
+  it('offers only the units the food is measured in', async () => {
+    await renderScreen();
+
+    await chooseArroz();
+    await user.press(unitButton('Gramos'));
+
+    expect(unitOptions()).toEqual(['Gramos', 'Kilos']);
+    expect(screen.getByRole('radio', { name: 'Gramos' })).toBeChecked();
+  });
+
+  it('explains what an empty quantity means', async () => {
+    await renderScreen();
+
+    await chooseArroz();
+
+    expect(
+      screen.getByText(
+        'Déjala vacía para indicar que este alimento siempre estará disponible en tu cocina.',
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('adds a food that is always available, without a quantity', async () => {
     const test = await renderScreen();
 
     await chooseArroz();
@@ -197,6 +238,6 @@ describe('NewInventoryItemScreen', () => {
     await user.press(await screen.findByRole('button', { name: 'Tomate' }));
 
     expect(screen.getByText('Tomate')).toBeOnTheScreen();
-    expect(unit('Unidades')).toBeChecked();
+    expect(unitButton('Unidades')).toBeOnTheScreen();
   });
 });

@@ -1,17 +1,30 @@
 import { z } from 'zod';
 
 import type { AuthorizedRequest } from '@/features/account/account-api';
-import { unitSchema } from '@/features/units/units';
+import { unitSchema, type Unit } from '@/features/units/units';
 
-export const ingredientSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  // Left open: the catalogue may gain categories this version does not know.
-  category: z.string(),
-  // The unit to offer first when recording a quantity. A unit this version
-  // does not know falls back to pieces rather than rejecting the ingredient.
-  defaultUnit: unitSchema.catch('PIECE'),
-});
+const isKnownUnit = (unit: string): unit is Unit => unitSchema.safeParse(unit).success;
+
+export const ingredientSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    // Left open: the catalogue may gain categories this version does not know.
+    category: z.string(),
+    // The units the food is recorded in at home, and the one offered first.
+    // Units this version does not know are left out rather than rejecting the
+    // ingredient.
+    units: z.array(z.string()).transform((units) => units.filter(isKnownUnit)),
+    defaultUnit: z.string(),
+  })
+  .transform(({ units, defaultUnit, ...ingredient }) => {
+    const known = units.length > 0 ? units : (['PIECE'] satisfies Unit[]);
+    return {
+      ...ingredient,
+      units: known,
+      defaultUnit: known.find((unit) => unit === defaultUnit) ?? known[0],
+    };
+  });
 
 export type Ingredient = z.infer<typeof ingredientSchema>;
 

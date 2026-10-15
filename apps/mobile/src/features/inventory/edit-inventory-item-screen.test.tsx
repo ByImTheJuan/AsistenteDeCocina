@@ -7,6 +7,7 @@ import type { Inventory } from './inventory-api';
 
 import { renderSignedIn } from '@/features/account/account-test-utils';
 import { ApiError, NetworkError } from '@/lib/api-client';
+import type { Unit } from '@/features/units/units';
 
 // The shared session manager created on import is not used here.
 jest.mock('@react-native-google-signin/google-signin', () => ({}));
@@ -33,12 +34,27 @@ const leche = {
   name: 'Leche',
   category: 'DAIRY_EGG',
   defaultUnit: 'LITER' as const,
+  units: ['MILLILITER', 'LITER'] as Unit[],
 };
-const arroz = { id: 'ing_arroz', name: 'Arroz', category: 'GRAIN', defaultUnit: 'GRAM' as const };
+const arroz = {
+  id: 'ing_arroz',
+  name: 'Arroz',
+  category: 'GRAIN',
+  defaultUnit: 'GRAM' as const,
+  units: ['GRAM', 'KILOGRAM'] as Unit[],
+};
+const huevo = {
+  id: 'ing_huevo',
+  name: 'Huevo',
+  category: 'DAIRY_EGG',
+  defaultUnit: 'PIECE' as const,
+  units: ['PIECE'] as Unit[],
+};
 const inventory: Inventory = {
   items: [
     { id: 'item-1', ingredient: leche, quantity: 0.5, unit: 'LITER' },
     { id: 'item-2', ingredient: arroz, quantity: null, unit: null },
+    { id: 'item-3', ingredient: huevo, quantity: 6, unit: 'PIECE' },
   ],
 };
 
@@ -59,7 +75,13 @@ describe('EditInventoryItemScreen', () => {
 
   const quantity = () => screen.getByLabelText('Cantidad');
   const saveButton = () => screen.getByRole('button', { name: 'Guardar' });
-  const unit = (name: string) => screen.getByRole('radio', { name });
+  const unitButton = (name: string) => screen.getByRole('button', { name: `Unidad: ${name}` });
+  const unitOptions = () =>
+    screen.getAllByRole('radio').map((option) => option.props.accessibilityLabel);
+  async function chooseUnit(from: string, to: string) {
+    await user.press(unitButton(from));
+    await user.press(screen.getByRole('radio', { name: to }));
+  }
 
   async function answerDialog(text: 'Cancelar' | 'Eliminar') {
     const buttons: AlertButton[] = alert.mock.calls.at(-1)[2];
@@ -117,9 +139,39 @@ describe('EditInventoryItemScreen', () => {
 
     expect(await screen.findByText('Leche')).toBeOnTheScreen();
     expect(quantity()).toHaveDisplayValue('0,5');
-    expect(unit('Litros')).toBeChecked();
+    expect(unitButton('Litros')).toHaveTextContent('l');
     expect(saveButton()).toBeDisabled();
     expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(false);
+  });
+
+  it('offers only millilitres and litres for a liquid', async () => {
+    await renderScreen();
+    await screen.findByText('Leche');
+
+    await user.press(unitButton('Litros'));
+
+    expect(unitOptions()).toEqual(['Mililitros', 'Litros']);
+  });
+
+  it('keeps the unit when the list is closed without choosing', async () => {
+    await renderScreen();
+    await screen.findByText('Leche');
+
+    await user.press(unitButton('Litros'));
+    await user.press(screen.getByLabelText('Cerrar sin cambiar la unidad'));
+
+    expect(screen.queryByRole('radio')).not.toBeOnTheScreen();
+    expect(unitButton('Litros')).toBeOnTheScreen();
+    expect(saveButton()).toBeDisabled();
+  });
+
+  it('shows the only unit of a food that is just counted, with nothing to choose', async () => {
+    mockItemId = 'item-3';
+    await renderScreen();
+
+    expect(await screen.findByText('Huevo')).toBeOnTheScreen();
+    expect(screen.getByText('unidades')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Unidad:/ })).not.toBeOnTheScreen();
   });
 
   it('offers the usual unit of a food without a quantity', async () => {
@@ -128,7 +180,7 @@ describe('EditInventoryItemScreen', () => {
 
     expect(await screen.findByText('Arroz')).toBeOnTheScreen();
     expect(quantity()).toHaveDisplayValue('');
-    expect(unit('Gramos')).toBeChecked();
+    expect(unitButton('Gramos')).toBeOnTheScreen();
   });
 
   it('saves a new quantity and goes back to the updated inventory', async () => {
@@ -137,14 +189,17 @@ describe('EditInventoryItemScreen', () => {
 
     await user.clear(quantity());
     await user.type(quantity(), '750');
-    await user.press(unit('Mililitros'));
+    await chooseUnit('Litros', 'Mililitros');
     expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(true);
     await user.press(saveButton());
 
     await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
     expect(test.sentTo('PUT /inventory/item-1')).toEqual([{ quantity: 750, unit: 'MILLILITER' }]);
     expect(test.queryClient.getQueryData(['inventory'])).toEqual({
-      items: [{ ...inventory.items[0], quantity: 750, unit: 'MILLILITER' }, inventory.items[1]],
+      items: [
+        { ...inventory.items[0], quantity: 750, unit: 'MILLILITER' },
+        ...inventory.items.slice(1),
+      ],
     });
     expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(false);
   });
@@ -189,7 +244,7 @@ describe('EditInventoryItemScreen', () => {
     await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
     expect(test.sentTo('DELETE /inventory/item-1')).toHaveLength(1);
     expect(test.queryClient.getQueryData(['inventory'])).toEqual({
-      items: [inventory.items[1]],
+      items: inventory.items.slice(1),
     });
     // While the screen closes it keeps showing the food, not "not found".
     expect(screen.getByText('Leche')).toBeOnTheScreen();

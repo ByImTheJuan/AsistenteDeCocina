@@ -7,13 +7,21 @@ import { dietaryRestrictionsErrorMessage } from './dietary-restrictions-errors';
 import { allergenLabels, summarizeRestrictions } from './labels';
 
 import { ApiError, NetworkError } from '@/lib/api-client';
+import type { Unit } from '@/features/units/units';
 
-const kiwi = { id: 'ing_kiwi', name: 'Kiwi', category: 'FRUIT', defaultUnit: 'PIECE' as const };
+const kiwi = {
+  id: 'ing_kiwi',
+  name: 'Kiwi',
+  category: 'FRUIT',
+  defaultUnit: 'PIECE' as const,
+  units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
+};
 const leche = {
   id: 'ing_leche',
   name: 'Leche',
   category: 'DAIRY_EGG',
   defaultUnit: 'LITER' as const,
+  units: ['MILLILITER', 'LITER'] as Unit[],
 };
 const restrictions = {
   allergens: ['MILK' as const, 'LACTOSE' as const],

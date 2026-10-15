@@ -5,7 +5,7 @@ import { ingredientSchema } from '@/features/ingredients/ingredients-api';
 import { unitSchema } from '@/features/units/units';
 
 // A food the user has at home. Without a quantity, both the quantity and the
-// unit are null: the user did not say how much there is.
+// unit are null: the food is always available in the kitchen.
 const inventoryItemSchema = z.object({
   id: z.string(),
   ingredient: ingredientSchema,

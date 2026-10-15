@@ -3,6 +3,7 @@ import {
   parseQuantity,
   quantityToText,
   unitName,
+  unitSymbol,
   units,
   unitSchema,
 } from './units';
@@ -15,7 +16,6 @@ describe('formatQuantity', () => {
     [3, 'PIECE', '3 unidades'],
     [0.5, 'PIECE', '0,5 unidades'],
     [2, 'TABLESPOON', '2 cucharadas'],
-    [1, 'PACKAGE', '1 envase'],
     [0.25, 'LITER', '0,25 l'],
     [100_000, 'GRAM', '100.000 g'],
     [1234.567, 'MILLILITER', '1.234,567 ml'],
@@ -50,6 +50,15 @@ describe('quantityToText', () => {
   });
 });
 
+describe('unitSymbol', () => {
+  it('writes the unit after a quantity', () => {
+    expect(unitSymbol('KILOGRAM', 2)).toBe('kg');
+    expect(unitSymbol('PIECE', 1)).toBe('unidad');
+    expect(unitSymbol('PIECE', 3)).toBe('unidades');
+    expect(unitSymbol('PIECE', null)).toBe('unidades');
+  });
+});
+
 describe('units', () => {
   it('names every unit', () => {
     for (const unit of units) {
@@ -58,6 +67,6 @@ describe('units', () => {
   });
 
   it('rejects a unit the app does not know', () => {
-    expect(unitSchema.safeParse('CUP').success).toBe(false);
+    expect(unitSchema.safeParse('PACKAGE').success).toBe(false);
   });
 });

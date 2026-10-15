@@ -45,7 +45,7 @@ export function NewInventoryItemScreen() {
   function choose(chosen: Ingredient) {
     setFailure(null);
     setIngredient(chosen);
-    // Offer the unit the food is usually measured in; the user can change it.
+    // Offer the food's suggested unit; the user can pick another of its units.
     setValue('unit', chosen.defaultUnit);
     setPicking(false);
   }
@@ -96,12 +96,19 @@ export function NewInventoryItemScreen() {
               />
             </Card>
 
-            <Card style={styles.section}>
-              <ThemedText type="heading" accessibilityRole="header">
-                Cantidad
-              </ThemedText>
-              <QuantityFields control={control} onChange={() => setFailure(null)} />
-            </Card>
+            {/* The units depend on the food, so the quantity comes after it. */}
+            {ingredient && (
+              <Card style={styles.section}>
+                <ThemedText type="heading" accessibilityRole="header">
+                  Cantidad
+                </ThemedText>
+                <QuantityFields
+                  control={control}
+                  units={ingredient.units}
+                  onChange={() => setFailure(null)}
+                />
+              </Card>
+            )}
 
             <PrimaryButton
               label="Añadir al inventario"

@@ -5,6 +5,7 @@ import { FoodPreferencesScreen } from './food-preferences-screen';
 
 import { renderSignedIn } from '@/features/account/account-test-utils';
 import { ApiError, NetworkError } from '@/lib/api-client';
+import type { Unit } from '@/features/units/units';
 
 // The shared session manager created on import is not used here.
 jest.mock('@react-native-google-signin/google-signin', () => ({}));
@@ -22,15 +23,29 @@ const tomate = {
   name: 'Tomate',
   category: 'VEGETABLE',
   defaultUnit: 'PIECE' as const,
+  units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
 };
 const tomillo = {
   id: 'ing_tomillo',
   name: 'Tomillo',
   category: 'HERB_SPICE',
   defaultUnit: 'GRAM' as const,
+  units: ['GRAM', 'KILOGRAM'] as Unit[],
 };
-const ajo = { id: 'ing_ajo', name: 'Ajo', category: 'VEGETABLE', defaultUnit: 'PIECE' as const };
-const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT', defaultUnit: 'GRAM' as const };
+const ajo = {
+  id: 'ing_ajo',
+  name: 'Ajo',
+  category: 'VEGETABLE',
+  defaultUnit: 'PIECE' as const,
+  units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
+};
+const pollo = {
+  id: 'ing_pollo',
+  name: 'Pollo',
+  category: 'MEAT',
+  defaultUnit: 'GRAM' as const,
+  units: ['GRAM', 'KILOGRAM'] as Unit[],
+};
 
 const empty: FoodPreferences = { diet: null, liked: [], avoided: [] };
 const configured: FoodPreferences = {
@@ -318,6 +333,8 @@ describe('FoodPreferencesScreen', () => {
         id: `ing_${index}`,
         name: `Alimento ${index}`,
         category: 'OTHER',
+        units: ['GRAM', 'KILOGRAM'],
+        defaultUnit: 'GRAM',
       }));
       await renderScreen(empty, { 'GET /ingredients': () => many });
 
