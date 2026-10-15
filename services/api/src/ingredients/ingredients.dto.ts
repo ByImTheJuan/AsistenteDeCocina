@@ -17,7 +17,7 @@ export function sortAllergens(allergens: Allergen[]): Allergen[] {
 export class IngredientSearchQuery {
   @ApiPropertyOptional({
     description:
-      'Text the name must contain. Case and accents are ignored. Without it, the catalogue is listed from the start.',
+      'Text the name or one of its synonyms must contain. Case and accents are ignored. Without it, the catalogue is listed from the start.',
     maxLength: 100,
   })
   @IsOptional()

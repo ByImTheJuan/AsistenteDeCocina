@@ -30,8 +30,8 @@ export class IngredientsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Search the ingredient catalogue by name',
-    description: `Returns at most ${INGREDIENT_SEARCH_LIMIT} ingredients, ordered by name.`,
+    summary: 'Search the ingredient catalogue by name or synonym',
+    description: `Returns at most ${INGREDIENT_SEARCH_LIMIT} ingredients, ordered by name. A synonym ("papa") returns the catalogue ingredient it names ("Patata").`,
   })
   @ApiOkResponse({ type: [IngredientResponse] })
   @ApiBadRequestResponse({ description: 'Invalid search text' })
