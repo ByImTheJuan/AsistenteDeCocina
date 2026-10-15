@@ -25,7 +25,13 @@ La aplicación permitirá a los usuarios:
 - Guardar recetas favoritas y, en una fase posterior, consultarlas sin conexión.
 - En futuras iteraciones, crear, publicar, valorar y reseñar recetas.
 
-El Product Backlog funcional se encuentra en `ProductBacklog.md`. Este archivo es la fuente de verdad para las historias de usuario (US), sus prioridades y sus criterios de aceptación.
+**El Product Backlog vive en GitHub y es la fuente de verdad** para las épicas, las historias de usuario (US), sus prioridades y sus criterios de aceptación:
+
+- Cada épica y cada US es un issue del repositorio `ByImTheJuan/AsistenteDeCocina`, titulado `[EP-xx] Nombre` o `[US-xxx] Nombre`. Cada US es un sub-issue de su épica.
+- Todos están en el Project [AsistenteDeCocina](https://github.com/users/ByImTheJuan/projects/4), cuyo campo `Status` vale `Todo`, `In Progress` o `Done`.
+- `ProductBacklog.md` es la especificación inicial a partir de la cual se crearon los issues. Conserva la visión del producto, los principios y las convenciones de prioridad, pero **no se mantiene al día con los cambios de las historias**. Si un issue y el archivo discrepan, manda el issue.
+
+Las reglas para leer y actualizar el backlog están en la sección 3 («Backlog en GitHub»).
 
 No inventes criterios de aceptación ni amplíes el alcance de una US sin justificarlo y obtener confirmación cuando la decisión afecte al producto.
 
@@ -99,11 +105,11 @@ Cuando el usuario solicite implementar una US, sigue las fases que se describen 
 ### Fase 1 — Inspeccionar el repositorio y leer la historia
 
 1. Inspecciona la estructura actual del repositorio, el estado de Git, las ramas y los archivos de instrucciones relevantes.
-2. Lee `ProductBacklog.md`.
-3. Localiza la historia solicitada por su identificador, por ejemplo, `US-006`.
-4. Lee la descripción completa, la prioridad, los criterios de aceptación y las notas relacionadas.
-5. Comprueba si la historia existe y si el backlog está actualizado. No te bases exclusivamente en una descripción parcial del usuario cuando el archivo contiene la especificación oficial.
-6. Si `ProductBacklog.md` no existe, no contiene la US solicitada o hay contradicciones importantes, detente y pregunta al usuario. No inventes una especificación sustitutiva.
+2. Localiza el issue de la historia por su identificador, por ejemplo, `US-006`: `gh issue list --state all --search "US-006 in:title"`.
+3. Lee el issue completo con sus comentarios (`gh issue view <número> --comments`): descripción, prioridad, criterios de aceptación, notas y cambios acordados después de crearlo. Lee también su épica y los issues de las historias de las que depende o que le han trasladado criterios.
+4. Comprueba que el issue está abierto y en `Todo` en el Project. Si está cerrado o en `In Progress`, averigua por qué antes de seguir.
+5. No te bases exclusivamente en una descripción parcial del usuario cuando el issue contiene la especificación oficial. `ProductBacklog.md` solo sirve como contexto general (visión y prioridades).
+6. Si la US no tiene issue, el issue contradice lo que pide el usuario o no puedes acceder a GitHub, detente y pregunta. No inventes una especificación sustitutiva ni uses `ProductBacklog.md` en su lugar sin avisar.
 
 ### Fase 2 — Analizar dependencias, requisitos y dudas
 
@@ -156,6 +162,8 @@ Tras la aprobación del plan:
 
 4. La rama de destino de los Pull Requests será `main`.
 5. No trabajes directamente en `main`, no elimines cambios del usuario y no hagas `git reset --hard`, `git clean` u otras operaciones destructivas sin autorización explícita.
+6. Pasa el issue de la US a `In Progress` en el Project (comandos en «Backlog en GitHub»).
+7. Si el plan aprobado cambia la definición de la US (criterios, alcance o criterios trasladados a otra historia), actualiza el issue antes de implementar, como se indica en «Backlog en GitHub».
 
 Si la rama ya existe, comprueba su estado y reutilízala solo si corresponde inequívocamente a la misma US y no contiene trabajo ajeno. Si hay dudas, pregunta.
 
@@ -265,7 +273,9 @@ El Pull Request debe incluir:
 - **Validación móvil:** dispositivo, sistema operativo y recorrido probado, si se ha podido verificar; de lo contrario, indicarlo como pendiente.
 - **Capturas o vídeo:** incluirlos cuando aporten valor y estén disponibles.
 - **Riesgos y limitaciones:** dependencias externas, decisiones pendientes o aspectos no validados.
-- **Relación con el backlog:** referencia a la US o al issue correspondiente.
+- **Relación con el backlog:** `Closes #<número>` con el issue de la US, para que al fusionar el PR se cierre el issue y el Project lo pase a `Done`. Si quedan criterios diferidos a otras historias, enlaza también esos issues.
+
+Antes de crear el PR, comprueba que el issue refleja la definición final de la US: lo que se acordó durante el desarrollo tiene que estar en el issue, no solo en el PR.
 
 No afirmes que una prueba manual en un iPhone se ha realizado si no se ha probado realmente en un dispositivo. Distingue entre pruebas automatizadas, simulador y dispositivo físico.
 
@@ -280,9 +290,53 @@ Al terminar, informa de:
 - Pruebas ejecutadas y resultado.
 - Validación en iOS/Android, diferenciando lo ejecutado de lo pendiente.
 - Enlace al Pull Request, si se creó.
+- Issues de GitHub actualizados (definición, criterios trasladados, estado en el Project).
 - Limitaciones o tareas pendientes.
 
 No declares la historia completada si quedan criterios de aceptación sin cubrir o comprobaciones obligatorias fallidas.
+
+### Backlog en GitHub
+
+Los issues de GitHub son la fuente de verdad del backlog (sección 1). Mantenlos al día durante todo el trabajo.
+
+**Cuándo actualizar un issue.** Siempre que cambie la definición de una US o de una épica, por ejemplo:
+
+- se añade, se quita o se reformula un criterio de aceptación;
+- se acota o amplía el alcance, o se fija una decisión de producto que lo concreta (por ejemplo, «una sola dieta por usuario»);
+- un criterio se difiere a otra historia;
+- cambia la prioridad o la épica;
+- una historia se divide, se fusiona con otra o se descarta;
+- aparece una historia nueva.
+
+Los cambios de definición son decisiones de producto: acuérdalos antes con el usuario (sección 1) y actualiza el issue en cuanto estén aprobados, sin esperar al PR. Los detalles de implementación no cambian la definición y van en el PR, no en el issue.
+
+**Cómo actualizarlo.**
+
+1. Edita la descripción del issue para que siempre muestre la definición vigente, conservando su formato (épica, prioridad, historia de usuario y criterios de aceptación). Usa `gh issue edit <número> --body-file <archivo>`, con el archivo en un directorio temporal fuera del repositorio.
+2. Añade un comentario (`gh issue comment`) que explique qué cambió, por qué y quién lo acordó, con la fecha. La descripción dice cómo está la historia; los comentarios, cómo llegó a estarlo.
+3. **Criterio diferido:** en la historia de origen, márcalo como diferido con el enlace a la de destino (`Diferido a #33 (US-015)`) en lugar de borrarlo; en la de destino, añádelo como criterio indicando de dónde viene. El issue de origen puede cerrarse cuando el resto de sus criterios esté cubierto.
+4. **Historia nueva o dividida:** crea el issue con el mismo formato y título (`[US-xxx] Nombre`, con el siguiente número libre), añádelo como sub-issue de su épica y al Project, y actualiza la lista de historias de la épica. Una historia descartada se cierra como `not planned` con un comentario del motivo; no se borra.
+5. **Épica:** su descripción enumera sus historias. Actualízala cuando cambie esa lista.
+
+**Estado en el Project.** `Todo` al crearse, `In Progress` al empezar la rama y `Done` al fusionar el PR. El Project pasa a `Done` los issues cerrados y cierra los que se marcan `Done`; el paso a `In Progress` se hace a mano:
+
+```bash
+# id del elemento del Project que corresponde al issue
+gh project item-list 4 --owner ByImTheJuan --limit 200 --format json \
+  --jq '.items[] | select(.content.number == <número>) | .id'
+# pasarlo a In Progress
+gh project item-edit --project-id PVT_kwHOBuoE2M4BnCT7 --id <id del elemento> \
+  --field-id PVTSSF_lAHOBuoE2M4BnCT7zhlowuQ --single-select-option-id 47fc9ee4
+```
+
+Opciones de `Status`: `Todo` `f75ad846`, `In Progress` `47fc9ee4` y `Done` `98236657`.
+
+**Límites.**
+
+- Edita solo los issues afectados por el cambio acordado; no reescribas otros issues por iniciativa propia.
+- No cierres, reabras ni descartes issues sin que lo justifique un PR fusionado o una decisión del usuario.
+- No copies en los issues secretos, datos personales ni registros de error con información sensible.
+- Si no tienes acceso a GitHub, no digas que el issue está actualizado: deja preparado el texto y los comandos e indica el impedimento.
 
 ---
 
@@ -302,6 +356,7 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 - [ ] Los commits siguen Conventional Commits.
 - [ ] La documentación y configuración de ejemplo están actualizadas cuando corresponde.
 - [ ] Se ha creado un Pull Request hacia `main`, o se ha documentado con precisión por qué no ha sido posible.
+- [ ] El issue de la US (y los de las historias a las que se hayan trasladado criterios) refleja la definición final, y el PR lo cierra con `Closes #<número>`.
 - [ ] Se ha informado al usuario de las validaciones realizadas y de las que quedan pendientes.
 
 ---
@@ -364,7 +419,7 @@ Una US solo se considera terminada cuando se cumplen todas las condiciones aplic
 ```text
 .
 ├── CLAUDE.md
-├── ProductBacklog.md
+├── ProductBacklog.md         # especificación inicial; el backlog vigente está en los issues
 ├── README.md
 ├── package.json              # raíz: npm workspaces, overrides y scripts agregados
 ├── package-lock.json         # único lockfile
@@ -423,6 +478,12 @@ npm run start -w mobile             # app en la development build
 
 Las dependencias de la app móvil se añaden con `npx expo install <paquete>` desde `apps/mobile`.
 
+### Backlog y seguimiento
+
+- Issues `[EP-01]`…`[EP-10]` (#9–#18) y `[US-001]`…`[US-047]` (#19–#65), cada US como sub-issue de su épica, en el Project [AsistenteDeCocina](https://github.com/users/ByImTheJuan/projects/4) (`Status`: `Todo`, `In Progress`, `Done`). Sin etiquetas ni milestones por ahora.
+- Automatizaciones activas del Project: añadir los sub-issues, pasar a `Done` los issues cerrados o con el PR fusionado y cerrar los que se marcan `Done`.
+- Reglas de uso en la sección 3 («Backlog en GitHub»).
+
 ### Integración continua y builds
 
 - **`.github/workflows/ci.yml`:** se ejecuta en cada Pull Request hacia `main` y en cada push a `main`. Jobs `mobile`, `api`, `dependencies` y `security`. **No genera builds de la app.**
@@ -448,6 +509,7 @@ Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md` (el catá
 
 ### Pendiente
 
+- **Poner al día los issues con lo acordado antes de usar GitHub como fuente de verdad.** Los issues de US-003, US-004 y US-005 (#21, #22 y #23) están cerrados sin marcar sus criterios diferidos, y los de destino (US-013 y US-015, #31 y #33) no los incluyen. Además, todos los issues repiten la línea de prioridad y terminan en «Fuente funcional: ProductBacklog.md.», y EP-01 (#9) sigue en `Todo` con todas sus historias cerradas.
 - **Validar US-002 en dispositivo.** En Expo Go se puede probar todo salvo vincular y desvincular Google.
 - **Validar US-004 en dispositivo.** Se puede probar entera en Expo Go.
 - **US-013 y US-015 deben cubrir el criterio 4 de US-004:** comparar las recetas y las recomendaciones con los objetivos activos cuando haya datos nutricionales suficientes.
@@ -481,6 +543,6 @@ Detalladas en `docs/decisions/0001-estructura-y-gestor-de-paquetes.md` (el catá
 
 Ante cada solicitud de implementación de una US, el orden por defecto es:
 
-**Leer `ProductBacklog.md` → inspeccionar el repositorio → analizar dependencias y dudas → presentar el plan → obtener aprobación → crear rama `feature/us-xxx-xxxxx` → implementar → probar → revisar commits y diff → crear Pull Request a `main` → informar de resultados.**
+**Leer el issue de la US en GitHub → inspeccionar el repositorio → analizar dependencias y dudas → presentar el plan → obtener aprobación → crear rama `feature/us-xxx-xxxxx` y pasar el issue a `In Progress` → implementar → probar → revisar commits y diff → actualizar el issue si cambió la definición → crear Pull Request a `main` con `Closes #<número>` → informar de resultados.**
 
 No te saltes las fases de análisis, planificación, pruebas o revisión del diff para acelerar una tarea. La prioridad es entregar incrementos funcionales verificables, seguros y mantenibles.

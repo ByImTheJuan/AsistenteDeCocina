@@ -1,5 +1,7 @@
 # Product Backlog — Asistente personal de cocina
 
+> **Este documento es la especificación inicial y ya no se actualiza.** El backlog vigente está en los [issues de GitHub](https://github.com/ByImTheJuan/AsistenteDeCocina/issues), uno por épica y por historia, y en el [Project AsistenteDeCocina](https://github.com/users/ByImTheJuan/projects/4). Si una historia de este archivo difiere de su issue, manda el issue. La visión, los principios y las convenciones de prioridad siguen vigentes.
+
 **Versión:** especificación funcional inicial  
 **Estado:** MVP seleccionado como alcance inicial  
 **Plataformas objetivo:** iOS y Android
