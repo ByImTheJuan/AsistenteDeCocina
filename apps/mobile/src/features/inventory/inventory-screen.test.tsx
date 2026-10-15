@@ -271,6 +271,72 @@ describe('InventoryScreen', () => {
       expect(screen.getAllByText('Caduca el 19 oct')).toHaveLength(1);
     });
 
+    describe('ordered by date', () => {
+      const showByDate = async () => {
+        await user.press(await screen.findByRole('radio', { name: 'Fecha' }));
+      };
+
+      it('starts grouped by location', async () => {
+        await renderScreen(() => kept);
+
+        expect(await screen.findByRole('radio', { name: 'Ubicación' })).toBeChecked();
+        expect(screen.getByRole('radio', { name: 'Fecha' })).not.toBeChecked();
+      });
+
+      it('lists every dated food from the nearest date, then those without one', async () => {
+        await renderScreen(() => kept);
+
+        await showByDate();
+
+        expect(headers()).toEqual(['Mi despensa', 'Con fecha', 'Sin fecha']);
+        expect(foodRows()).toEqual([
+          'Pollo: 1 kg, Caducó el 12 oct',
+          'Leche: 1 kg, Caduca mañana',
+          // Beyond the three days of "Caducan pronto", still in date order.
+          'Yogur: 2 unidades, Caduca el 19 oct',
+          'Arroz: 1,5 kg, Consumo preferente: 1 mar 2027',
+          // Without a date.
+          'Sal: Siempre disponible, Sin fecha',
+        ]);
+        // Each food appears once, and the expiring ones keep their warning.
+        expect(screen.getAllByText('Caduca mañana')).toHaveLength(1);
+        expect(screen.getByText(/Revisa siempre el estado del alimento/)).toBeOnTheScreen();
+      });
+
+      it('folds its sections like the others', async () => {
+        await renderScreen(() => kept);
+        await showByDate();
+
+        await user.press(screen.getByRole('button', { name: 'Ocultar Con fecha' }));
+
+        expect(screen.getByText('Con fecha')).toBeOnTheScreen();
+        expect(foodRows()).toEqual(['Sal: Siempre disponible, Sin fecha']);
+      });
+
+      it('goes back to the groups by location', async () => {
+        await renderScreen(() => kept);
+        await showByDate();
+
+        await user.press(screen.getByRole('radio', { name: 'Ubicación' }));
+
+        expect(headers()).toEqual([
+          'Mi despensa',
+          'Caducan pronto',
+          'Nevera',
+          'Despensa',
+          'Congelador',
+          'Sin ubicación',
+        ]);
+      });
+
+      it('shows only the section without date when no food has one', async () => {
+        await renderScreen(() => inventory);
+        await showByDate();
+
+        expect(headers()).toEqual(['Mi despensa', 'Sin fecha']);
+      });
+    });
+
     it('warns to check the food before eating it', async () => {
       await renderScreen(() => kept);
 

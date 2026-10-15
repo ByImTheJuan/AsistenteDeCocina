@@ -1,4 +1,5 @@
 import {
+  byExpiry,
   daysUntil,
   describeExpiry,
   formatDay,
@@ -55,6 +56,33 @@ describe('expiring soon', () => {
     expect(isPastUseBy(useBy('2026-10-12'), on)).toBe(true);
     expect(isPastUseBy(useBy('2026-10-16'), on)).toBe(false);
     expect(isPastUseBy(bestBefore('2026-10-12'), on)).toBe(false);
+  });
+});
+
+describe('byExpiry', () => {
+  const food = (name: string, expiresOn: string | null) => ({
+    ingredient: { name },
+    expiresOn,
+    dateKind: expiresOn === null ? null : ('USE_BY' as const),
+  });
+
+  it('orders the dated foods from the nearest date, by name on the same day', () => {
+    const { dated, undated } = byExpiry([
+      food('Yogur', '2026-11-30'),
+      food('Sal', null),
+      food('Pollo', '2026-10-12'),
+      food('Leche', '2026-10-16'),
+      food('Huevo', '2026-10-16'),
+      food('Aceite', null),
+    ]);
+
+    expect(dated.map(({ ingredient }) => ingredient.name)).toEqual([
+      'Pollo',
+      'Huevo',
+      'Leche',
+      'Yogur',
+    ]);
+    expect(undated.map(({ ingredient }) => ingredient.name)).toEqual(['Sal', 'Aceite']);
   });
 });
 
