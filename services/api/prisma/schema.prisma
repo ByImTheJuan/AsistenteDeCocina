@@ -122,6 +122,7 @@ model Ingredient {
   restrictions IngredientRestriction[]
   aliases      IngredientAlias[]
   inventory    InventoryItem[]
+  recipes      RecipeIngredient[]
 
   @@map("ingredients")
 }
@@ -280,4 +281,57 @@ enum StorageLocation {
   FRIDGE
   FREEZER
   PANTRY
+}
+
+// A recipe of the catalogue. Editorial content written for the project and
+// inserted by migrations with stable ids; it holds no user data. See
+// docs/decisions/0006-catalogo-de-recetas.md.
+model Recipe {
+  id           String             @id @default(cuid())
+  // In Spanish, as shown to the user.
+  name         String             @unique @db.VarChar(120)
+  description  String             @db.VarChar(500)
+  // Null while the recipe has no picture.
+  imageUrl     String?            @db.VarChar(500)
+  // From starting to serving, resting included.
+  totalMinutes Int
+  // Servings the quantities are for.
+  servings     Int
+  createdAt    DateTime           @default(now())
+  ingredients  RecipeIngredient[]
+  steps        RecipeStep[]
+
+  @@map("recipes")
+}
+
+// An ingredient of a recipe, in the order it is listed. Without a quantity
+// (both quantity and unit null) it goes to taste. The unit is one of the
+// food's measure or a spoon or a pinch, which are only for recipes.
+model RecipeIngredient {
+  recipeId     String
+  position     Int
+  ingredientId String
+  quantity     Decimal?   @db.Decimal(10, 3)
+  unit         Unit?
+  // How it is used, e.g. "picada".
+  note         String?    @db.VarChar(100)
+  // One of the few ingredients that define the dish, shown in the catalogue.
+  main         Boolean    @default(false)
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@id([recipeId, position])
+  @@index([ingredientId])
+  @@map("recipe_ingredients")
+}
+
+// A preparation step of a recipe, in order.
+model RecipeStep {
+  recipeId String
+  position Int
+  text     String @db.VarChar(1000)
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@id([recipeId, position])
+  @@map("recipe_steps")
 }
