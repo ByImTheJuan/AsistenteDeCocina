@@ -1,7 +1,20 @@
 import { categoryLabel, searchIngredients } from './ingredients-api';
+import type { Unit } from '@/features/units/units';
 
-const tomate = { id: 'ing_tomate', name: 'Tomate', category: 'VEGETABLE' };
-const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT' };
+const tomate = {
+  id: 'ing_tomate',
+  name: 'Tomate',
+  category: 'VEGETABLE',
+  defaultUnit: 'PIECE' as const,
+  units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
+};
+const pollo = {
+  id: 'ing_pollo',
+  name: 'Pollo',
+  category: 'MEAT',
+  defaultUnit: 'GRAM' as const,
+  units: ['GRAM', 'KILOGRAM'] as Unit[],
+};
 
 describe('ingredients API', () => {
   const request = jest.fn();
@@ -27,7 +40,13 @@ describe('ingredients API', () => {
   });
 
   it('accepts ingredients of a category it does not know', async () => {
-    const algae = { id: 'ing_nori', name: 'Nori', category: 'ALGAE' };
+    const algae = {
+      id: 'ing_nori',
+      name: 'Nori',
+      category: 'ALGAE',
+      defaultUnit: 'GRAM' as const,
+      units: ['GRAM', 'KILOGRAM'] as Unit[],
+    };
     request.mockResolvedValue([algae]);
 
     await expect(searchIngredients(request, 'nori')).resolves.toEqual([algae]);
@@ -37,6 +56,22 @@ describe('ingredients API', () => {
     request.mockResolvedValue([{ ...tomate, allergens: ['HISTAMINE'], allergensUncertain: false }]);
 
     await expect(searchIngredients(request, 'tomate')).resolves.toEqual([tomate]);
+  });
+
+  it('leaves out the units it does not know', async () => {
+    request.mockResolvedValue([{ ...tomate, units: ['CUP', 'PIECE', 'GRAM'], defaultUnit: 'CUP' }]);
+
+    await expect(searchIngredients(request, 'tomate')).resolves.toEqual([
+      { ...tomate, units: ['PIECE', 'GRAM'], defaultUnit: 'PIECE' },
+    ]);
+  });
+
+  it('offers pieces when it knows none of the units', async () => {
+    request.mockResolvedValue([{ ...tomate, units: ['CUP'], defaultUnit: 'CUP' }]);
+
+    await expect(searchIngredients(request, 'tomate')).resolves.toEqual([
+      { ...tomate, units: ['PIECE'], defaultUnit: 'PIECE' },
+    ]);
   });
 
   it('rejects a response that is not a list of ingredients', async () => {

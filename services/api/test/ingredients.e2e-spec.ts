@@ -4,6 +4,7 @@ import request from 'supertest';
 import { AppModule } from './../src/app.module.js';
 import { PrismaService } from './../src/prisma/prisma.service.js';
 import { setupApp } from './../src/setup-app.js';
+import { MEASURE_UNITS } from './../src/units/units.js';
 
 // The catalogue is inserted by the migrations, so it is already there.
 describe('Ingredients (e2e)', () => {
@@ -52,6 +53,7 @@ describe('Ingredients (e2e)', () => {
       allergens: [],
       allergensUncertain: false,
       defaultUnit: 'PIECE',
+      units: ['PIECE', 'GRAM', 'KILOGRAM'],
     };
     expect(response.body).toEqual([
       {
@@ -80,6 +82,7 @@ describe('Ingredients (e2e)', () => {
         allergens: ['EGG', 'MUSTARD'],
         allergensUncertain: true,
         defaultUnit: 'GRAM',
+        units: ['GRAM', 'KILOGRAM'],
       },
     ]);
   });
@@ -95,7 +98,32 @@ describe('Ingredients (e2e)', () => {
     expect(await unitOf('Harina de trigo')).toBe('GRAM');
     expect(await unitOf('Espinacas')).toBe('GRAM');
     expect(await unitOf('Salsa de soja')).toBe('MILLILITER');
-    expect(await unitOf('Tortillas de trigo')).toBe('PACKAGE');
+    expect(await unitOf('Tortillas de trigo')).toBe('PIECE');
+  });
+
+  it('offers the units each food is measured in at home', async () => {
+    const unitsOf = async (name: string) =>
+      (await search({ search: name }).expect(200)).body.find(
+        (ingredient: { name: string }) => ingredient.name === name,
+      ).units;
+
+    expect(await unitsOf('Leche')).toEqual(['MILLILITER', 'LITER']);
+    expect(await unitsOf('Tomate')).toEqual(['PIECE', 'GRAM', 'KILOGRAM']);
+    expect(await unitsOf('Arroz')).toEqual(['GRAM', 'KILOGRAM']);
+    expect(await unitsOf('Huevo')).toEqual(['PIECE']);
+  });
+
+  it('suggests for every food one of the units it is measured in', async () => {
+    const catalogue = await prisma.ingredient.findMany();
+
+    expect(catalogue.length).toBeGreaterThan(0);
+    for (const { name, measure, defaultUnit } of catalogue) {
+      expect({ name, defaultUnit, units: MEASURE_UNITS[measure] }).toEqual({
+        name,
+        defaultUnit,
+        units: expect.arrayContaining([defaultUnit]),
+      });
+    }
   });
 
   it('finds an ingredient by any of its synonyms', async () => {

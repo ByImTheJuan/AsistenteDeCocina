@@ -1,7 +1,20 @@
 import { getFoodPreferences, saveFoodPreferences } from './food-preferences-api';
+import type { Unit } from '@/features/units/units';
 
-const tomate = { id: 'ing_tomate', name: 'Tomate', category: 'VEGETABLE' };
-const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT' };
+const tomate = {
+  id: 'ing_tomate',
+  name: 'Tomate',
+  category: 'VEGETABLE',
+  defaultUnit: 'PIECE' as const,
+  units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
+};
+const pollo = {
+  id: 'ing_pollo',
+  name: 'Pollo',
+  category: 'MEAT',
+  defaultUnit: 'GRAM' as const,
+  units: ['GRAM', 'KILOGRAM'] as Unit[],
+};
 const preferences = {
   diet: 'VEGETARIAN' as const,
   liked: [tomate],

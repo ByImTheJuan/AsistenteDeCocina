@@ -42,6 +42,7 @@ Contraste calculado con la fórmula de WCAG 2.1. Umbrales: 4,5:1 para texto, 3:1
 | `disabledSurface` | `#EDE7DA` | Fondo de un control deshabilitado | — |
 | `disabledText` | `#7D786C` | Texto de un control deshabilitado | 3,57 sobre `disabledSurface` |
 | `disabledBorder` | `#D8D2C5` | Borde de un control deshabilitado | — |
+| `backdrop` | `textPrimary` al 40 % | Oscurece la pantalla detrás de un menú o diálogo propio, como el selector de unidad | — |
 
 Los tres valores de una celda corresponden a `background`, `surface` y `surfaceSecondary`.
 
@@ -72,6 +73,7 @@ Los tres valores de una celda corresponden a `background`, `surface` y `surfaceS
 - **Controles:** botones y campos con altura mínima de 52 (`ControlHeight`), nunca fija, para que el texto grande no se recorte.
 - **Tarjetas:** `surface` con un borde `border` de 1 pt y una sombra suave de un solo nivel (`CardShadow`). El blanco sobre el crema de `background` apenas se distingue: la primera versión, con un borde de 0,5 pt y sin sombra, hacía que las tarjetas desaparecieran en el teléfono y solo se viera texto apilado. No se usan sombras más marcadas.
 - **Listas de categorías** (como la pestaña «Perfil»): una `Card` por categoría con un icono sobre `primary`, el nombre en `defaultBold`, el resumen en `small` y un chevron. Al presionar, el fondo pasa a `surfaceSecondary`.
+- **Campo con unidad:** `TextField` admite un elemento `trailing` dentro del mismo borde, tras el texto, para leer valor y unidad en una línea («1,5 kg»). Si hay varias unidades, el elemento abre una lista con ellas sobre el fondo `backdrop`; si solo hay una, es texto.
 - **Iconos:** `SymbolView` de `expo-symbols`, con SF Symbols en iOS y Material Symbols en Android, en el color de un token.
 
 ## Reglas de uso

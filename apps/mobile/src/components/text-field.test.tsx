@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
+import { ThemedText } from './themed-text';
 import { TextField } from './text-field';
 
 describe('TextField', () => {
@@ -21,5 +22,12 @@ describe('TextField', () => {
 
     expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
     expect(screen.getByLabelText('Email')).toHaveProp('aria-invalid', false);
+  });
+
+  it('shows what follows the text inside the field', async () => {
+    await render(<TextField label="Cantidad" value="2" trailing={<ThemedText>kg</ThemedText>} />);
+
+    expect(screen.getByLabelText('Cantidad')).toHaveDisplayValue('2');
+    expect(screen.getByText('kg')).toBeOnTheScreen();
   });
 });

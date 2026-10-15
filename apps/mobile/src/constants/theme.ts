@@ -30,6 +30,8 @@ const light = {
   disabledSurface: '#EDE7DA',
   disabledText: '#7D786C',
   disabledBorder: '#D8D2C5',
+  /** Dims the screen behind a menu or dialog drawn on top of it. */
+  backdrop: 'rgba(48, 47, 41, 0.4)',
 } as const;
 
 export type ThemeColors = { readonly [K in keyof typeof light]: string };

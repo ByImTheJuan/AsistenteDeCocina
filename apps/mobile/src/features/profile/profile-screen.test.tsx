@@ -4,6 +4,7 @@ import { ProfileScreen } from './profile-screen';
 
 import { renderSignedIn } from '@/features/account/account-test-utils';
 import { NetworkError } from '@/lib/api-client';
+import type { Unit } from '@/features/units/units';
 
 // The shared session manager created on import is not used here.
 jest.mock('@react-native-google-signin/google-signin', () => ({}));
@@ -14,9 +15,27 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-const tomate = { id: 'ing_tomate', name: 'Tomate', category: 'VEGETABLE' };
-const ajo = { id: 'ing_ajo', name: 'Ajo', category: 'VEGETABLE' };
-const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT' };
+const tomate = {
+  id: 'ing_tomate',
+  name: 'Tomate',
+  category: 'VEGETABLE',
+  defaultUnit: 'PIECE' as const,
+  units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
+};
+const ajo = {
+  id: 'ing_ajo',
+  name: 'Ajo',
+  category: 'VEGETABLE',
+  defaultUnit: 'PIECE' as const,
+  units: ['PIECE', 'GRAM', 'KILOGRAM'] as Unit[],
+};
+const pollo = {
+  id: 'ing_pollo',
+  name: 'Pollo',
+  category: 'MEAT',
+  defaultUnit: 'GRAM' as const,
+  units: ['GRAM', 'KILOGRAM'] as Unit[],
+};
 
 const noPreferences = { diet: null, liked: [], avoided: [] };
 const noRestrictions = { allergens: [], ingredients: [], conflictingLikedIngredients: [] };

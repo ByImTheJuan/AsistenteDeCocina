@@ -20,21 +20,31 @@ const PAGE_SIZE = 50;
 
 type IngredientPickerProps = {
   title: string;
-  selected: Ingredient[];
-  /** Ingredients that cannot be chosen here, and why, as shown next to them. */
-  unavailable?: { ingredients: Ingredient[]; reason: string };
-  onToggle(ingredient: Ingredient): void;
   onClose(): void;
-};
+} & (
+  | {
+      /** Builds a list: each ingredient is added or removed, and "Hecho" closes. */
+      mode?: 'multiple';
+      selected: Ingredient[];
+      /** Ingredients that cannot be chosen here, and why, as shown next to them. */
+      unavailable?: { ingredients: Ingredient[]; reason: string };
+      onToggle(ingredient: Ingredient): void;
+    }
+  | {
+      /** Chooses one ingredient; the caller closes the picker. */
+      mode: 'single';
+      onSelect(ingredient: Ingredient): void;
+    }
+);
 
-/** Searches the catalogue and adds ingredients to a list, or removes them from it. */
-export function IngredientPicker({
-  title,
-  selected,
-  unavailable,
-  onToggle,
-  onClose,
-}: IngredientPickerProps) {
+/**
+ * Searches the catalogue, by name or synonym. Adds ingredients to a list, or
+ * removes them from it, or chooses one.
+ */
+export function IngredientPicker(props: IngredientPickerProps) {
+  const { title, onClose } = props;
+  const selected = props.mode === 'single' ? [] : props.selected;
+  const unavailable = props.mode === 'single' ? undefined : props.unavailable;
   const theme = useTheme();
   const [text, setText] = useState('');
   const [search, setSearch] = useState('');
@@ -93,25 +103,34 @@ export function IngredientPicker({
                   return (
                     <Pressable
                       key={ingredient.id}
-                      accessibilityRole="checkbox"
+                      accessibilityRole={props.mode === 'single' ? 'button' : 'checkbox'}
                       accessibilityLabel={ingredient.name}
                       accessibilityHint={blocked ? unavailable?.reason : undefined}
-                      accessibilityState={{ checked, disabled: blocked }}
+                      accessibilityState={
+                        props.mode === 'single' ? undefined : { checked, disabled: blocked }
+                      }
                       disabled={blocked}
-                      onPress={() => onToggle(ingredient)}
+                      onPress={() =>
+                        props.mode === 'single'
+                          ? props.onSelect(ingredient)
+                          : props.onToggle(ingredient)
+                      }
                       style={({ pressed }) => [
                         styles.row,
                         {
                           backgroundColor:
                             theme[
-                              blocked ? 'disabledSurface' : checked ? 'surfaceSecondary' : 'surface'
+                              blocked
+                                ? 'disabledSurface'
+                                : checked || pressed
+                                  ? 'surfaceSecondary'
+                                  : 'surface'
                             ],
                           borderColor:
                             theme[
                               blocked ? 'disabledBorder' : checked ? 'textPrimary' : 'borderStrong'
                             ],
                         },
-                        pressed && styles.pressed,
                       ]}>
                       <View style={styles.rowText}>
                         <ThemedText themeColor={blocked ? 'disabledText' : 'textPrimary'}>
@@ -136,7 +155,11 @@ export function IngredientPicker({
             )}
           </ScrollView>
 
-          <PrimaryButton label="Hecho" onPress={onClose} />
+          {props.mode === 'single' ? (
+            <PrimaryButton label="Cancelar" variant="secondary" onPress={onClose} />
+          ) : (
+            <PrimaryButton label="Hecho" onPress={onClose} />
+          )}
         </SafeAreaView>
       </ThemedView>
     </Modal>
@@ -179,8 +202,5 @@ const styles = StyleSheet.create({
   },
   rowText: {
     flex: 1,
-  },
-  pressed: {
-    opacity: 0.7,
   },
 });
