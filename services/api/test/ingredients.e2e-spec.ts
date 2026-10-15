@@ -48,7 +48,11 @@ describe('Ingredients (e2e)', () => {
   it('finds ingredients whose name contains the text', async () => {
     const response = await search({ search: 'pimiento' }).expect(200);
 
-    const plain = { allergens: [], allergensUncertain: false };
+    const plain = {
+      allergens: [],
+      allergensUncertain: false,
+      defaultUnit: 'PIECE',
+    };
     expect(response.body).toEqual([
       {
         id: 'ing_pimiento_rojo',
@@ -75,8 +79,23 @@ describe('Ingredients (e2e)', () => {
         category: 'OTHER',
         allergens: ['EGG', 'MUSTARD'],
         allergensUncertain: true,
+        defaultUnit: 'GRAM',
       },
     ]);
+  });
+
+  it('suggests the unit each ingredient is usually measured in', async () => {
+    const unitOf = async (name: string) =>
+      (await search({ search: name }).expect(200)).body.find(
+        (ingredient: { name: string }) => ingredient.name === name,
+      ).defaultUnit;
+
+    expect(await unitOf('Leche')).toBe('LITER');
+    expect(await unitOf('Huevo')).toBe('PIECE');
+    expect(await unitOf('Harina de trigo')).toBe('GRAM');
+    expect(await unitOf('Espinacas')).toBe('GRAM');
+    expect(await unitOf('Salsa de soja')).toBe('MILLILITER');
+    expect(await unitOf('Tortillas de trigo')).toBe('PACKAGE');
   });
 
   it('ignores case and accents', async () => {

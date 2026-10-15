@@ -76,9 +76,23 @@ enum IngredientCategory {
   OTHER
 }
 
+// Units a quantity can be expressed in. Only units of the same kind convert
+// into each other (src/units/units.ts); see
+// docs/decisions/0005-unidades-y-equivalencias.md.
+enum Unit {
+  GRAM
+  KILOGRAM
+  MILLILITER
+  LITER
+  TABLESPOON
+  TEASPOON
+  PIECE
+  PINCH
+  PACKAGE
+}
+
 // Catalogue of foods the user can refer to. Its rows are reference data,
-// inserted by migrations so every environment has the same ones. Units and
-// equivalences are not modelled yet.
+// inserted by migrations so every environment has the same ones.
 model Ingredient {
   id                 String             @id @default(cuid())
   // In Spanish, as shown to the user.
@@ -87,13 +101,28 @@ model Ingredient {
   // True for processed foods whose recipe changes with the brand: the
   // allergens listed are the usual ones, not all it may contain.
   allergensUncertain Boolean            @default(false)
+  // The unit the food is usually measured in, offered first to the user.
+  // A suggestion only: any unit can be used.
+  defaultUnit        Unit
   createdAt          DateTime           @default(now())
 
   preferences  IngredientPreference[]
   allergens    IngredientAllergen[]
   restrictions IngredientRestriction[]
+  aliases      IngredientAlias[]
 
   @@map("ingredients")
+}
+
+// Other names of a catalogue food (regional variants, common plurals), so a
+// search finds it by any of them. An alias names exactly one food.
+model IngredientAlias {
+  alias        String     @id @db.VarChar(100)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@index([ingredientId])
+  @@map("ingredient_aliases")
 }
 
 enum IngredientPreferenceKind {

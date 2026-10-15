@@ -23,13 +23,27 @@ const tomate = {
   category: 'VEGETABLE',
   allergens: ['HISTAMINE'],
   allergensUncertain: false,
+  defaultUnit: 'PIECE',
 };
-const ajo = { id: 'ing_ajo', name: 'Ajo', category: 'VEGETABLE', ...plain };
-const pollo = { id: 'ing_pollo', name: 'Pollo', category: 'MEAT', ...plain };
+const ajo = {
+  id: 'ing_ajo',
+  name: 'Ajo',
+  category: 'VEGETABLE',
+  defaultUnit: 'PIECE',
+  ...plain,
+};
+const pollo = {
+  id: 'ing_pollo',
+  name: 'Pollo',
+  category: 'MEAT',
+  defaultUnit: 'GRAM',
+  ...plain,
+};
 const cilantro = {
   id: 'ing_cilantro',
   name: 'Cilantro',
   category: 'HERB_SPICE',
+  defaultUnit: 'GRAM',
   ...plain,
 };
 

@@ -1,6 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
-import { Allergen, IngredientCategory } from '../generated/prisma/enums.js';
+import {
+  Allergen,
+  IngredientCategory,
+  Unit,
+} from '../generated/prisma/enums.js';
 import type { IngredientWithAllergens } from './ingredient-with-allergens.js';
 
 const allergenOrder = Object.values(Allergen);
@@ -47,6 +51,14 @@ export class IngredientResponse {
   })
   allergensUncertain: boolean;
 
+  @ApiProperty({
+    enum: Unit,
+    enumName: 'Unit',
+    description:
+      'Unit the food is usually measured in. A suggestion for the user, not a restriction.',
+  })
+  defaultUnit: Unit;
+
   static from(ingredient: IngredientWithAllergens): IngredientResponse {
     return {
       id: ingredient.id,
@@ -56,6 +68,7 @@ export class IngredientResponse {
         ingredient.allergens.map(({ allergen }) => allergen),
       ),
       allergensUncertain: ingredient.allergensUncertain,
+      defaultUnit: ingredient.defaultUnit,
     };
   }
 }
