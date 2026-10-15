@@ -56,7 +56,7 @@ export const QUANTITY_MAX = 100_000;
 
 // Thousands with a dot and decimals with a comma, as in Spanish. Written by
 // hand: not every JavaScript engine the app runs on formats numbers for 'es'.
-function formatNumber(value: number): string {
+export function formatNumber(value: number): string {
   const [whole, decimals] = String(Math.round(value * 1000) / 1000).split('.');
   const grouped = whole.replace(/\B(?=(\d{3})+$)/g, '.');
   return decimals ? `${grouped},${decimals}` : grouped;
