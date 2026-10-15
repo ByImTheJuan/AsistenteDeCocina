@@ -7,5 +7,7 @@ import { DietaryRestrictionsService } from './dietary-restrictions.service.js';
   imports: [AuthModule],
   controllers: [DietaryRestrictionsController],
   providers: [DietaryRestrictionsService],
+  // Whatever uses recipes must apply the restrictions.
+  exports: [DietaryRestrictionsService],
 })
 export class DietaryRestrictionsModule {}

@@ -10,6 +10,7 @@ import { IngredientsModule } from './ingredients/ingredients.module.js';
 import { InventoryModule } from './inventory/inventory.module.js';
 import { NutritionGoalsModule } from './nutrition-goals/nutrition-goals.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { RecipesModule } from './recipes/recipes.module.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     DietaryRestrictionsModule,
     NutritionGoalsModule,
     InventoryModule,
+    RecipesModule,
   ],
 })
 export class AppModule {}
