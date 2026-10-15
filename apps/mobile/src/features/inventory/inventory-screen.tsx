@@ -43,7 +43,7 @@ export function InventoryScreen() {
       <ScreenState
         kind="empty"
         title="Tu inventario está vacío"
-        message="Añade los alimentos que tienes en casa para encontrar recetas con lo que ya tienes."
+        message="Añade lo que tienes en casa para encontrar recetas con lo que ya tienes."
         action={{ label: 'Añadir alimento', onPress: addItem }}
       />
     );
