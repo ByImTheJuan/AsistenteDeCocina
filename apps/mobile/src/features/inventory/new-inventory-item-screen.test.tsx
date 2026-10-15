@@ -265,4 +265,73 @@ describe('NewInventoryItemScreen', () => {
     expect(screen.getByText('Tomate')).toBeOnTheScreen();
     expect(unitButton('Unidades')).toBeOnTheScreen();
   });
+
+  describe('where it is kept and its date', () => {
+    const radio = (name: string) => screen.getByRole('radio', { name });
+
+    async function chooseDate() {
+      await user.press(screen.getByRole('button', { name: 'Añadir fecha' }));
+      await user.press(screen.getByRole('button', { name: 'Elegir el 20 de octubre de 2026' }));
+      await user.press(screen.getByRole('button', { name: 'Hecho' }));
+    }
+
+    it('starts without location or date', async () => {
+      await renderScreen();
+
+      await chooseArroz();
+
+      expect(radio('Sin indicar')).toBeChecked();
+      expect(screen.getByText('Sin fecha')).toBeOnTheScreen();
+      expect(screen.queryByRole('radio', { name: 'Caducidad' })).not.toBeOnTheScreen();
+    });
+
+    it('adds the food with its location, date and kind of date', async () => {
+      const test = await renderScreen();
+
+      await chooseArroz();
+      await user.press(radio('Nevera'));
+      await chooseDate();
+      expect(screen.getByText('20 oct 2026')).toBeOnTheScreen();
+      // A date is use-by unless the user says otherwise.
+      expect(radio('Caducidad')).toBeChecked();
+      await user.press(radio('Consumo preferente'));
+      await user.press(addButton());
+
+      await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
+      expect(test.sentTo('POST /inventory')).toEqual([
+        {
+          ingredientId: 'ing_arroz',
+          quantity: null,
+          unit: null,
+          expiresOn: '2026-10-20',
+          dateKind: 'BEST_BEFORE',
+          location: 'FRIDGE',
+        },
+      ]);
+    });
+
+    it('removes the date, and its kind with it', async () => {
+      const test = await renderScreen();
+
+      await chooseArroz();
+      await chooseDate();
+      await user.press(screen.getByRole('button', { name: 'Quitar fecha' }));
+
+      expect(screen.getByText('Sin fecha')).toBeOnTheScreen();
+      expect(screen.queryByRole('radio', { name: 'Caducidad' })).not.toBeOnTheScreen();
+      await user.press(addButton());
+      await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
+      expect(test.sentTo('POST /inventory')[0]).toMatchObject({ expiresOn: null, dateKind: null });
+    });
+
+    it('keeps no date when the calendar is closed without choosing', async () => {
+      await renderScreen();
+
+      await chooseArroz();
+      await user.press(screen.getByRole('button', { name: 'Añadir fecha' }));
+      await user.press(screen.getByRole('button', { name: 'Cancelar' }));
+
+      expect(screen.getByText('Sin fecha')).toBeOnTheScreen();
+    });
+  });
 });

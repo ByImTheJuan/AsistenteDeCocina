@@ -66,7 +66,10 @@ export function UnitSelect({ units, value, quantity, onChange }: UnitSelectProps
                 <ThemedText type="heading" accessibilityRole="header">
                   Unidad
                 </ThemedText>
-                <View accessibilityRole="radiogroup" accessibilityLabel="Unidad" style={styles.options}>
+                <View
+                  accessibilityRole="radiogroup"
+                  accessibilityLabel="Unidad"
+                  style={styles.options}>
                   {units.map((unit) => {
                     const checked = unit === value;
                     return (

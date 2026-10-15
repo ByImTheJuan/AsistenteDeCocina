@@ -75,6 +75,15 @@ const inventory: Inventory = {
     { id: 'item-1', ingredient: leche, quantity: 0.5, unit: 'LITER', ...noStorage },
     { id: 'item-2', ingredient: arroz, quantity: null, unit: null, ...noStorage },
     { id: 'item-3', ingredient: huevo, quantity: 6, unit: 'PIECE', ...noStorage },
+    {
+      id: 'item-4',
+      ingredient: arroz,
+      quantity: 1,
+      unit: 'KILOGRAM',
+      expiresOn: '2026-11-02',
+      dateKind: 'BEST_BEFORE',
+      location: 'PANTRY',
+    },
   ],
 };
 
@@ -305,5 +314,43 @@ describe('EditInventoryItemScreen', () => {
       await screen.findByText('Este alimento ya no está en tu despensa.'),
     ).toBeOnTheScreen();
     expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  describe('where it is kept and its date', () => {
+    it('shows the saved location, date and kind of date', async () => {
+      mockItemId = 'item-4';
+      await renderScreen();
+
+      expect(await screen.findByText('2 nov 2026')).toBeOnTheScreen();
+      expect(screen.getByRole('radio', { name: 'Despensa' })).toBeChecked();
+      expect(screen.getByRole('radio', { name: 'Consumo preferente' })).toBeChecked();
+    });
+
+    it('saves a new location and removes the date', async () => {
+      mockItemId = 'item-4';
+      const test = await renderScreen({
+        'PUT /inventory/item-4': (body) => ({ ...inventory.items[3], ...(body as object) }),
+      });
+      await screen.findByText('2 nov 2026');
+
+      await user.press(screen.getByRole('radio', { name: 'Congelador' }));
+      await user.press(screen.getByRole('button', { name: 'Quitar fecha' }));
+      await user.press(saveButton());
+
+      await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
+      expect(test.sentTo('PUT /inventory/item-4')).toEqual([
+        { quantity: 1, unit: 'KILOGRAM', expiresOn: null, dateKind: null, location: 'FREEZER' },
+      ]);
+    });
+
+    it('counts a changed location as an unsaved change', async () => {
+      await renderScreen();
+      await screen.findByText('Leche');
+
+      await user.press(screen.getByRole('radio', { name: 'Nevera' }));
+
+      expect(saveButton()).toBeEnabled();
+      expect(mockUnsavedChangesWarning).toHaveBeenLastCalledWith(true);
+    });
   });
 });
