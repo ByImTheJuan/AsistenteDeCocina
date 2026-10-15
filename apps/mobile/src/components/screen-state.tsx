@@ -15,7 +15,13 @@ type ScreenStateProps =
       onRetry(): void;
       retrying?: boolean;
     }
-  | { kind: 'empty'; title: string; message?: string };
+  | {
+      kind: 'empty';
+      title: string;
+      message?: string;
+      /** The way out of the empty state, such as adding the first item. */
+      action?: { label: string; onPress(): void };
+    };
 
 /** Whole-screen loading, error and empty states, centred on the background. */
 export function ScreenState(props: ScreenStateProps) {
@@ -41,6 +47,9 @@ export function ScreenState(props: ScreenStateProps) {
           )}
           {props.kind === 'error' && (
             <PrimaryButton label="Reintentar" loading={props.retrying} onPress={props.onRetry} />
+          )}
+          {props.kind === 'empty' && props.action && (
+            <PrimaryButton label={props.action.label} onPress={props.action.onPress} />
           )}
         </View>
       )}

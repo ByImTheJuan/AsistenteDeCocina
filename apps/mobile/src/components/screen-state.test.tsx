@@ -42,4 +42,18 @@ describe('ScreenState', () => {
     expect(screen.getByText('Todavía no hay nada aquí')).toBeOnTheScreen();
     expect(screen.queryByRole('button')).not.toBeOnTheScreen();
   });
+
+  it('offers the way out of an empty state', async () => {
+    const onPress = jest.fn();
+    await render(
+      <ScreenState
+        kind="empty"
+        title="Tu inventario está vacío"
+        action={{ label: 'Añadir alimento', onPress }}
+      />,
+    );
+
+    await user.press(screen.getByRole('button', { name: 'Añadir alimento' }));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
 });
