@@ -38,6 +38,23 @@ describe('Recipes (e2e)', () => {
       detail: (id: string) => http().get(`/recipes/${id}`).set(auth),
       pantry: (today = TODAY) =>
         http().get('/recipes/pantry').query({ today }).set(auth),
+      recommendations: (today = TODAY) =>
+        http().get('/recipes/recommendations').query({ today }).set(auth),
+      setTastes: (tastes: {
+        diet?: string | null;
+        likedIngredientIds?: string[];
+        avoidedIngredientIds?: string[];
+      }) =>
+        http()
+          .put('/food-preferences')
+          .set(auth)
+          .send({
+            diet: null,
+            likedIngredientIds: [],
+            avoidedIngredientIds: [],
+            ...tastes,
+          })
+          .expect(200),
       stock: (
         ingredientId: string,
         quantity: number | null,
@@ -103,6 +120,10 @@ describe('Recipes (e2e)', () => {
     await http().get('/recipes').expect(401);
     await http().get('/recipes/rec_tortilla_patatas').expect(401);
     await http().get('/recipes/pantry').query({ today: TODAY }).expect(401);
+    await http()
+      .get('/recipes/recommendations')
+      .query({ today: TODAY })
+      .expect(401);
   });
 
   describe('GET /recipes', () => {
@@ -428,6 +449,207 @@ describe('Recipes (e2e)', () => {
 
       expect(body.hiddenCount).toBe(WITH_EGG.length);
       expect(ids(body.recipes)).not.toContain('rec_tortilla_patatas');
+    });
+  });
+
+  describe('GET /recipes/recommendations', () => {
+    type Recommended = Summary & {
+      allergensUncertain: boolean;
+      description: string;
+      servings: number;
+      likedIngredients: Summary[];
+      pantry: { canPrepare: boolean };
+      perServing: { calories: number | null; protein: number | null };
+      goals: { kind: string; withinGoal: boolean | null }[];
+    };
+    const ids = (recipes: Summary[]) => recipes.map(({ id }) => id);
+    // Recipes of the catalogue with some ingredient of these origins.
+    const recipesWith = async (origins: ('MEAT' | 'FISH')[]) =>
+      (
+        await prisma.recipe.findMany({
+          where: {
+            ingredients: { some: { ingredient: { origin: { in: origins } } } },
+          },
+          select: { id: true },
+        })
+      ).map(({ id }) => id);
+
+    it('needs a valid day of the user', async () => {
+      const session = await register();
+
+      await http()
+        .get('/recipes/recommendations')
+        .set('Authorization', `Bearer ${session.accessToken}`)
+        .expect(400);
+      await as(session).recommendations('2026-02-30').expect(400);
+    });
+
+    it('recommends every recipe to a user with no profile, unverified allergens last', async () => {
+      const session = await register();
+
+      const { body } = await as(session).recommendations().expect(200);
+
+      expect(body.recipes).toHaveLength(RECIPE_COUNT);
+      expect(body.hiddenCount).toBe(0);
+      expect(body.excludedCount).toBe(0);
+      const uncertain = (body.recipes as Recommended[]).map(
+        ({ allergensUncertain }) => allergensUncertain,
+      );
+      expect(uncertain).toEqual([...uncertain].sort());
+      const tortilla = (body.recipes as Recommended[]).find(
+        ({ id }) => id === 'rec_tortilla_patatas',
+      );
+      expect(tortilla).toMatchObject({
+        name: 'Tortilla de patatas',
+        servings: expect.any(Number),
+        description: expect.any(String),
+        likedIngredients: [],
+        pantry: { canPrepare: false },
+        perServing: { calories: expect.any(Number) },
+        goals: [],
+      });
+    });
+
+    it('hides the recipes that clash with the restrictions', async () => {
+      const session = await register();
+      await as(session).restrict(['EGG']);
+
+      const { body } = await as(session).recommendations().expect(200);
+
+      expect(body.hiddenCount).toBe(WITH_EGG.length);
+      expect(ids(body.recipes)).not.toContain('rec_tortilla_patatas');
+    });
+
+    it('leaves out the recipes the diet does not allow and counts them', async () => {
+      const session = await register();
+      await as(session).setTastes({ diet: 'VEGETARIAN' });
+      const withMeatOrFish = await recipesWith(['MEAT', 'FISH']);
+
+      const { body } = await as(session).recommendations().expect(200);
+
+      expect(withMeatOrFish).toContain('rec_pollo_al_horno');
+      expect(body.excludedCount).toBe(withMeatOrFish.length);
+      expect(body.recipes).toHaveLength(RECIPE_COUNT - withMeatOrFish.length);
+      for (const id of withMeatOrFish) {
+        expect(ids(body.recipes)).not.toContain(id);
+      }
+    });
+
+    it('leaves out eggs and dairy on a vegan diet', async () => {
+      const session = await register();
+      await as(session).setTastes({ diet: 'VEGAN' });
+
+      const { body } = await as(session).recommendations().expect(200);
+
+      expect(ids(body.recipes)).not.toContain('rec_arroz_con_leche');
+      expect(ids(body.recipes)).not.toContain('rec_tortilla_patatas');
+      expect(ids(body.recipes)).toContain('rec_hummus');
+    });
+
+    it('leaves out the recipes with a food the user does not like', async () => {
+      const session = await register();
+      await as(session).setTastes({ avoidedIngredientIds: ['ing_cebolla'] });
+      const withOnion = (
+        await prisma.recipeIngredient.findMany({
+          where: { ingredientId: 'ing_cebolla' },
+          distinct: ['recipeId'],
+          select: { recipeId: true },
+        })
+      ).map(({ recipeId }) => recipeId);
+
+      const { body } = await as(session).recommendations().expect(200);
+
+      expect(withOnion).toContain('rec_tortilla_patatas');
+      expect(body.excludedCount).toBe(withOnion.length);
+      for (const id of withOnion) {
+        expect(ids(body.recipes)).not.toContain(id);
+      }
+    });
+
+    it('moves up the recipes with liked ingredients', async () => {
+      const session = await register();
+      await as(session).setTastes({ likedIngredientIds: ['ing_aguacate'] });
+
+      const { body } = await as(session).recommendations().expect(200);
+
+      expect((body.recipes[0] as Recommended).likedIngredients).toEqual([
+        { id: 'ing_aguacate', name: 'Aguacate' },
+      ]);
+    });
+
+    it('moves up a recipe that can be prepared with the pantry', async () => {
+      const session = await register();
+      await as(session).stock('ing_patata', 6, 'PIECE');
+      await as(session).stock('ing_huevo', 12, 'PIECE');
+      await as(session).stock('ing_cebolla', 2, 'PIECE');
+      await as(session).stock('ing_aceite_de_oliva', null, null);
+
+      const { body } = await as(session).recommendations().expect(200);
+
+      expect(body.recipes[0]).toMatchObject({
+        id: 'rec_tortilla_patatas',
+        pantry: { canPrepare: true },
+      });
+    });
+
+    it('moves down the recipes over the goal per meal', async () => {
+      const session = await register();
+      await as(session).setGoals({
+        mealCalories: { value: 600, enabled: true },
+      });
+
+      const { body } = await as(session).recommendations().expect(200);
+
+      const fits = (body.recipes as Recommended[]).map(
+        ({ goals }) => goals[0].withinGoal,
+      );
+      const tortilla = ids(body.recipes).indexOf('rec_tortilla_patatas');
+      expect(fits[tortilla]).toBe(false);
+      expect(fits.slice(tortilla).every((fit) => fit !== true)).toBe(true);
+    });
+
+    it('reads only the profile of the user', async () => {
+      const other = await register({ ...ana, email: 'otra@example.com' });
+      await as(other).setTastes({
+        diet: 'VEGAN',
+        likedIngredientIds: ['ing_aguacate'],
+      });
+      await as(other).stock('ing_huevo', 12, 'PIECE');
+      const session = await register();
+
+      const { body } = await as(session).recommendations().expect(200);
+
+      expect(body.recipes).toHaveLength(RECIPE_COUNT);
+      expect(
+        (body.recipes as Recommended[]).every(
+          ({ likedIngredients }) => likedIngredients.length === 0,
+        ),
+      ).toBe(true);
+    });
+  });
+
+  describe('ingredient origins', () => {
+    it('follow the category, with the animal products it does not give away', async () => {
+      const origins = Object.fromEntries(
+        (
+          await prisma.ingredient.findMany({
+            select: { id: true, origin: true },
+          })
+        ).map(({ id, origin }) => [id, origin]),
+      );
+
+      expect(origins).toMatchObject({
+        ing_pollo: 'MEAT',
+        ing_merluza: 'FISH',
+        ing_gambas: 'FISH',
+        ing_queso: 'ANIMAL_PRODUCT',
+        ing_mayonesa: 'ANIMAL_PRODUCT',
+        ing_chocolate: 'ANIMAL_PRODUCT',
+        ing_miel: 'ANIMAL_PRODUCT',
+        ing_caldo_de_pollo: 'MEAT',
+        ing_caldo_de_verduras: 'PLANT',
+        ing_tofu: 'PLANT',
+      });
     });
   });
 

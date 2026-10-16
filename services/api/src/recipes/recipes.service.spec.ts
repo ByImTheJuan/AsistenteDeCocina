@@ -111,6 +111,82 @@ describe('RecipesService', () => {
     expect(result.inventoryEmpty).toBe(true);
   });
 
+  it('recommends the apt recipes that fit the tastes, the most suitable first', async () => {
+    restrictions.get.mockResolvedValue({
+      allergens: ['FISH'],
+      ingredients: [],
+    });
+    preferences.get.mockResolvedValue({
+      diet: 'VEGETARIAN',
+      liked: [{ id: 'ing_tomate' }],
+      avoided: [{ id: 'ing_cebolla' }],
+    });
+    goals.get.mockResolvedValue({
+      dailyCalories: null,
+      mealCalories: null,
+      dailyProtein: null,
+    });
+    inventory.list.mockResolvedValue([]);
+    const food = (id: string, origin = 'PLANT', allergens: string[] = []) => {
+      const base = line(id, allergens);
+      return {
+        ...base,
+        quantity: null,
+        unit: null,
+        ingredient: {
+          ...base.ingredient,
+          origin,
+          kcalPer100g: null,
+          proteinPer100g: null,
+          gramsPerPiece: null,
+          gramsPerMilliliter: null,
+        },
+      };
+    };
+    recipe.findMany.mockResolvedValue([
+      {
+        id: 'arroz',
+        name: 'Arroz',
+        servings: 2,
+        ingredients: [food('ing_arroz')],
+      },
+      {
+        id: 'merluza',
+        name: 'Merluza',
+        servings: 2,
+        ingredients: [food('ing_merluza', 'FISH', ['FISH'])],
+      },
+      {
+        id: 'pollo',
+        name: 'Pollo',
+        servings: 2,
+        ingredients: [food('ing_pollo', 'MEAT')],
+      },
+      {
+        id: 'sopa',
+        name: 'Sopa',
+        servings: 2,
+        ingredients: [food('ing_cebolla')],
+      },
+      {
+        id: 'tomate',
+        name: 'Tomate',
+        servings: 2,
+        ingredients: [food('ing_tomate')],
+      },
+    ]);
+
+    const result = await service.recommendations(current, '2026-10-16');
+
+    expect(preferences.get).toHaveBeenCalledWith(current);
+    expect(result.recipes.map(({ id }) => id)).toEqual(['tomate', 'arroz']);
+    expect(result.recipes[0].likedIngredients.map(({ id }) => id)).toEqual([
+      'ing_tomate',
+    ]);
+    expect(result.hiddenCount).toBe(1);
+    expect(result.excludedCount).toBe(2);
+  });
+
   it('answers not found for an unknown recipe', async () => {
     restrictions.get.mockResolvedValue({ allergens: [], ingredients: [] });
     recipe.findUnique.mockResolvedValue(null);
