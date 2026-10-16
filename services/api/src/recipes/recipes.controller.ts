@@ -1,5 +1,13 @@
-import { Controller, Get, Inject, Param, UseGuards } from '@nestjs/common';
 import {
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -11,6 +19,8 @@ import { CurrentUser } from '../auth/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/jwt-auth.guard.js';
 import {
+  PantryRecipesQuery,
+  PantryRecipesResponse,
   RecipeCatalogueResponse,
   RecipeDetailResponse,
 } from './recipes.dto.js';
@@ -39,6 +49,24 @@ export class RecipesController {
     @CurrentUser() current: AuthenticatedUser,
   ): Promise<RecipeCatalogueResponse> {
     return RecipeCatalogueResponse.from(await this.recipes.catalogue(current));
+  }
+
+  // Declared before `:id`, which would otherwise take "pantry" as an id.
+  @Get('pantry')
+  @ApiOperation({
+    summary: 'List the recipes against the pantry',
+    description:
+      'The apt recipes with what each one takes from home, what is missing or not enough, and what has to be checked. Quantities are compared only between units of the same kind.',
+  })
+  @ApiOkResponse({ type: PantryRecipesResponse })
+  @ApiBadRequestResponse({ description: '`today` is not a valid YYYY-MM-DD' })
+  async pantry(
+    @CurrentUser() current: AuthenticatedUser,
+    @Query() query: PantryRecipesQuery,
+  ): Promise<PantryRecipesResponse> {
+    return PantryRecipesResponse.from(
+      await this.recipes.pantry(current, query.today),
+    );
   }
 
   @Get(':id')
