@@ -58,3 +58,4 @@ Las medidas, las unidades sugeridas y los sinónimos los ha elaborado el equipo 
 - US-006 guarda cada cantidad con una de estas unidades y usa `defaultUnit` como propuesta.
 - US-014 y US-023 deben usar `combineQuantities` para comparar y sumar cantidades, y mostrar por separado lo que no se pueda combinar.
 - Si en el futuro se añaden equivalencias entre magnitudes por alimento, deberán marcarse como aproximadas y no aplicarse sin revisión del usuario.
+- US-013 añadió pesos por unidad y densidades por alimento (ADR 0007), pero **solo para estimar la nutrición** de las recetas; no se usan para comparar ni sumar cantidades.

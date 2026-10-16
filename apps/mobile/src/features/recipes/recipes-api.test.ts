@@ -33,6 +33,16 @@ const detail = {
   ],
   steps: ['Pela las patatas.'],
   safety: { conflictingAllergens: ['EGG'], conflictingIngredients: [], allergensUncertain: false },
+  nutrition: {
+    perServing: { calories: 678, protein: 14.4 },
+    estimated: true,
+    missingIngredients: [],
+    excludesToTaste: true,
+  },
+  goals: [
+    { kind: 'DAILY_CALORIES', target: 2000, comparable: true, percent: 34, withinGoal: null },
+    { kind: 'NEW_GOAL', target: 30, comparable: true, percent: 10, withinGoal: null },
+  ],
 };
 
 describe('recipes API', () => {
@@ -60,6 +70,15 @@ describe('recipes API', () => {
     expect(request).toHaveBeenCalledWith('/recipes/rec%2F1');
     expect(recipe.ingredients[0]).toMatchObject({ quantity: 4, unit: 'PIECE', note: 'medianas' });
     expect(recipe.safety.conflictingAllergens).toEqual(['EGG']);
+    expect(recipe.nutrition.perServing).toEqual({ calories: 678, protein: 14.4 });
+  });
+
+  it('leaves out the goals this version does not know', async () => {
+    request.mockResolvedValue(detail);
+
+    const recipe = await getRecipe(request, 'rec_tortilla_patatas');
+
+    expect(recipe.goals.map(({ kind }) => kind)).toEqual(['DAILY_CALORIES']);
   });
 
   it('keeps a rating when there is one', async () => {

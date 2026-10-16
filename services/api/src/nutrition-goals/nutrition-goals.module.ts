@@ -7,5 +7,7 @@ import { NutritionGoalsService } from './nutrition-goals.service.js';
   imports: [AuthModule],
   controllers: [NutritionGoalsController],
   providers: [NutritionGoalsService],
+  // Recipe details are compared with the goals.
+  exports: [NutritionGoalsService],
 })
 export class NutritionGoalsModule {}

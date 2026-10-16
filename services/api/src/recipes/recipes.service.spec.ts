@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import type { DietaryRestrictionsService } from '../dietary-restrictions/dietary-restrictions.service.js';
+import type { NutritionGoalsService } from '../nutrition-goals/nutrition-goals.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { RecipesService } from './recipes.service.js';
 
@@ -8,6 +9,7 @@ import { RecipesService } from './recipes.service.js';
 describe('RecipesService', () => {
   const recipe = { findMany: vi.fn(), findUnique: vi.fn() };
   const restrictions = { get: vi.fn() };
+  const goals = { get: vi.fn() };
   const current = { id: 'user-1', sessionId: null };
 
   const line = (id: string, allergens: string[] = []) => ({
@@ -27,6 +29,7 @@ describe('RecipesService', () => {
     service = new RecipesService(
       { recipe } as unknown as PrismaService,
       restrictions as unknown as DietaryRestrictionsService,
+      goals as unknown as NutritionGoalsService,
     );
   });
 

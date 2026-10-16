@@ -115,6 +115,14 @@ model Ingredient {
   measure            IngredientMeasure
   // The unit of its measure offered first to the user.
   defaultUnit        Unit
+  // Average values to estimate the nutrition of recipes; null when unknown.
+  // Not from a validated source: docs/decisions/0007-informacion-nutricional.md.
+  kcalPer100g        Decimal?           @db.Decimal(6, 1)
+  proteinPer100g     Decimal?           @db.Decimal(5, 1)
+  // Average weight of one piece, for the foods that are counted.
+  gramsPerPiece      Decimal?           @db.Decimal(7, 1)
+  // Density, to turn volumes (millilitres, spoons) into grams.
+  gramsPerMilliliter Decimal?           @db.Decimal(5, 3)
   createdAt          DateTime           @default(now())
 
   preferences  IngredientPreference[]

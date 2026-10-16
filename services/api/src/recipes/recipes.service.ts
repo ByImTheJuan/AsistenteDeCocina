@@ -3,7 +3,12 @@ import type { AuthenticatedUser } from '../auth/jwt-auth.guard.js';
 import { DietaryRestrictionsService } from '../dietary-restrictions/dietary-restrictions.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { withAllergens } from '../ingredients/ingredient-with-allergens.js';
+import { NutritionGoalsService } from '../nutrition-goals/nutrition-goals.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { nutritionGoalsFit } from './nutrition-goals-fit.js';
+import type { GoalFit } from './nutrition-goals-fit.js';
+import { recipeNutrition } from './recipe-nutrition.js';
+import type { RecipeNutrition } from './recipe-nutrition.js';
 import { hasConflicts, recipeSafety } from './recipe-safety.js';
 import type { RecipeSafety } from './recipe-safety.js';
 import { recipeNotFound } from './recipes.errors.js';
@@ -26,7 +31,12 @@ export type RecipeWithIngredients = Prisma.RecipeGetPayload<{
 
 export type RecipeDetail = Prisma.RecipeGetPayload<{
   include: typeof withDetail;
-}> & { safety: RecipeSafety };
+}> & {
+  safety: RecipeSafety;
+  nutrition: RecipeNutrition;
+  /** How a serving stands against the goals the user has switched on. */
+  goals: GoalFit[];
+};
 
 export type RecipeCatalogue = {
   /** The recipes apt for the user, by name. */
@@ -43,6 +53,8 @@ export class RecipesService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(DietaryRestrictionsService)
     private readonly restrictions: DietaryRestrictionsService,
+    @Inject(NutritionGoalsService)
+    private readonly nutritionGoals: NutritionGoalsService,
   ) {}
 
   async catalogue(current: AuthenticatedUser): Promise<RecipeCatalogue> {
@@ -64,10 +76,14 @@ export class RecipesService {
 
   /**
    * Any recipe of the catalogue, also one hidden from the user's list: it
-   * comes with its conflicts so the app can warn about them.
+   * comes with its conflicts so the app can warn about them. Its estimated
+   * nutrition per serving is compared with the user's goals.
    */
   async detail(current: AuthenticatedUser, id: string): Promise<RecipeDetail> {
-    const restrictions = await this.restrictions.get(current);
+    const [restrictions, goals] = await Promise.all([
+      this.restrictions.get(current),
+      this.nutritionGoals.get(current),
+    ]);
     const recipe = await this.prisma.recipe.findUnique({
       where: { id },
       include: withDetail,
@@ -75,12 +91,15 @@ export class RecipesService {
     if (!recipe) {
       throw recipeNotFound();
     }
+    const nutrition = recipeNutrition(recipe.ingredients, recipe.servings);
     return {
       ...recipe,
       safety: recipeSafety(
         recipe.ingredients.map(({ ingredient }) => ingredient),
         restrictions,
       ),
+      nutrition,
+      goals: nutritionGoalsFit(nutrition.perServing, goals),
     };
   }
 }

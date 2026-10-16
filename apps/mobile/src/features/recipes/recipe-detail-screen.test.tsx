@@ -53,6 +53,13 @@ const tortilla: RecipeDetail = {
   steps: ['Pela las patatas.', 'Pocha la patata.', 'Cuaja la tortilla.'],
   rating: null,
   safety: { conflictingAllergens: [], conflictingIngredients: [], allergensUncertain: false },
+  nutrition: {
+    perServing: { calories: 678, protein: 14.4 },
+    estimated: true,
+    missingIngredients: [],
+    excludesToTaste: true,
+  },
+  goals: [],
 };
 
 describe('RecipeDetailScreen', () => {
@@ -105,13 +112,138 @@ describe('RecipeDetailScreen', () => {
     await renderScreen(() => tortilla);
 
     await screen.findByText('Tortilla de patatas');
-    expect(screen.getByText('Para 4 raciones.')).toBeOnTheScreen();
+    expect(screen.getByText('Para 4 raciones')).toBeOnTheScreen();
     expect(screen.getAllByLabelText(/^(Patata|Huevo|Aceite de oliva|Sal): /).map(label)).toEqual([
       'Patata: 4 unidades, medianas',
       'Huevo: 6 unidades',
       'Aceite de oliva: 2 cucharadas',
       'Sal: al gusto',
     ]);
+  });
+
+  it('works out the quantities for the servings chosen', async () => {
+    await renderScreen(() => tortilla);
+    await screen.findByText('Tortilla de patatas');
+
+    await user.press(screen.getByRole('button', { name: 'Menos raciones' }));
+    await user.press(screen.getByRole('button', { name: 'Menos raciones' }));
+
+    expect(screen.getByText('Para 2 raciones')).toBeOnTheScreen();
+    expect(screen.getAllByLabelText(/^(Patata|Huevo|Aceite de oliva|Sal): /).map(label)).toEqual([
+      'Patata: 2 unidades, medianas',
+      'Huevo: 3 unidades',
+      'Aceite de oliva: 1 cucharada',
+      'Sal: al gusto',
+    ]);
+
+    await user.press(screen.getByRole('button', { name: 'Más raciones' }));
+
+    expect(screen.getByLabelText('Huevo: 4,5 unidades')).toBeOnTheScreen();
+  });
+
+  it('keeps the servings between 1 and 12', async () => {
+    await renderScreen(() => ({ ...tortilla, servings: 1 }));
+    await screen.findByText('Tortilla de patatas');
+
+    expect(screen.getByRole('button', { name: 'Menos raciones' })).toBeDisabled();
+    for (let i = 0; i < 11; i += 1) {
+      await user.press(screen.getByRole('button', { name: 'Más raciones' }));
+    }
+
+    expect(screen.getByText('Para 12 raciones')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Más raciones' })).toBeDisabled();
+  });
+
+  it('shows the estimated calories and protein of a serving', async () => {
+    await renderScreen(() => tortilla);
+
+    expect(await screen.findByText('Por ración (estimación)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Calorías: 678 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Proteínas: 14,4 g de proteínas')).toBeOnTheScreen();
+    expect(screen.getByText(/sin contar los que van al gusto/)).toBeOnTheScreen();
+  });
+
+  it('says which ingredients lack data instead of giving a value', async () => {
+    await renderScreen(() => ({
+      ...tortilla,
+      nutrition: {
+        ...tortilla.nutrition,
+        perServing: { calories: null, protein: 14.4 },
+        missingIngredients: [{ id: 'ing_chorizo', name: 'Chorizo' }],
+      },
+    }));
+
+    expect(
+      await screen.findByLabelText('Calorías: No disponible: faltan datos de Chorizo'),
+    ).toBeOnTheScreen();
+    expect(screen.getByLabelText('Proteínas: 14,4 g de proteínas')).toBeOnTheScreen();
+  });
+
+  it('compares a serving with the goals in use', async () => {
+    await renderScreen(() => ({
+      ...tortilla,
+      goals: [
+        { kind: 'DAILY_CALORIES', target: 2000, comparable: true, percent: 34, withinGoal: null },
+        { kind: 'MEAL_CALORIES', target: 800, comparable: true, percent: null, withinGoal: true },
+        { kind: 'DAILY_PROTEIN', target: 120, comparable: true, percent: 12, withinGoal: null },
+      ],
+    }));
+
+    expect(
+      await screen.findByText('Una ración: 34 % de tus 2.000 kcal diarias.'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText('Una ración está dentro de tu objetivo de 800 kcal por comida.'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText('Una ración: 12 % de tus 120 g de proteínas diarias.'),
+    ).toBeOnTheScreen();
+  });
+
+  it('warns when a serving goes over the goal per meal', async () => {
+    await renderScreen(() => ({
+      ...tortilla,
+      goals: [
+        { kind: 'MEAL_CALORIES', target: 600, comparable: true, percent: null, withinGoal: false },
+      ],
+    }));
+
+    expect(
+      await screen.findByText('Una ración supera tu objetivo de 600 kcal por comida.'),
+    ).toBeOnTheScreen();
+  });
+
+  it('says when a goal cannot be compared', async () => {
+    await renderScreen(() => ({
+      ...tortilla,
+      goals: [
+        { kind: 'DAILY_CALORIES', target: 2000, comparable: false, percent: null, withinGoal: null },
+        { kind: 'NEW_GOAL', target: 30, comparable: true, percent: 10, withinGoal: null },
+      ],
+    }));
+
+    expect(
+      await screen.findByText(
+        'No se puede comparar con tus 2.000 kcal diarias: faltan datos de algún ingrediente.',
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('invites to switch on the goals when none is in use', async () => {
+    await renderScreen(() => tortilla);
+
+    expect(
+      await screen.findByText(
+        'Activa tus objetivos nutricionales en Perfil para comparar la receta con ellos.',
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('says the recipe has no reviews yet', async () => {
+    await renderScreen(() => tortilla);
+
+    expect(await screen.findByText('Valoraciones y reseñas')).toBeOnTheScreen();
+    expect(screen.getByText('Todavía no hay reseñas de esta receta.')).toBeOnTheScreen();
   });
 
   it('numbers the steps in order', async () => {
