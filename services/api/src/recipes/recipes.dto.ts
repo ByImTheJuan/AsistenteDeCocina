@@ -1,5 +1,20 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, Matches } from 'class-validator';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  IntersectionType,
+} from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import {
   Allergen,
   ExpiryKind,
@@ -8,6 +23,8 @@ import {
 } from '../generated/prisma/enums.js';
 import { IngredientResponse } from '../ingredients/ingredients.dto.js';
 import type { GoalFit } from './nutrition-goals-fit.js';
+import { FILTER_DIETS, RECIPE_SORTS } from './recipe-filters.js';
+import type { FilterDiet, RecipeSort } from './recipe-filters.js';
 import type { PantryMatch } from './pantry-match.js';
 import type { RecipeNutrition } from './recipe-nutrition.js';
 import type { RecipeSafety } from './recipe-safety.js';
@@ -84,6 +101,15 @@ export class RecipeSummaryResponse {
   @ApiProperty(ratingProperty)
   rating: RecipeRatingResponse | null;
 
+  @ApiProperty({
+    type: 'number',
+    nullable: true,
+    example: 320,
+    description:
+      'Estimated kilocalories of one serving, with no validated source. Null when some ingredient lacks the data.',
+  })
+  caloriesPerServing: number | null;
+
   static from(recipe: RecipeWithIngredients): RecipeSummaryResponse {
     return {
       id: recipe.id,
@@ -98,6 +124,7 @@ export class RecipeSummaryResponse {
         })),
       allergensUncertain: recipe.safety.allergensUncertain,
       rating: null,
+      caloriesPerServing: recipe.caloriesPerServing,
     };
   }
 }
@@ -106,7 +133,7 @@ export class RecipeCatalogueResponse {
   @ApiProperty({
     type: [RecipeSummaryResponse],
     description:
-      'Recipes with nothing the restrictions of the user forbid, by name.',
+      'Recipes with nothing the restrictions of the user forbid that pass the search and the filters, by name or in the order asked for.',
   })
   recipes: RecipeSummaryResponse[];
 
@@ -345,7 +372,66 @@ export class RecipeDetailResponse {
   }
 }
 
-export class PantryRecipesQuery {
+// The search and filters narrow down the apt recipes; the restrictions are
+// applied before, whatever is asked.
+export class RecipeFiltersQuery {
+  @ApiPropertyOptional({
+    maxLength: 100,
+    example: 'patata',
+    description:
+      'Every word has to appear in the name of the recipe, in an ingredient or in a synonym of it. Case and accents do not matter.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: 1440,
+    description: 'Recipes that take at most these minutes.',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(1440)
+  maxMinutes?: number;
+
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: 10000,
+    description:
+      'Recipes whose estimated serving has at most these kcal. Recipes without the data to estimate them are left out.',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(10000)
+  maxCalories?: number;
+
+  @ApiPropertyOptional({
+    enum: FILTER_DIETS,
+    description: 'Recipes whose ingredients this diet allows.',
+  })
+  @IsOptional()
+  @IsIn(FILTER_DIETS)
+  diet?: FilterDiet;
+
+  @ApiPropertyOptional({
+    enum: RECIPE_SORTS,
+    default: 'NAME',
+    description:
+      'By name, by least time, or by fewest kcal per serving (unknown last). Ties go by name.',
+  })
+  @IsOptional()
+  @IsIn(RECIPE_SORTS)
+  sort?: RecipeSort;
+}
+
+/** The day of the user, from the device. */
+export class TodayQuery {
   @ApiProperty({
     example: '2026-10-16',
     description:
@@ -355,6 +441,12 @@ export class PantryRecipesQuery {
   @IsDateString({ strict: true, strictSeparator: true })
   today: string;
 }
+
+/** The day of the user and the filters of the list. */
+export class PantryRecipesQuery extends IntersectionType(
+  RecipeFiltersQuery,
+  TodayQuery,
+) {}
 
 export class QuantityResponse {
   @ApiProperty({ example: 200 })

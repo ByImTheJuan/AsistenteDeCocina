@@ -12,6 +12,8 @@ import { nutritionGoalsFit } from './nutrition-goals-fit.js';
 import { pantryMatch } from './pantry-match.js';
 import type { PantryMatch } from './pantry-match.js';
 import type { GoalFit } from './nutrition-goals-fit.js';
+import { matchesFilters, sortRecipes } from './recipe-filters.js';
+import type { RecipeFilters } from './recipe-filters.js';
 import { recipeNutrition } from './recipe-nutrition.js';
 import {
   isRecommendable,
@@ -23,10 +25,11 @@ import { hasConflicts, recipeSafety } from './recipe-safety.js';
 import type { RecipeSafety } from './recipe-safety.js';
 import { recipeNotFound } from './recipes.errors.js';
 
+// Synonyms too, so the search finds 'papa' in a recipe with potato.
 const withIngredients = {
   ingredients: {
     orderBy: { position: 'asc' },
-    include: { ingredient: { include: withAllergens } },
+    include: { ingredient: { include: { ...withAllergens, aliases: true } } },
   },
 } satisfies Prisma.RecipeInclude;
 
@@ -37,7 +40,11 @@ const withDetail = {
 
 export type RecipeWithIngredients = Prisma.RecipeGetPayload<{
   include: typeof withIngredients;
-}> & { safety: RecipeSafety };
+}> & {
+  safety: RecipeSafety;
+  /** Estimated; null when some ingredient lacks the data. */
+  caloriesPerServing: number | null;
+};
 
 export type RecipeDetail = Prisma.RecipeGetPayload<{
   include: typeof withDetail;
@@ -49,7 +56,7 @@ export type RecipeDetail = Prisma.RecipeGetPayload<{
 };
 
 export type RecipeCatalogue = {
-  /** The recipes apt for the user, by name. */
+  /** The recipes apt for the user that pass the filters, by name or as sorted. */
   recipes: RecipeWithIngredients[];
   /** How many recipes were left out for clashing with the restrictions. */
   hiddenCount: number;
@@ -96,9 +103,12 @@ export class RecipesService {
     private readonly preferences: FoodPreferencesService,
   ) {}
 
-  async catalogue(current: AuthenticatedUser): Promise<RecipeCatalogue> {
+  async catalogue(
+    current: AuthenticatedUser,
+    filters: RecipeFilters = {},
+  ): Promise<RecipeCatalogue> {
     const restrictions = await this.restrictions.get(current);
-    return this.aptRecipes(restrictions);
+    return this.aptRecipes(restrictions, filters);
   }
 
   /**
@@ -108,12 +118,16 @@ export class RecipesService {
   async pantry(
     current: AuthenticatedUser,
     today: string,
+    filters: RecipeFilters = {},
   ): Promise<PantryRecipes> {
     const [restrictions, items] = await Promise.all([
       this.restrictions.get(current),
       this.inventory.list(current),
     ]);
-    const { recipes, hiddenCount } = await this.aptRecipes(restrictions);
+    const { recipes, hiddenCount } = await this.aptRecipes(
+      restrictions,
+      filters,
+    );
     return {
       recipes: recipes.map((recipe) => ({
         ...recipe,
@@ -183,8 +197,14 @@ export class RecipesService {
     };
   }
 
+  /**
+   * The recipes with no conflict with the restrictions that pass the
+   * filters. `hiddenCount` counts the conflicts in the whole catalogue,
+   * whatever the filters.
+   */
   private async aptRecipes(
     restrictions: DietaryRestrictions,
+    filters: RecipeFilters = {},
   ): Promise<RecipeCatalogue> {
     const recipes = await this.prisma.recipe.findMany({
       include: withIngredients,
@@ -196,9 +216,15 @@ export class RecipesService {
         recipe.ingredients.map(({ ingredient }) => ingredient),
         restrictions,
       ),
+      caloriesPerServing: recipeNutrition(recipe.ingredients, recipe.servings)
+        .perServing.calories,
     }));
     const apt = rated.filter(({ safety }) => !hasConflicts(safety));
-    return { recipes: apt, hiddenCount: rated.length - apt.length };
+    const found = apt.filter((recipe) => matchesFilters(recipe, filters));
+    return {
+      recipes: sortRecipes(found, filters.sort),
+      hiddenCount: rated.length - apt.length,
+    };
   }
 
   /**

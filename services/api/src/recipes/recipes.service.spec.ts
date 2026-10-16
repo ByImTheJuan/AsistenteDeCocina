@@ -16,13 +16,22 @@ describe('RecipesService', () => {
   const preferences = { get: vi.fn() };
   const current = { id: 'user-1', sessionId: null };
 
+  // Goes to taste unless a test gives it a quantity.
   const line = (id: string, allergens: string[] = []) => ({
     main: true,
+    quantity: null,
+    unit: null,
     ingredient: {
       id,
       name: id,
+      origin: 'PLANT',
       allergensUncertain: false,
       allergens: allergens.map((allergen) => ({ allergen })),
+      aliases: [],
+      kcalPer100g: null,
+      proteinPer100g: null,
+      gramsPerPiece: null,
+      gramsPerMilliliter: null,
     },
   });
 
