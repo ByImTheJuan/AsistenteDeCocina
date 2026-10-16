@@ -1,11 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { AuthenticatedUser } from '../auth/jwt-auth.guard.js';
 import { DietaryRestrictionsService } from '../dietary-restrictions/dietary-restrictions.service.js';
+import type { DietaryRestrictions } from '../dietary-restrictions/dietary-restrictions.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { withAllergens } from '../ingredients/ingredient-with-allergens.js';
+import { InventoryService } from '../inventory/inventory.service.js';
 import { NutritionGoalsService } from '../nutrition-goals/nutrition-goals.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { nutritionGoalsFit } from './nutrition-goals-fit.js';
+import { pantryMatch } from './pantry-match.js';
+import type { PantryMatch } from './pantry-match.js';
 import type { GoalFit } from './nutrition-goals-fit.js';
 import { recipeNutrition } from './recipe-nutrition.js';
 import type { RecipeNutrition } from './recipe-nutrition.js';
@@ -45,6 +49,14 @@ export type RecipeCatalogue = {
   hiddenCount: number;
 };
 
+export type PantryRecipes = {
+  /** The recipes apt for the user, by name, against what there is at home. */
+  recipes: (RecipeWithIngredients & { pantry: PantryMatch })[];
+  hiddenCount: number;
+  /** The user has nothing at home yet. */
+  inventoryEmpty: boolean;
+};
+
 // The recipe catalogue, read against the user's safety restrictions, which are
 // mandatory: the catalogue never offers a recipe that clashes with them.
 @Injectable()
@@ -55,10 +67,41 @@ export class RecipesService {
     private readonly restrictions: DietaryRestrictionsService,
     @Inject(NutritionGoalsService)
     private readonly nutritionGoals: NutritionGoalsService,
+    @Inject(InventoryService)
+    private readonly inventory: InventoryService,
   ) {}
 
   async catalogue(current: AuthenticatedUser): Promise<RecipeCatalogue> {
     const restrictions = await this.restrictions.get(current);
+    return this.aptRecipes(restrictions);
+  }
+
+  /**
+   * The apt recipes against the user's pantry. `today` is the user's day
+   * (YYYY-MM-DD): from it on, a food past its use-by date does not count.
+   */
+  async pantry(
+    current: AuthenticatedUser,
+    today: string,
+  ): Promise<PantryRecipes> {
+    const [restrictions, items] = await Promise.all([
+      this.restrictions.get(current),
+      this.inventory.list(current),
+    ]);
+    const { recipes, hiddenCount } = await this.aptRecipes(restrictions);
+    return {
+      recipes: recipes.map((recipe) => ({
+        ...recipe,
+        pantry: pantryMatch(recipe.ingredients, items, today),
+      })),
+      hiddenCount,
+      inventoryEmpty: items.length === 0,
+    };
+  }
+
+  private async aptRecipes(
+    restrictions: DietaryRestrictions,
+  ): Promise<RecipeCatalogue> {
     const recipes = await this.prisma.recipe.findMany({
       include: withIngredients,
       orderBy: { name: 'asc' },

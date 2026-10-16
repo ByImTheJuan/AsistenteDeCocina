@@ -1,6 +1,6 @@
 import { screen, userEvent } from '@testing-library/react-native';
 
-import type { RecipeCatalogue, RecipeSummary } from './recipes-api';
+import type { PantryRecipe, PantryRecipes, RecipeCatalogue, RecipeSummary } from './recipes-api';
 import { RecipesScreen } from './recipes-screen';
 
 import { renderSignedIn } from '@/features/account/account-test-utils';
@@ -42,6 +42,80 @@ const gazpacho: RecipeSummary = {
   rating: { average: 4.5, count: 12 },
 };
 const catalogue: RecipeCatalogue = { recipes: [gazpacho, tortilla], hiddenCount: 0 };
+
+const PANTRY = 'GET /recipes/pantry?today=2026-10-16';
+const nothingToCheck: PantryRecipe['pantry'] = {
+  canPrepare: true,
+  missing: [],
+  checkQuantity: [],
+  checkToTaste: [],
+  using: [],
+};
+const food = (id: string, name: string) => ({ id, name });
+const pantryRecipes: PantryRecipes = {
+  recipes: [
+    {
+      ...gazpacho,
+      pantry: {
+        ...nothingToCheck,
+        canPrepare: false,
+        missing: [
+          {
+            ingredient: food('ing_pepino', 'Pepino'),
+            needed: { quantity: 1, unit: 'PIECE' },
+            have: null,
+            expired: false,
+          },
+        ],
+        using: [
+          {
+            ingredient: food('ing_tomate', 'Tomate'),
+            expiresOn: '2026-10-17',
+            dateKind: 'USE_BY',
+          },
+        ],
+      },
+    },
+    {
+      ...tortilla,
+      pantry: {
+        ...nothingToCheck,
+        checkQuantity: [food('ing_patata', 'Patata')],
+        checkToTaste: [food('ing_sal', 'Sal')],
+        using: [
+          { ingredient: food('ing_patata', 'Patata'), expiresOn: null, dateKind: null },
+          { ingredient: food('ing_huevo', 'Huevo'), expiresOn: '2026-11-20', dateKind: 'USE_BY' },
+        ],
+      },
+    },
+    {
+      ...tortilla,
+      id: 'rec_lentejas',
+      name: 'Lentejas estofadas',
+      pantry: {
+        ...nothingToCheck,
+        canPrepare: false,
+        missing: [
+          {
+            ingredient: food('ing_chorizo', 'Chorizo'),
+            needed: { quantity: 150, unit: 'GRAM' },
+            have: { quantity: 100, unit: 'GRAM' },
+            expired: false,
+          },
+          {
+            ingredient: food('ing_pimiento', 'Pimiento'),
+            needed: { quantity: 1, unit: 'PIECE' },
+            have: null,
+            expired: true,
+          },
+        ],
+        using: [{ ingredient: food('ing_lentejas', 'Lentejas'), expiresOn: null, dateKind: null }],
+      },
+    },
+  ],
+  hiddenCount: 0,
+  inventoryEmpty: false,
+};
 
 describe('RecipesScreen', () => {
   const user = userEvent.setup();
@@ -155,6 +229,136 @@ describe('RecipesScreen', () => {
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/recipes/[id]',
       params: { id: 'rec_tortilla_patatas' },
+    });
+  });
+
+  describe('with the pantry', () => {
+    // Only the date is faked: the day the screen asks the recipes for.
+    beforeEach(() => {
+      jest.useFakeTimers({
+        now: new Date(2026, 9, 16, 10),
+        doNotFake: [
+          'hrtime',
+          'nextTick',
+          'performance',
+          'queueMicrotask',
+          'requestAnimationFrame',
+          'cancelAnimationFrame',
+          'requestIdleCallback',
+          'cancelIdleCallback',
+          'setImmediate',
+          'clearImmediate',
+          'setInterval',
+          'clearInterval',
+          'setTimeout',
+          'clearTimeout',
+        ],
+      });
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    const showPantry = async (getPantry: () => unknown) => {
+      await renderSignedIn(<RecipesScreen />, {
+        'GET /recipes': () => catalogue,
+        [PANTRY]: getPantry,
+      });
+      await screen.findByText('Tortilla de patatas');
+      await user.press(screen.getByRole('radio', { name: /Con mi despensa/ }));
+    };
+
+    const recipeNames = () =>
+      screen
+        .getAllByRole('button')
+        .map((button) => (button.props.accessibilityLabel as string).split(',')[0]);
+
+    it('groups the recipes by how well they use the pantry', async () => {
+      await showPantry(() => pantryRecipes);
+
+      expect(await screen.findByText('Aprovecha lo que caduca pronto')).toBeOnTheScreen();
+      const headings = screen.getAllByRole('header').map((heading) => heading.props.children);
+      expect(headings).toEqual([
+        'Recetas',
+        'Aprovecha lo que caduca pronto',
+        'Puedes prepararlas',
+        'Te falta poco',
+      ]);
+      expect(recipeNames()).toEqual([
+        'Gazpacho andaluz',
+        'Tortilla de patatas',
+        'Lentejas estofadas',
+      ]);
+    });
+
+    it('says what each recipe uses up, lacks and has to be checked', async () => {
+      await showPantry(() => pantryRecipes);
+
+      expect(await screen.findByText('Usa Tomate · Caduca mañana')).toBeOnTheScreen();
+      expect(screen.getByText('Falta: Pepino')).toBeOnTheScreen();
+      expect(screen.getByText('Comprueba la cantidad de: Patata')).toBeOnTheScreen();
+      expect(screen.getByText('Comprueba que tienes: Sal')).toBeOnTheScreen();
+      expect(screen.getByText('Falta: Chorizo (tienes 100 g de 150 g)')).toBeOnTheScreen();
+      expect(screen.getByText('Caducado, no se cuenta: Pimiento')).toBeOnTheScreen();
+      expect(
+        screen.getByRole('button', {
+          name: /^Lentejas estofadas, .*Falta: Chorizo \(tienes 100 g de 150 g\), Caducado, no se cuenta: Pimiento$/,
+        }),
+      ).toBeOnTheScreen();
+    });
+
+    it('reminds to check the food before cooking', async () => {
+      await showPantry(() => pantryRecipes);
+
+      expect(
+        await screen.findByText(/^Revisa que los alimentos estén en buen estado antes de cocinar/),
+      ).toBeOnTheScreen();
+    });
+
+    it('offers the whole catalogue when the pantry is empty', async () => {
+      await showPantry(() => ({ recipes: [], hiddenCount: 0, inventoryEmpty: true }));
+
+      expect(await screen.findByText('Tu despensa está vacía')).toBeOnTheScreen();
+      await user.press(screen.getByRole('button', { name: 'Ver todas las recetas' }));
+
+      expect(await screen.findByText('Gazpacho andaluz')).toBeOnTheScreen();
+    });
+
+    it('offers the whole catalogue when no recipe uses the pantry well', async () => {
+      await showPantry(() => ({
+        ...pantryRecipes,
+        recipes: [{ ...tortilla, pantry: { ...nothingToCheck, canPrepare: false } }],
+      }));
+
+      expect(await screen.findByText('Todavía no hay recetas para tu despensa')).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Ver todas las recetas' })).toBeOnTheScreen();
+    });
+
+    it('explains a failed load and retries', async () => {
+      let attempts = 0;
+      await showPantry(() => {
+        attempts += 1;
+        if (attempts === 1) {
+          throw new NetworkError();
+        }
+        return pantryRecipes;
+      });
+
+      expect(await screen.findByText('No se han podido cargar las recetas')).toBeOnTheScreen();
+      await user.press(screen.getByRole('button', { name: 'Reintentar' }));
+
+      expect(await screen.findByText('Puedes prepararlas')).toBeOnTheScreen();
+    });
+
+    it('says how many recipes were hidden for the restrictions', async () => {
+      await showPantry(() => ({ ...pantryRecipes, hiddenCount: 1 }));
+
+      expect(
+        await screen.findByText(
+          'Ocultamos 1 receta que no es apta según tus alergias e intolerancias.',
+        ),
+      ).toBeOnTheScreen();
     });
   });
 });

@@ -7,5 +7,6 @@ import { InventoryService } from './inventory.service.js';
   imports: [AuthModule],
   controllers: [InventoryController],
   providers: [InventoryService],
+  exports: [InventoryService],
 })
 export class InventoryModule {}

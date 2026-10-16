@@ -1,14 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsDateString, Matches } from 'class-validator';
 import {
   Allergen,
+  ExpiryKind,
   NutritionGoalKind,
   Unit,
 } from '../generated/prisma/enums.js';
 import { IngredientResponse } from '../ingredients/ingredients.dto.js';
 import type { GoalFit } from './nutrition-goals-fit.js';
+import type { PantryMatch } from './pantry-match.js';
 import type { RecipeNutrition } from './recipe-nutrition.js';
 import type { RecipeSafety } from './recipe-safety.js';
 import type {
+  PantryRecipes,
   RecipeCatalogue,
   RecipeDetail,
   RecipeWithIngredients,
@@ -336,6 +340,156 @@ export class RecipeDetailResponse {
       safety: RecipeSafetyResponse.from(recipe.safety),
       nutrition: RecipeNutritionResponse.from(recipe.nutrition),
       goals: recipe.goals.map((fit) => RecipeGoalFitResponse.from(fit)),
+    };
+  }
+}
+
+export class PantryRecipesQuery {
+  @ApiProperty({
+    example: '2026-10-16',
+    description:
+      'The day it is for the user (YYYY-MM-DD). From it on, a food whose use-by date is that day or earlier does not count as available.',
+  })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'today must be YYYY-MM-DD' })
+  @IsDateString({ strict: true, strictSeparator: true })
+  today: string;
+}
+
+export class QuantityResponse {
+  @ApiProperty({ example: 200 })
+  quantity: number;
+
+  @ApiProperty({ enum: Unit, enumName: 'Unit' })
+  unit: Unit;
+}
+
+export class PantryMissingResponse {
+  @ApiProperty({ type: RecipeIngredientNameResponse })
+  ingredient: RecipeIngredientNameResponse;
+
+  @ApiProperty({
+    type: QuantityResponse,
+    description: 'What the recipe asks for.',
+  })
+  needed: QuantityResponse;
+
+  @ApiProperty({
+    type: QuantityResponse,
+    nullable: true,
+    description:
+      'What there is at home when it is not enough. Null when there is none.',
+  })
+  have: QuantityResponse | null;
+
+  @ApiProperty({
+    description:
+      'There is some, but its use-by date is today or has passed, so it does not count.',
+  })
+  expired: boolean;
+}
+
+export class PantryUsedResponse {
+  @ApiProperty({ type: RecipeIngredientNameResponse })
+  ingredient: RecipeIngredientNameResponse;
+
+  @ApiProperty({
+    type: 'string',
+    nullable: true,
+    example: '2026-10-18',
+    description: 'Nearest date (YYYY-MM-DD) of the items that count.',
+  })
+  expiresOn: string | null;
+
+  @ApiProperty({
+    enum: ExpiryKind,
+    enumName: 'ExpiryKind',
+    nullable: true,
+  })
+  dateKind: ExpiryKind | null;
+}
+
+export class RecipePantryResponse {
+  @ApiProperty({
+    description:
+      'Nothing the recipe needs in a measured quantity is missing. Ingredients to taste do not count.',
+  })
+  canPrepare: boolean;
+
+  @ApiProperty({
+    type: [PantryMissingResponse],
+    description: 'Missing or not enough, in recipe order.',
+  })
+  missing: PantryMissingResponse[];
+
+  @ApiProperty({
+    type: [RecipeIngredientNameResponse],
+    description:
+      'At home, but in units that cannot be compared with the recipe (pieces against grams): the user has to check the quantity.',
+  })
+  checkQuantity: RecipeIngredientNameResponse[];
+
+  @ApiProperty({
+    type: [RecipeIngredientNameResponse],
+    description:
+      'Go to taste or by the pinch and are not at home. They do not stop the recipe.',
+  })
+  checkToTaste: RecipeIngredientNameResponse[];
+
+  @ApiProperty({
+    type: [PantryUsedResponse],
+    description: 'Ingredients the recipe takes from home, in recipe order.',
+  })
+  using: PantryUsedResponse[];
+
+  static from(match: PantryMatch): RecipePantryResponse {
+    const name = ({ id, name }: { id: string; name: string }) => ({ id, name });
+    return {
+      canPrepare: match.canPrepare,
+      missing: match.missing.map((line) => ({
+        ...line,
+        ingredient: name(line.ingredient),
+      })),
+      checkQuantity: match.checkQuantity.map(name),
+      checkToTaste: match.checkToTaste.map(name),
+      using: match.using.map((line) => ({
+        ...line,
+        ingredient: name(line.ingredient),
+      })),
+    };
+  }
+}
+
+export class PantryRecipeResponse extends RecipeSummaryResponse {
+  @ApiProperty({ type: RecipePantryResponse })
+  pantry: RecipePantryResponse;
+}
+
+export class PantryRecipesResponse {
+  @ApiProperty({
+    type: [PantryRecipeResponse],
+    description:
+      'Recipes with nothing the restrictions of the user forbid, by name, against what there is at home.',
+  })
+  recipes: PantryRecipeResponse[];
+
+  @ApiProperty({
+    minimum: 0,
+    description:
+      'Recipes left out because they contain a restricted allergen or ingredient.',
+  })
+  hiddenCount: number;
+
+  @ApiProperty({ description: 'The user has nothing at home yet.' })
+  inventoryEmpty: boolean;
+
+  static from(result: PantryRecipes): PantryRecipesResponse {
+    return {
+      recipes: result.recipes.map((recipe) => ({
+        ...RecipeSummaryResponse.from(recipe),
+        pantry: RecipePantryResponse.from(recipe.pantry),
+      })),
+      hiddenCount: result.hiddenCount,
+      inventoryEmpty: result.inventoryEmpty,
     };
   }
 }

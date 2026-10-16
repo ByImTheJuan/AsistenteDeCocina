@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import type { AuthorizedRequest } from '@/features/account/account-api';
 import { ingredientSchema } from '@/features/ingredients/ingredients-api';
+import { calendarDaySchema, expiryKindSchema } from '@/features/inventory/expiry';
 import { unitSchema } from '@/features/units/units';
 
 // Null while the recipe has no reviews: never a made-up score.
@@ -26,6 +27,41 @@ const recipeSummarySchema = z.object({
 const recipeCatalogueSchema = z.object({
   recipes: z.array(recipeSummarySchema),
   hiddenCount: z.number(),
+});
+
+const quantitySchema = z.object({ quantity: z.number(), unit: unitSchema });
+
+// How a recipe stands against the pantry. Quantities are compared only between
+// units of the same kind; what goes to taste never stops a recipe.
+const recipePantrySchema = z.object({
+  canPrepare: z.boolean(),
+  // Missing or not enough. `expired`: there is some, past its use-by date.
+  missing: z.array(
+    z.object({
+      ingredient: ingredientNameSchema,
+      needed: quantitySchema,
+      have: quantitySchema.nullable(),
+      expired: z.boolean(),
+    }),
+  ),
+  // At home, in units that cannot be compared with the recipe.
+  checkQuantity: z.array(ingredientNameSchema),
+  // Go to taste and are not at home.
+  checkToTaste: z.array(ingredientNameSchema),
+  // Taken from home, with the nearest date of the items that count.
+  using: z.array(
+    z.object({
+      ingredient: ingredientNameSchema,
+      expiresOn: calendarDaySchema.nullable(),
+      dateKind: expiryKindSchema.nullable(),
+    }),
+  ),
+});
+
+const pantryRecipesSchema = z.object({
+  recipes: z.array(recipeSummarySchema.extend({ pantry: recipePantrySchema })),
+  hiddenCount: z.number(),
+  inventoryEmpty: z.boolean(),
 });
 
 // Without a quantity (both quantity and unit null) the ingredient goes to taste.
@@ -97,10 +133,26 @@ export type RecipeSafety = z.infer<typeof recipeSafetySchema>;
 export type RecipeNutrition = z.infer<typeof recipeNutritionSchema>;
 export type GoalFit = z.infer<typeof goalFitsSchema>[number];
 export type RecipeDetail = z.infer<typeof recipeDetailSchema>;
+export type RecipePantry = z.infer<typeof recipePantrySchema>;
+export type PantryRecipe = z.infer<typeof pantryRecipesSchema>['recipes'][number];
+export type PantryRecipes = z.infer<typeof pantryRecipesSchema>;
 
 /** The recipes apt for the user, by name. */
 export async function getRecipeCatalogue(request: AuthorizedRequest): Promise<RecipeCatalogue> {
   return recipeCatalogueSchema.parse(await request('/recipes'));
+}
+
+/**
+ * The apt recipes against the user's pantry. `today` is the device's day: a
+ * food whose use-by date is that day or earlier does not count.
+ */
+export async function getPantryRecipes(
+  request: AuthorizedRequest,
+  today: string,
+): Promise<PantryRecipes> {
+  return pantryRecipesSchema.parse(
+    await request(`/recipes/pantry?today=${encodeURIComponent(today)}`),
+  );
 }
 
 /** Any recipe of the catalogue, with its conflicts with the user's restrictions. */

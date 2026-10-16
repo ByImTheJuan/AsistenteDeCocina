@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import type { DietaryRestrictionsService } from '../dietary-restrictions/dietary-restrictions.service.js';
+import type { InventoryService } from '../inventory/inventory.service.js';
 import type { NutritionGoalsService } from '../nutrition-goals/nutrition-goals.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { RecipesService } from './recipes.service.js';
@@ -10,6 +11,7 @@ describe('RecipesService', () => {
   const recipe = { findMany: vi.fn(), findUnique: vi.fn() };
   const restrictions = { get: vi.fn() };
   const goals = { get: vi.fn() };
+  const inventory = { list: vi.fn() };
   const current = { id: 'user-1', sessionId: null };
 
   const line = (id: string, allergens: string[] = []) => ({
@@ -30,6 +32,7 @@ describe('RecipesService', () => {
       { recipe } as unknown as PrismaService,
       restrictions as unknown as DietaryRestrictionsService,
       goals as unknown as NutritionGoalsService,
+      inventory as unknown as InventoryService,
     );
   });
 
@@ -55,6 +58,54 @@ describe('RecipesService', () => {
 
     await expect(service.catalogue(current)).rejects.toThrow('no account');
     expect(restrictions.get).toHaveBeenCalledWith(current);
+  });
+
+  it('matches the apt recipes against the pantry of the user', async () => {
+    restrictions.get.mockResolvedValue({
+      allergens: ['FISH'],
+      ingredients: [],
+    });
+    inventory.list.mockResolvedValue([
+      {
+        ingredientId: 'ing_arroz',
+        quantity: null,
+        unit: null,
+        expiresOn: null,
+        dateKind: null,
+      },
+    ]);
+    const weighed = (id: string, allergens: string[] = []) => ({
+      ...line(id, allergens),
+      quantity: { toNumber: () => 100 },
+      unit: 'GRAM',
+    });
+    recipe.findMany.mockResolvedValue([
+      { id: 'a', ingredients: [weighed('ing_arroz')] },
+      { id: 'b', ingredients: [weighed('ing_merluza', ['FISH'])] },
+      { id: 'c', ingredients: [weighed('ing_patata')] },
+    ]);
+
+    const result = await service.pantry(current, '2026-10-16');
+
+    expect(inventory.list).toHaveBeenCalledWith(current);
+    expect(result.hiddenCount).toBe(1);
+    expect(result.inventoryEmpty).toBe(false);
+    expect(
+      result.recipes.map(({ id, pantry }) => [id, pantry.canPrepare]),
+    ).toEqual([
+      ['a', true],
+      ['c', false],
+    ]);
+  });
+
+  it('says when the pantry is empty', async () => {
+    restrictions.get.mockResolvedValue({ allergens: [], ingredients: [] });
+    inventory.list.mockResolvedValue([]);
+    recipe.findMany.mockResolvedValue([]);
+
+    const result = await service.pantry(current, '2026-10-16');
+
+    expect(result.inventoryEmpty).toBe(true);
   });
 
   it('answers not found for an unknown recipe', async () => {
