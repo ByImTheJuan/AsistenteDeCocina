@@ -16,6 +16,7 @@ import type {
   RecipeCatalogue,
   RecipeDetail,
   RecipeWithIngredients,
+  Recommendations,
 } from './recipes.service.js';
 
 const imageUrlProperty = {
@@ -490,6 +491,76 @@ export class PantryRecipesResponse {
       })),
       hiddenCount: result.hiddenCount,
       inventoryEmpty: result.inventoryEmpty,
+    };
+  }
+}
+
+export class RecommendedRecipeResponse extends RecipeSummaryResponse {
+  @ApiProperty()
+  description: string;
+
+  @ApiProperty({ minimum: 1, description: 'Servings the quantities are for.' })
+  servings: number;
+
+  @ApiProperty({
+    type: [RecipeIngredientNameResponse],
+    description: 'Ingredients of the recipe the user likes, in recipe order.',
+  })
+  likedIngredients: RecipeIngredientNameResponse[];
+
+  @ApiProperty({ type: RecipePantryResponse })
+  pantry: RecipePantryResponse;
+
+  @ApiProperty({
+    type: NutrientsResponse,
+    description:
+      'Estimated for one serving, with no validated source. A value is null when some ingredient lacks the data.',
+  })
+  perServing: NutrientsResponse;
+
+  @ApiProperty({
+    type: [RecipeGoalFitResponse],
+    description:
+      'One serving against each nutrition goal the user has switched on. Empty without goals in use.',
+  })
+  goals: RecipeGoalFitResponse[];
+}
+
+export class RecommendationsResponse {
+  @ApiProperty({
+    type: [RecommendedRecipeResponse],
+    description:
+      'Recipes with nothing the restrictions forbid that fit the diet and the tastes of the user, the most suitable first.',
+  })
+  recipes: RecommendedRecipeResponse[];
+
+  @ApiProperty({
+    minimum: 0,
+    description:
+      'Recipes left out because they contain a restricted allergen or ingredient.',
+  })
+  hiddenCount: number;
+
+  @ApiProperty({
+    minimum: 0,
+    description:
+      'Recipes left out because the diet does not allow them or they have a food the user does not like. They stay in the catalogue.',
+  })
+  excludedCount: number;
+
+  static from(result: Recommendations): RecommendationsResponse {
+    return {
+      recipes: result.recipes.map((recipe) => ({
+        ...RecipeSummaryResponse.from(recipe),
+        description: recipe.description,
+        servings: recipe.servings,
+        likedIngredients: recipe.likedIngredients,
+        pantry: RecipePantryResponse.from(recipe.pantry),
+        perServing: recipe.nutrition.perServing,
+        goals: recipe.goals.map((fit) => RecipeGoalFitResponse.from(fit)),
+      })),
+      hiddenCount: result.hiddenCount,
+      excludedCount: result.excludedCount,
     };
   }
 }

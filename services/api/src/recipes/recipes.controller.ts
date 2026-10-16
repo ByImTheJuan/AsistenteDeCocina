@@ -23,6 +23,7 @@ import {
   PantryRecipesResponse,
   RecipeCatalogueResponse,
   RecipeDetailResponse,
+  RecommendationsResponse,
 } from './recipes.dto.js';
 import { RecipesService } from './recipes.service.js';
 
@@ -66,6 +67,24 @@ export class RecipesController {
   ): Promise<PantryRecipesResponse> {
     return PantryRecipesResponse.from(
       await this.recipes.pantry(current, query.today),
+    );
+  }
+
+  // Declared before `:id` too.
+  @Get('recommendations')
+  @ApiOperation({
+    summary: 'List the recipes recommended for the user',
+    description:
+      'The apt recipes that fit the diet and the tastes of the user, the most suitable first: liked ingredients, the pantry and the goal per meal move them up or down. `today` is the day of the user, as for the pantry.',
+  })
+  @ApiOkResponse({ type: RecommendationsResponse })
+  @ApiBadRequestResponse({ description: '`today` is not a valid YYYY-MM-DD' })
+  async recommendations(
+    @CurrentUser() current: AuthenticatedUser,
+    @Query() query: PantryRecipesQuery,
+  ): Promise<RecommendationsResponse> {
+    return RecommendationsResponse.from(
+      await this.recipes.recommendations(current, query.today),
     );
   }
 

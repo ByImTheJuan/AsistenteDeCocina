@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import type { DietaryRestrictionsService } from '../dietary-restrictions/dietary-restrictions.service.js';
+import type { FoodPreferencesService } from '../food-preferences/food-preferences.service.js';
 import type { InventoryService } from '../inventory/inventory.service.js';
 import type { NutritionGoalsService } from '../nutrition-goals/nutrition-goals.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
@@ -12,6 +13,7 @@ describe('RecipesService', () => {
   const restrictions = { get: vi.fn() };
   const goals = { get: vi.fn() };
   const inventory = { list: vi.fn() };
+  const preferences = { get: vi.fn() };
   const current = { id: 'user-1', sessionId: null };
 
   const line = (id: string, allergens: string[] = []) => ({
@@ -33,6 +35,7 @@ describe('RecipesService', () => {
       restrictions as unknown as DietaryRestrictionsService,
       goals as unknown as NutritionGoalsService,
       inventory as unknown as InventoryService,
+      preferences as unknown as FoodPreferencesService,
     );
   });
 
