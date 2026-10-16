@@ -8,7 +8,6 @@
     "scheme": "asistentedecocina",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.hyd.asistentedecocina",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
