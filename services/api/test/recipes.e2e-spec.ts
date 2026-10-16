@@ -34,10 +34,14 @@ describe('Recipes (e2e)', () => {
   const as = (session: Session) => {
     const auth = { Authorization: `Bearer ${session.accessToken}` };
     return {
-      catalogue: () => http().get('/recipes').set(auth),
+      catalogue: (filters: Record<string, string | number> = {}) =>
+        http().get('/recipes').query(filters).set(auth),
       detail: (id: string) => http().get(`/recipes/${id}`).set(auth),
-      pantry: (today = TODAY) =>
-        http().get('/recipes/pantry').query({ today }).set(auth),
+      pantry: (today = TODAY, filters: Record<string, string | number> = {}) =>
+        http()
+          .get('/recipes/pantry')
+          .query({ today, ...filters })
+          .set(auth),
       recommendations: (today = TODAY) =>
         http().get('/recipes/recommendations').query({ today }).set(auth),
       setTastes: (tastes: {
@@ -159,6 +163,8 @@ describe('Recipes (e2e)', () => {
         ],
         allergensUncertain: false,
         rating: null,
+        // Estimated, as in the detail.
+        caloriesPerServing: expect.any(Number),
       });
     });
 
@@ -206,6 +212,124 @@ describe('Recipes (e2e)', () => {
       const { body } = await as(session).catalogue().expect(200);
 
       expect(names(body.recipes)).not.toContain('Gazpacho andaluz');
+    });
+  });
+
+  describe('GET /recipes with a search and filters', () => {
+    type Listed = Summary & {
+      totalMinutes: number;
+      caloriesPerServing: number | null;
+    };
+    const listed = (body: { recipes: Listed[] }) => body.recipes;
+
+    it('finds recipes by name without minding case or accents', async () => {
+      const session = await register();
+
+      const { body } = await as(session)
+        .catalogue({ search: 'SALMON' })
+        .expect(200);
+
+      expect(names(body.recipes)).toEqual([
+        'Salmón a la plancha con espárragos',
+      ]);
+    });
+
+    it('finds recipes by an ingredient or a synonym of it', async () => {
+      const session = await register();
+      const withPotato = (
+        await prisma.recipe.findMany({
+          where: { ingredients: { some: { ingredientId: 'ing_patata' } } },
+          select: { name: true },
+          orderBy: { name: 'asc' },
+        })
+      ).map(({ name }) => name);
+
+      const byIngredient = await as(session)
+        .catalogue({ search: 'patata' })
+        .expect(200);
+      const bySynonym = await as(session)
+        .catalogue({ search: 'papa' })
+        .expect(200);
+
+      expect(withPotato).toContain('Tortilla de patatas');
+      expect(names(byIngredient.body.recipes)).toEqual(withPotato);
+      expect(names(bySynonym.body.recipes)).toEqual(withPotato);
+    });
+
+    it('combines the filters', async () => {
+      const session = await register();
+
+      const { body } = await as(session)
+        .catalogue({ maxMinutes: 20, maxCalories: 400, diet: 'VEGAN' })
+        .expect(200);
+
+      expect(listed(body).length).toBeGreaterThan(0);
+      for (const recipe of listed(body)) {
+        expect(recipe.totalMinutes, recipe.name).toBeLessThanOrEqual(20);
+        expect(recipe.caloriesPerServing, recipe.name).not.toBeNull();
+        expect(recipe.caloriesPerServing!, recipe.name).toBeLessThanOrEqual(
+          400,
+        );
+      }
+      expect(names(body.recipes)).not.toContain('Revuelto de setas');
+    });
+
+    it('sorts by time or by calories, the unknown calories last', async () => {
+      const session = await register();
+
+      const byTime = listed(
+        (await as(session).catalogue({ sort: 'TIME' }).expect(200)).body,
+      );
+      const byCalories = listed(
+        (await as(session).catalogue({ sort: 'CALORIES' }).expect(200)).body,
+      );
+
+      const minutes = byTime.map(({ totalMinutes }) => totalMinutes);
+      expect(minutes).toEqual([...minutes].sort((a, b) => a - b));
+      const known = byCalories
+        .map(({ caloriesPerServing }) => caloriesPerServing)
+        .filter((calories) => calories !== null);
+      expect(known).toEqual([...known].sort((a, b) => a - b));
+      expect(
+        byCalories
+          .slice(known.length)
+          .every(({ caloriesPerServing }) => caloriesPerServing === null),
+      ).toBe(true);
+    });
+
+    it('never finds a recipe hidden by the restrictions', async () => {
+      const session = await register();
+      await as(session).restrict(['EGG']);
+
+      const { body } = await as(session)
+        .catalogue({ search: 'tortilla' })
+        .expect(200);
+
+      expect(body.recipes).toEqual([]);
+      expect(body.hiddenCount).toBe(WITH_EGG.length);
+    });
+
+    it('rejects invalid filters', async () => {
+      const session = await register();
+
+      await as(session).catalogue({ maxMinutes: 0 }).expect(400);
+      await as(session).catalogue({ maxCalories: 'mucho' }).expect(400);
+      await as(session).catalogue({ diet: 'FLEXITARIAN' }).expect(400);
+      await as(session).catalogue({ sort: 'RATING' }).expect(400);
+      await as(session)
+        .catalogue({ search: 'a'.repeat(101) })
+        .expect(400);
+      await as(session).catalogue({ unknown: 'x' }).expect(400);
+    });
+
+    it('filters the recipes against the pantry too', async () => {
+      const session = await register();
+
+      const { body } = await as(session)
+        .pantry(TODAY, { search: 'tortilla' })
+        .expect(200);
+
+      expect(names(body.recipes)).toEqual(['Tortilla de patatas']);
     });
   });
 
@@ -482,6 +606,12 @@ describe('Recipes (e2e)', () => {
         .set('Authorization', `Bearer ${session.accessToken}`)
         .expect(400);
       await as(session).recommendations('2026-02-30').expect(400);
+      // The recommendations take no filters.
+      await http()
+        .get('/recipes/recommendations')
+        .query({ today: TODAY, search: 'tortilla' })
+        .set('Authorization', `Bearer ${session.accessToken}`)
+        .expect(400);
     });
 
     it('recommends every recipe to a user with no profile, unverified allergens last', async () => {
