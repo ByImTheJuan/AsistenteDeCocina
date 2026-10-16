@@ -30,7 +30,7 @@ function isWorthSuggesting({ pantry }: PantryRecipe): boolean {
 }
 
 /** What the recipe uses from home that expires soonest, if it expires soon. */
-function soonestExpiring({ pantry }: PantryRecipe, on: string): Used | undefined {
+export function soonestExpiring(pantry: RecipePantry, on: string): Used | undefined {
   return pantry.using
     .filter((used) => isExpiringSoon(used, on))
     .sort((a, b) => (a.expiresOn ?? '').localeCompare(b.expiresOn ?? ''))[0];
@@ -40,7 +40,7 @@ function soonestExpiring({ pantry }: PantryRecipe, on: string): Used | undefined
 export function groupPantryRecipes(recipes: PantryRecipe[], on: string): PantryGroups {
   const groups: PantryGroups = { expiring: [], ready: [], almost: [] };
   for (const recipe of recipes.filter(isWorthSuggesting)) {
-    const soonest = soonestExpiring(recipe, on);
+    const soonest = soonestExpiring(recipe.pantry, on);
     if (soonest) groups.expiring.push({ recipe, soonest });
     else if (recipe.pantry.canPrepare) groups.ready.push(recipe);
     else groups.almost.push(recipe);

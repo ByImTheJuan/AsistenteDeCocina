@@ -5,6 +5,7 @@ import type { FoodPreferences } from './food-preferences-api';
 
 import { useSession } from '@/features/auth/session-provider';
 import { dietaryRestrictionsQueryKey } from '@/features/dietary-restrictions/use-dietary-restrictions';
+import { recommendationsQueryKey } from '@/features/recipes/use-recipes';
 
 const foodPreferencesQueryKey = ['food-preferences'] as const;
 
@@ -28,6 +29,8 @@ export function useSaveFoodPreferences() {
       queryClient.setQueryData(foodPreferencesQueryKey, saved);
       // The restrictions report which liked foods they forbid.
       void queryClient.invalidateQueries({ queryKey: dietaryRestrictionsQueryKey });
+      // Recommendations follow the diet and the tastes.
+      void queryClient.invalidateQueries({ queryKey: recommendationsQueryKey });
     },
   });
 }

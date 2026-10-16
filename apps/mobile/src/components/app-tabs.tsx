@@ -13,12 +13,9 @@ export default function AppTabs() {
         default: { color: colors.textSecondary },
         selected: { color: colors.textPrimary },
       }}>
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/home.png')}
-          renderingMode="template"
-        />
+      <NativeTabs.Trigger name="(for-you)">
+        <NativeTabs.Trigger.Label>Para ti</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="sparkles" md="auto_awesome" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="recipes">

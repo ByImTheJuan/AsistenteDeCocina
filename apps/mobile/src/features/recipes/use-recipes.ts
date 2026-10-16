@@ -30,6 +30,21 @@ export function usePantryRecipes() {
   });
 }
 
+// Depends on the pantry and on the whole profile: saving the preferences, the
+// restrictions or the goals invalidates `recipesQueryKey`, and changing the
+// pantry invalidates this key too.
+export const recommendationsQueryKey = [...recipesQueryKey, 'recommendations'] as const;
+
+/** The recipes recommended for the user, for the device's day. */
+export function useRecommendations() {
+  const { request } = useSession();
+  const day = today();
+  return useQuery({
+    queryKey: [...recommendationsQueryKey, day],
+    queryFn: () => recipesApi.getRecommendations(request, day),
+  });
+}
+
 export function useRecipe(id: string) {
   const { request } = useSession();
   return useQuery({

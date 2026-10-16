@@ -4,7 +4,7 @@ import * as inventoryApi from './inventory-api';
 import type { Inventory, InventoryItem, InventoryItemInput } from './inventory-api';
 
 import { useSession } from '@/features/auth/session-provider';
-import { pantryRecipesQueryKey } from '@/features/recipes/use-recipes';
+import { pantryRecipesQueryKey, recommendationsQueryKey } from '@/features/recipes/use-recipes';
 
 const inventoryQueryKey = ['inventory'] as const;
 
@@ -34,6 +34,7 @@ function useUpdateCachedInventory() {
       (inventory) => inventory && { items: change(inventory.items) },
     );
     void queryClient.invalidateQueries({ queryKey: pantryRecipesQueryKey });
+    void queryClient.invalidateQueries({ queryKey: recommendationsQueryKey });
   };
 }
 
