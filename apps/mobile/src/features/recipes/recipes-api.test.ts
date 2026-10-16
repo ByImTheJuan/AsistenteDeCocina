@@ -125,6 +125,16 @@ describe('recipes API', () => {
     await expect(getPantryRecipes(request, '2026-10-16')).rejects.toThrow();
   });
 
+  it('asks for the catalogue and the pantry with the search and filters', async () => {
+    request.mockResolvedValue({ recipes: [], hiddenCount: 0, inventoryEmpty: false });
+
+    await getRecipeCatalogue(request, 'search=papa&diet=VEGAN');
+    await getPantryRecipes(request, '2026-10-16', 'sort=TIME');
+
+    expect(request).toHaveBeenNthCalledWith(1, '/recipes?search=papa&diet=VEGAN');
+    expect(request).toHaveBeenNthCalledWith(2, '/recipes/pantry?today=2026-10-16&sort=TIME');
+  });
+
   it('reads the recommendations for the day given, in their order', async () => {
     const recommended = {
       ...summary,
