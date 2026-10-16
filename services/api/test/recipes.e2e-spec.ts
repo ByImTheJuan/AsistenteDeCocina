@@ -20,6 +20,9 @@ const WITH_EGG = ['Ensalada mixta', 'Revuelto de setas', 'Tortilla de patatas'];
 // Spoons and pinches are only for recipes.
 const RECIPE_ONLY_UNITS: Unit[] = ['TABLESPOON', 'TEASPOON', 'PINCH'];
 
+// The day of the user for the pantry.
+const TODAY = '2026-10-16';
+
 type Session = { accessToken: string; refreshToken: string };
 type Summary = { id: string; name: string };
 
@@ -33,6 +36,26 @@ describe('Recipes (e2e)', () => {
     return {
       catalogue: () => http().get('/recipes').set(auth),
       detail: (id: string) => http().get(`/recipes/${id}`).set(auth),
+      pantry: (today = TODAY) =>
+        http().get('/recipes/pantry').query({ today }).set(auth),
+      stock: (
+        ingredientId: string,
+        quantity: number | null,
+        unit: Unit | null,
+        date: { expiresOn: string; dateKind: string } | null = null,
+      ) =>
+        http()
+          .post('/inventory')
+          .set(auth)
+          .send({
+            ingredientId,
+            quantity,
+            unit,
+            expiresOn: date?.expiresOn ?? null,
+            dateKind: date?.dateKind ?? null,
+            location: null,
+          })
+          .expect(201),
       restrict: (allergens: string[], ingredientIds: string[] = []) =>
         http()
           .put('/dietary-restrictions')
@@ -52,8 +75,8 @@ describe('Recipes (e2e)', () => {
           .expect(200),
     };
   };
-  const register = async (): Promise<Session> =>
-    (await http().post('/auth/register').send(ana).expect(201)).body;
+  const register = async (user = ana): Promise<Session> =>
+    (await http().post('/auth/register').send(user).expect(201)).body;
   const names = (recipes: Summary[]) => recipes.map(({ name }) => name);
 
   beforeAll(async () => {
@@ -79,6 +102,7 @@ describe('Recipes (e2e)', () => {
   it('requires a session', async () => {
     await http().get('/recipes').expect(401);
     await http().get('/recipes/rec_tortilla_patatas').expect(401);
+    await http().get('/recipes/pantry').query({ today: TODAY }).expect(401);
   });
 
   describe('GET /recipes', () => {
@@ -282,6 +306,128 @@ describe('Recipes (e2e)', () => {
       const { body } = await as(session).detail('rec_unknown').expect(404);
 
       expect(body.code).toBe('recipe_not_found');
+    });
+  });
+
+  describe('GET /recipes/pantry', () => {
+    type PantryRecipe = Summary & {
+      pantry: {
+        canPrepare: boolean;
+        missing: { ingredient: Summary; have: unknown; expired: boolean }[];
+        checkQuantity: Summary[];
+        checkToTaste: Summary[];
+        using: { ingredient: Summary; expiresOn: string | null }[];
+      };
+    };
+    const tortilla = (recipes: PantryRecipe[]) =>
+      recipes.find(({ id }) => id === 'rec_tortilla_patatas')!;
+    const ids = (list: Summary[]) => list.map(({ id }) => id);
+
+    it('needs a valid day of the user', async () => {
+      const session = await register();
+
+      await http()
+        .get('/recipes/pantry')
+        .set({ Authorization: `Bearer ${session.accessToken}` })
+        .expect(400);
+      await as(session).pantry('16-10-2026').expect(400);
+      await as(session).pantry('2026-02-30').expect(400);
+    });
+
+    it('says when the pantry is empty, with every apt recipe missing something', async () => {
+      const session = await register();
+
+      const { body } = await as(session).pantry().expect(200);
+
+      expect(body.inventoryEmpty).toBe(true);
+      expect(body.recipes).toHaveLength(RECIPE_COUNT);
+      expect(
+        body.recipes.every(
+          ({ pantry }: PantryRecipe) =>
+            !pantry.canPrepare && pantry.using.length === 0,
+        ),
+      ).toBe(true);
+    });
+
+    it('can prepare a recipe with what there is at home', async () => {
+      const session = await register();
+      await as(session).stock('ing_patata', 6, 'PIECE');
+      await as(session).stock('ing_huevo', 12, 'PIECE', {
+        expiresOn: '2026-10-18',
+        dateKind: 'USE_BY',
+      });
+      await as(session).stock('ing_cebolla', 2, 'PIECE');
+      await as(session).stock('ing_aceite_de_oliva', null, null);
+
+      const { body } = await as(session).pantry().expect(200);
+
+      const { pantry } = tortilla(body.recipes);
+      expect(body.inventoryEmpty).toBe(false);
+      expect(pantry.canPrepare).toBe(true);
+      expect(pantry.missing).toEqual([]);
+      expect(ids(pantry.checkToTaste)).toEqual(['ing_sal']);
+      expect(pantry.using).toContainEqual({
+        ingredient: { id: 'ing_huevo', name: 'Huevo' },
+        expiresOn: '2026-10-18',
+        dateKind: 'USE_BY',
+      });
+    });
+
+    it('says what is missing, what is not enough and what has expired', async () => {
+      const session = await register();
+      await as(session).stock('ing_patata', 1, 'KILOGRAM');
+      await as(session).stock('ing_huevo', 3, 'PIECE');
+      await as(session).stock('ing_cebolla', 1, 'PIECE', {
+        expiresOn: TODAY,
+        dateKind: 'USE_BY',
+      });
+
+      const { body } = await as(session).pantry().expect(200);
+
+      const { pantry } = tortilla(body.recipes);
+      expect(pantry.canPrepare).toBe(false);
+      expect(pantry.missing).toEqual([
+        {
+          ingredient: { id: 'ing_huevo', name: 'Huevo' },
+          needed: { quantity: 6, unit: 'PIECE' },
+          have: { quantity: 3, unit: 'PIECE' },
+          expired: false,
+        },
+        {
+          ingredient: { id: 'ing_cebolla', name: 'Cebolla' },
+          needed: { quantity: 1, unit: 'PIECE' },
+          have: null,
+          expired: true,
+        },
+        {
+          ingredient: { id: 'ing_aceite_de_oliva', name: 'Aceite de oliva' },
+          needed: { quantity: 200, unit: 'MILLILITER' },
+          have: null,
+          expired: false,
+        },
+      ]);
+      expect(ids(pantry.checkQuantity)).toEqual(['ing_patata']);
+    });
+
+    it('reads only the pantry of the user', async () => {
+      const other = await register({ ...ana, email: 'otra@example.com' });
+      await as(other).stock('ing_huevo', 12, 'PIECE');
+      const session = await register();
+
+      const { body } = await as(session).pantry().expect(200);
+
+      expect(body.inventoryEmpty).toBe(true);
+      expect(tortilla(body.recipes).pantry.missing).toHaveLength(4);
+    });
+
+    it('hides the recipes that clash with the restrictions', async () => {
+      const session = await register();
+      await as(session).restrict(['EGG']);
+
+      const { body } = await as(session).pantry().expect(200);
+
+      expect(body.hiddenCount).toBe(WITH_EGG.length);
+      expect(ids(body.recipes)).not.toContain('rec_tortilla_patatas');
     });
   });
 

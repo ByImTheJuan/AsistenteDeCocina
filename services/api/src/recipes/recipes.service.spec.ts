@@ -60,6 +60,54 @@ describe('RecipesService', () => {
     expect(restrictions.get).toHaveBeenCalledWith(current);
   });
 
+  it('matches the apt recipes against the pantry of the user', async () => {
+    restrictions.get.mockResolvedValue({
+      allergens: ['FISH'],
+      ingredients: [],
+    });
+    inventory.list.mockResolvedValue([
+      {
+        ingredientId: 'ing_arroz',
+        quantity: null,
+        unit: null,
+        expiresOn: null,
+        dateKind: null,
+      },
+    ]);
+    const weighed = (id: string, allergens: string[] = []) => ({
+      ...line(id, allergens),
+      quantity: { toNumber: () => 100 },
+      unit: 'GRAM',
+    });
+    recipe.findMany.mockResolvedValue([
+      { id: 'a', ingredients: [weighed('ing_arroz')] },
+      { id: 'b', ingredients: [weighed('ing_merluza', ['FISH'])] },
+      { id: 'c', ingredients: [weighed('ing_patata')] },
+    ]);
+
+    const result = await service.pantry(current, '2026-10-16');
+
+    expect(inventory.list).toHaveBeenCalledWith(current);
+    expect(result.hiddenCount).toBe(1);
+    expect(result.inventoryEmpty).toBe(false);
+    expect(
+      result.recipes.map(({ id, pantry }) => [id, pantry.canPrepare]),
+    ).toEqual([
+      ['a', true],
+      ['c', false],
+    ]);
+  });
+
+  it('says when the pantry is empty', async () => {
+    restrictions.get.mockResolvedValue({ allergens: [], ingredients: [] });
+    inventory.list.mockResolvedValue([]);
+    recipe.findMany.mockResolvedValue([]);
+
+    const result = await service.pantry(current, '2026-10-16');
+
+    expect(result.inventoryEmpty).toBe(true);
+  });
+
   it('answers not found for an unknown recipe', async () => {
     restrictions.get.mockResolvedValue({ allergens: [], ingredients: [] });
     recipe.findUnique.mockResolvedValue(null);
