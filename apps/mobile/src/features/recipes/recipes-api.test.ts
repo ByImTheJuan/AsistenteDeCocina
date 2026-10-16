@@ -1,4 +1,4 @@
-import { getRecipe, getRecipeCatalogue } from './recipes-api';
+import { getPantryRecipes, getRecipe, getRecipeCatalogue } from './recipes-api';
 
 const summary = {
   id: 'rec_tortilla_patatas',
@@ -60,6 +60,68 @@ describe('recipes API', () => {
       hiddenCount: 2,
     });
     expect(request).toHaveBeenCalledWith('/recipes');
+  });
+
+  it('reads the recipes against the pantry for the day given', async () => {
+    const pantry = {
+      canPrepare: false,
+      missing: [
+        {
+          ingredient: { id: 'ing_huevo', name: 'Huevo' },
+          needed: { quantity: 6, unit: 'PIECE' },
+          have: { quantity: 3, unit: 'PIECE' },
+          expired: false,
+        },
+      ],
+      checkQuantity: [],
+      checkToTaste: [{ id: 'ing_sal', name: 'Sal' }],
+      using: [
+        {
+          ingredient: { id: 'ing_patata', name: 'Patata' },
+          expiresOn: '2026-10-18',
+          dateKind: 'USE_BY',
+        },
+      ],
+    };
+    request.mockResolvedValue({
+      recipes: [{ ...summary, pantry }],
+      hiddenCount: 1,
+      inventoryEmpty: false,
+    });
+
+    const result = await getPantryRecipes(request, '2026-10-16');
+
+    expect(request).toHaveBeenCalledWith('/recipes/pantry?today=2026-10-16');
+    expect(result.recipes[0].pantry).toEqual(pantry);
+    expect(result.inventoryEmpty).toBe(false);
+  });
+
+  it('rejects a pantry answer with an unknown unit', async () => {
+    request.mockResolvedValue({
+      recipes: [
+        {
+          ...summary,
+          pantry: {
+            canPrepare: false,
+            missing: [
+              {
+                ingredient: { id: 'ing_huevo', name: 'Huevo' },
+                needed: { quantity: 6, unit: 'DOZEN' },
+                have: null,
+                expired: false,
+              },
+            ],
+            checkQuantity: [],
+            checkToTaste: [],
+            using: [],
+          },
+        },
+      ],
+      hiddenCount: 0,
+      inventoryEmpty: false,
+    });
+
+    await expect(getPantryRecipes(request, '2026-10-16')).rejects.toThrow();
   });
 
   it('reads a recipe, escaping its id', async () => {
