@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { AuthenticatedUser } from '../auth/jwt-auth.guard.js';
 import { DietaryRestrictionsService } from '../dietary-restrictions/dietary-restrictions.service.js';
 import type { DietaryRestrictions } from '../dietary-restrictions/dietary-restrictions.service.js';
+import { FoodPreferencesService } from '../food-preferences/food-preferences.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { withAllergens } from '../ingredients/ingredient-with-allergens.js';
 import { InventoryService } from '../inventory/inventory.service.js';
@@ -12,6 +13,11 @@ import { pantryMatch } from './pantry-match.js';
 import type { PantryMatch } from './pantry-match.js';
 import type { GoalFit } from './nutrition-goals-fit.js';
 import { recipeNutrition } from './recipe-nutrition.js';
+import {
+  isRecommendable,
+  likedIngredients,
+  recommendationScore,
+} from './recommendations.js';
 import type { RecipeNutrition } from './recipe-nutrition.js';
 import { hasConflicts, recipeSafety } from './recipe-safety.js';
 import type { RecipeSafety } from './recipe-safety.js';
@@ -57,6 +63,23 @@ export type PantryRecipes = {
   inventoryEmpty: boolean;
 };
 
+export type RecommendedRecipe = RecipeWithIngredients & {
+  /** Ingredients of the recipe the user likes, in recipe order. */
+  likedIngredients: { id: string; name: string }[];
+  pantry: PantryMatch;
+  nutrition: RecipeNutrition;
+  goals: GoalFit[];
+};
+
+export type Recommendations = {
+  /** The apt recipes that fit the user's tastes, the most suitable first. */
+  recipes: RecommendedRecipe[];
+  /** Recipes left out for clashing with the restrictions. */
+  hiddenCount: number;
+  /** Apt recipes left out for the diet or a food the user does not like. */
+  excludedCount: number;
+};
+
 // The recipe catalogue, read against the user's safety restrictions, which are
 // mandatory: the catalogue never offers a recipe that clashes with them.
 @Injectable()
@@ -69,6 +92,8 @@ export class RecipesService {
     private readonly nutritionGoals: NutritionGoalsService,
     @Inject(InventoryService)
     private readonly inventory: InventoryService,
+    @Inject(FoodPreferencesService)
+    private readonly preferences: FoodPreferencesService,
   ) {}
 
   async catalogue(current: AuthenticatedUser): Promise<RecipeCatalogue> {
@@ -96,6 +121,65 @@ export class RecipesService {
       })),
       hiddenCount,
       inventoryEmpty: items.length === 0,
+    };
+  }
+
+  /**
+   * The apt recipes that fit the user's diet and tastes, in the order they are
+   * recommended: liked ingredients, the pantry (`today` as in `pantry`) and
+   * the goal per meal move them up or down; the name breaks ties.
+   */
+  async recommendations(
+    current: AuthenticatedUser,
+    today: string,
+  ): Promise<Recommendations> {
+    const [restrictions, tastes, goals, items] = await Promise.all([
+      this.restrictions.get(current),
+      this.preferences.get(current),
+      this.nutritionGoals.get(current),
+      this.inventory.list(current),
+    ]);
+    const { recipes, hiddenCount } = await this.aptRecipes(restrictions);
+    const fitting = recipes.filter((recipe) =>
+      isRecommendable(
+        recipe.ingredients.map(({ ingredient }) => ingredient),
+        tastes,
+      ),
+    );
+    const scored = fitting.map((recipe) => {
+      const liked = likedIngredients(
+        recipe.ingredients.map(({ ingredient }) => ingredient),
+        tastes,
+      );
+      const pantry = pantryMatch(recipe.ingredients, items, today);
+      const nutrition = recipeNutrition(recipe.ingredients, recipe.servings);
+      const fits = nutritionGoalsFit(nutrition.perServing, goals);
+      const score = recommendationScore(
+        {
+          likedCount: liked.length,
+          pantry,
+          goals: fits,
+          allergensUncertain: recipe.safety.allergensUncertain,
+        },
+        today,
+      );
+      return {
+        recipe: {
+          ...recipe,
+          likedIngredients: liked,
+          pantry,
+          nutrition,
+          goals: fits,
+        },
+        score,
+      };
+    });
+    // A stable sort: equal scores keep the order by name.
+    scored.sort((a, b) => b.score - a.score);
+    return {
+      recipes: scored.map(({ recipe }) => recipe),
+      hiddenCount,
+      excludedCount: recipes.length - fitting.length,
     };
   }
 

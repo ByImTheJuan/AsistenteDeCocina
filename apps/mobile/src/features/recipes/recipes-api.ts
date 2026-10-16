@@ -110,6 +110,24 @@ const goalFitsSchema = z
     fits.flatMap(({ kind, ...fit }) => (isGoalKind(kind) ? [{ kind, ...fit }] : [])),
   );
 
+// The apt recipes that fit the user's diet and tastes, the most suitable
+// first, with what explains their place. `hiddenCount`: left out by the
+// restrictions; `excludedCount`: by the diet or a food the user dislikes.
+const recommendationsSchema = z.object({
+  recipes: z.array(
+    recipeSummarySchema.extend({
+      description: z.string(),
+      servings: z.number(),
+      likedIngredients: z.array(ingredientNameSchema),
+      pantry: recipePantrySchema,
+      perServing: z.object({ calories: z.number().nullable(), protein: z.number().nullable() }),
+      goals: goalFitsSchema,
+    }),
+  ),
+  hiddenCount: z.number(),
+  excludedCount: z.number(),
+});
+
 const recipeDetailSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -136,6 +154,8 @@ export type RecipeDetail = z.infer<typeof recipeDetailSchema>;
 export type RecipePantry = z.infer<typeof recipePantrySchema>;
 export type PantryRecipe = z.infer<typeof pantryRecipesSchema>['recipes'][number];
 export type PantryRecipes = z.infer<typeof pantryRecipesSchema>;
+export type Recommendations = z.infer<typeof recommendationsSchema>;
+export type RecommendedRecipe = Recommendations['recipes'][number];
 
 /** The recipes apt for the user, by name. */
 export async function getRecipeCatalogue(request: AuthorizedRequest): Promise<RecipeCatalogue> {
@@ -152,6 +172,19 @@ export async function getPantryRecipes(
 ): Promise<PantryRecipes> {
   return pantryRecipesSchema.parse(
     await request(`/recipes/pantry?today=${encodeURIComponent(today)}`),
+  );
+}
+
+/**
+ * The recipes recommended for the user, the most suitable first. `today` is
+ * the device's day, as for the pantry.
+ */
+export async function getRecommendations(
+  request: AuthorizedRequest,
+  today: string,
+): Promise<Recommendations> {
+  return recommendationsSchema.parse(
+    await request(`/recipes/recommendations?today=${encodeURIComponent(today)}`),
   );
 }
 

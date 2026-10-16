@@ -1,6 +1,7 @@
 const shared = {
   preset: 'jest-expo',
   setupFiles: ['<rootDir>/jest/setup-env.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest/setup-animations.js'],
   moduleNameMapper: {
     '\\.css$': '<rootDir>/jest/style-mock.js',
   },

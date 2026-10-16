@@ -11,6 +11,7 @@ function ingredient(
     id,
     name: id,
     category: 'OTHER',
+    origin: 'PLANT',
     allergensUncertain,
     measure: 'WEIGHT',
     defaultUnit: 'GRAM',

@@ -19,7 +19,7 @@ function RemoveItem() {
 }
 
 describe('inventory changes', () => {
-  it('ask again for the recipes against the pantry', async () => {
+  it('ask again for the recipes against the pantry and the recommendations', async () => {
     const user = userEvent.setup();
     const { queryClient } = await renderSignedIn(<RemoveItem />, {
       'DELETE /inventory/item-1': () => undefined,
@@ -31,5 +31,6 @@ describe('inventory changes', () => {
     await waitFor(() =>
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ['recipes', 'pantry'] }),
     );
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['recipes', 'recommendations'] });
   });
 });

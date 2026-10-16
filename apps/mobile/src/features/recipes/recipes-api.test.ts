@@ -1,4 +1,4 @@
-import { getPantryRecipes, getRecipe, getRecipeCatalogue } from './recipes-api';
+import { getPantryRecipes, getRecipe, getRecipeCatalogue, getRecommendations } from './recipes-api';
 
 const summary = {
   id: 'rec_tortilla_patatas',
@@ -122,6 +122,31 @@ describe('recipes API', () => {
     });
 
     await expect(getPantryRecipes(request, '2026-10-16')).rejects.toThrow();
+  });
+
+  it('reads the recommendations for the day given, in their order', async () => {
+    const recommended = {
+      ...summary,
+      description: 'La de siempre.',
+      servings: 4,
+      likedIngredients: [{ id: 'ing_huevo', name: 'Huevo' }],
+      pantry: { canPrepare: true, missing: [], checkQuantity: [], checkToTaste: [], using: [] },
+      perServing: { calories: 678, protein: null },
+      goals: detail.goals,
+    };
+    request.mockResolvedValue({
+      recipes: [recommended, { ...recommended, id: 'rec_pisto', name: 'Pisto' }],
+      hiddenCount: 1,
+      excludedCount: 2,
+    });
+
+    const result = await getRecommendations(request, '2026-10-16');
+
+    expect(request).toHaveBeenCalledWith('/recipes/recommendations?today=2026-10-16');
+    expect(result.recipes.map(({ id }) => id)).toEqual(['rec_tortilla_patatas', 'rec_pisto']);
+    expect(result.recipes[0].likedIngredients).toEqual([{ id: 'ing_huevo', name: 'Huevo' }]);
+    expect(result.recipes[0].goals.map(({ kind }) => kind)).toEqual(['DAILY_CALORIES']);
+    expect(result.excludedCount).toBe(2);
   });
 
   it('reads a recipe, escaping its id', async () => {

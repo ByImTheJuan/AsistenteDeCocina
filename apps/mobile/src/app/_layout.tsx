@@ -8,6 +8,7 @@ import { DefaultTheme, Stack, ThemeProvider, type Theme } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { ConfigurationErrorScreen } from '@/components/configuration-error-screen';
@@ -100,15 +101,18 @@ export default function RootLayout() {
     );
   }
 
+  // Gestures, such as swiping the recommended recipes, need the root view.
   return (
-    <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <ThemeProvider value={theme}>
-          <StatusBar style="dark" />
-          <AnimatedSplashOverlay />
-          <RootNavigator />
-        </ThemeProvider>
-      </SessionProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <SessionProvider>
+          <ThemeProvider value={theme}>
+            <StatusBar style="dark" />
+            <AnimatedSplashOverlay />
+            <RootNavigator />
+          </ThemeProvider>
+        </SessionProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
