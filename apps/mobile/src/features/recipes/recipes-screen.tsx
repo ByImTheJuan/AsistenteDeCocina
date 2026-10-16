@@ -10,7 +10,9 @@ import {
   groupPantryRecipes,
   type PantryLine,
 } from './pantry-recipes';
-import { formatMinutes, formatRating, joinNames } from './recipe-format';
+import { activeFilterCount, describeFilters, toQuery } from './recipe-filters';
+import { useRecipeFilters } from './recipe-filters-context';
+import { formatCalories, formatMinutes, formatRating, joinNames } from './recipe-format';
 import { RecipeImage } from './recipe-image';
 import type { RecipeSummary } from './recipes-api';
 import { recipesErrorMessage } from './recipes-errors';
@@ -19,12 +21,15 @@ import { usePantryRecipes, useRecipeCatalogue } from './use-recipes';
 import { Badge } from '@/components/badge';
 import { Card } from '@/components/card';
 import { Notice } from '@/components/notice';
+import { PrimaryButton } from '@/components/primary-button';
 import { ScreenState } from '@/components/screen-state';
 import { SegmentedControl } from '@/components/segmented-control';
+import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { today } from '@/features/inventory/expiry';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useTheme } from '@/hooks/use-theme';
 
 const UNCERTAIN = 'Revisa los alérgenos';
@@ -35,6 +40,9 @@ const recipesViews: { value: RecipesView; label: string }[] = [
   { value: 'pantry', label: 'Con mi despensa' },
 ];
 
+/** Typing waits this long before searching. */
+const SEARCH_DELAY_MS = 300;
+
 function hiddenMessage(count: number): string {
   return count === 1
     ? 'Ocultamos 1 receta que no es apta según tus alergias e intolerancias.'
@@ -43,11 +51,17 @@ function hiddenMessage(count: number): string {
 
 /**
  * The recipe catalogue, without the recipes that clash with the user's
- * restrictions, or the recipes worth cooking with what there is at home. Each
- * one opens to its detail.
+ * restrictions, or the recipes worth cooking with what there is at home. Both
+ * can be searched and filtered. Each recipe opens to its detail.
  */
 export function RecipesScreen() {
+  const router = useRouter();
   const [view, setView] = useState<RecipesView>('all');
+  const { search, setSearch, filters, clear } = useRecipeFilters();
+  const query = toQuery(useDebouncedValue(search, SEARCH_DELAY_MS), filters);
+  const filterCount = activeFilterCount(filters);
+  // With nothing found, the way back to every apt recipe.
+  const noMatches = query === '' ? null : <NoMatches onClear={clear} />;
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -70,15 +84,67 @@ export function RecipesScreen() {
             onChange={(next) => setView(next)}
           />
 
-          {view === 'all' ? <AllRecipes /> : <PantryRecipes onShowAll={() => setView('all')} />}
+          <View style={styles.filters}>
+            <TextField
+              label="Buscar recetas"
+              placeholder="Nombre o ingrediente"
+              value={search}
+              onChangeText={setSearch}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            {filterCount > 0 && (
+              <ThemedText type="small" themeColor="textSecondary">
+                {`Filtros: ${describeFilters(filters)}`}
+              </ThemedText>
+            )}
+            <View style={styles.filterButtons}>
+              <View style={styles.filterButton}>
+                <PrimaryButton
+                  variant="secondary"
+                  label={filterCount > 0 ? `Filtros (${filterCount})` : 'Filtros'}
+                  onPress={() => router.push('/recipes/filters')}
+                />
+              </View>
+              {(filterCount > 0 || search.trim() !== '') && (
+                <View style={styles.filterButton}>
+                  <PrimaryButton variant="secondary" label="Quitar filtros" onPress={clear} />
+                </View>
+              )}
+            </View>
+          </View>
+
+          {view === 'all' ? (
+            <AllRecipes query={query} noMatches={noMatches} />
+          ) : (
+            <PantryRecipes query={query} noMatches={noMatches} onShowAll={() => setView('all')} />
+          )}
         </SafeAreaView>
       </ScrollView>
     </ThemedView>
   );
 }
 
-function AllRecipes() {
-  const { data: catalogue, isPending, error, refetch, isRefetching } = useRecipeCatalogue();
+function NoMatches({ onClear }: { onClear(): void }) {
+  return (
+    <ScreenState
+      kind="empty"
+      title="No hay recetas que coincidan"
+      message="Prueba con otra búsqueda o quita los filtros."
+      action={{ label: 'Quitar filtros', onPress: onClear }}
+    />
+  );
+}
+
+type ListProps = {
+  /** The search and filters for the API; '' for none. */
+  query: string;
+  /** Shown when the search or filters leave nothing; null without them. */
+  noMatches: ReactNode;
+};
+
+function AllRecipes({ query, noMatches }: ListProps) {
+  const { data: catalogue, isPending, error, refetch, isRefetching } = useRecipeCatalogue(query);
 
   if (isPending) {
     return <ScreenState kind="loading" label="Cargando las recetas" />;
@@ -94,6 +160,10 @@ function AllRecipes() {
         onRetry={() => void refetch()}
       />
     );
+  }
+
+  if (catalogue.recipes.length === 0 && noMatches) {
+    return noMatches;
   }
 
   if (catalogue.recipes.length === 0) {
@@ -124,8 +194,8 @@ function AllRecipes() {
   );
 }
 
-function PantryRecipes({ onShowAll }: { onShowAll(): void }) {
-  const { data, isPending, error, refetch, isRefetching } = usePantryRecipes();
+function PantryRecipes({ query, noMatches, onShowAll }: ListProps & { onShowAll(): void }) {
+  const { data, isPending, error, refetch, isRefetching } = usePantryRecipes(query);
 
   if (isPending) {
     return <ScreenState kind="loading" label="Buscando recetas para tu despensa" />;
@@ -158,6 +228,9 @@ function PantryRecipes({ onShowAll }: { onShowAll(): void }) {
   // Expiry depends on the day it is for the user, so it is worked out here.
   const on = today();
   const { expiring, ready, almost } = groupPantryRecipes(data.recipes, on);
+  if (expiring.length + ready.length + almost.length === 0 && noMatches) {
+    return noMatches;
+  }
   if (expiring.length + ready.length + almost.length === 0) {
     return (
       <ScreenState
@@ -255,7 +328,11 @@ function RecipeRow({
   const minutes = formatMinutes(recipe.totalMinutes);
   const mainIngredients = joinNames(recipe.mainIngredients.map(({ name }) => name));
   const rating = formatRating(recipe.rating);
-  const label = [recipe.name, minutes, mainIngredients, rating]
+  const calories =
+    recipe.caloriesPerServing === null ? null : formatCalories(recipe.caloriesPerServing);
+  const label = [recipe.name, minutes]
+    .concat(calories ? [`${calories} por ración`] : [])
+    .concat([mainIngredients, rating])
     .concat(recipe.allergensUncertain ? [UNCERTAIN] : [])
     .concat(highlight ? [highlight] : [])
     .concat(lines.map(({ text }) => text))
@@ -274,7 +351,7 @@ function RecipeRow({
               {mainIngredients}
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              {`${minutes} · ${rating}`}
+              {[minutes, calories, rating].filter(Boolean).join(' · ')}
             </ThemedText>
             {recipe.allergensUncertain && <Badge tone="warning">{UNCERTAIN}</Badge>}
             {highlight && <Badge tone="warning">{highlight}</Badge>}
@@ -320,6 +397,18 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: Spacing.sm,
+  },
+  filters: {
+    gap: Spacing.sm,
+  },
+  filterButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+  },
+  filterButton: {
+    flexGrow: 1,
+    flexBasis: 140,
   },
   list: {
     gap: Spacing.md,

@@ -22,6 +22,7 @@ function recipe(name: string, pantry: Partial<RecipePantry>): PantryRecipe {
     mainIngredients: [],
     allergensUncertain: false,
     rating: null,
+    caloriesPerServing: null,
     pantry: { ...empty, ...pantry },
   };
 }

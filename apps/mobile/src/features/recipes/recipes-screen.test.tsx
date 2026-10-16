@@ -1,6 +1,7 @@
 import { screen, userEvent } from '@testing-library/react-native';
 
 import type { PantryRecipe, PantryRecipes, RecipeCatalogue, RecipeSummary } from './recipes-api';
+import { RecipeFiltersProvider } from './recipe-filters-context';
 import { RecipesScreen } from './recipes-screen';
 
 import { renderSignedIn } from '@/features/account/account-test-utils';
@@ -19,6 +20,15 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+// In the app the tab's layout provides the search and filters.
+function Screen() {
+  return (
+    <RecipeFiltersProvider>
+      <RecipesScreen />
+    </RecipeFiltersProvider>
+  );
+}
+
 const tortilla: RecipeSummary = {
   id: 'rec_tortilla_patatas',
   name: 'Tortilla de patatas',
@@ -31,6 +41,7 @@ const tortilla: RecipeSummary = {
   ],
   allergensUncertain: false,
   rating: null,
+  caloriesPerServing: 678,
 };
 const gazpacho: RecipeSummary = {
   id: 'rec_gazpacho',
@@ -40,6 +51,7 @@ const gazpacho: RecipeSummary = {
   mainIngredients: [{ id: 'ing_tomate', name: 'Tomate' }],
   allergensUncertain: true,
   rating: { average: 4.5, count: 12 },
+  caloriesPerServing: null,
 };
 const catalogue: RecipeCatalogue = { recipes: [gazpacho, tortilla], hiddenCount: 0 };
 
@@ -120,7 +132,7 @@ const pantryRecipes: PantryRecipes = {
 describe('RecipesScreen', () => {
   const user = userEvent.setup();
   const renderScreen = (getCatalogue: () => unknown) =>
-    renderSignedIn(<RecipesScreen />, { 'GET /recipes': getCatalogue });
+    renderSignedIn(<Screen />, { 'GET /recipes': getCatalogue });
 
   beforeEach(() => {
     mockPush.mockClear();
@@ -153,11 +165,11 @@ describe('RecipesScreen', () => {
 
     expect(
       await screen.findByRole('button', {
-        name: 'Tortilla de patatas, 45 min, Patata, huevo y cebolla, Sin valoraciones',
+        name: 'Tortilla de patatas, 45 min, 678 kcal por ración, Patata, huevo y cebolla, Sin valoraciones',
       }),
     ).toBeOnTheScreen();
     expect(screen.getByText('Patata, huevo y cebolla')).toBeOnTheScreen();
-    expect(screen.getByText('45 min · Sin valoraciones')).toBeOnTheScreen();
+    expect(screen.getByText('45 min · 678 kcal · Sin valoraciones')).toBeOnTheScreen();
   });
 
   it('shows the rating when a recipe has one', async () => {
@@ -172,7 +184,10 @@ describe('RecipesScreen', () => {
     await screen.findByText('Tortilla de patatas');
     const names = screen
       .getAllByRole('button')
-      .map((button) => (button.props.accessibilityLabel as string).split(',')[0]);
+      .map((button) => button.props.accessibilityLabel as string)
+      // Recipe rows: name, time, …; not the filter buttons.
+      .filter((label) => label.includes(','))
+      .map((label) => label.split(',')[0]);
     expect(names).toEqual(['Gazpacho andaluz', 'Tortilla de patatas']);
   });
 
@@ -261,7 +276,7 @@ describe('RecipesScreen', () => {
     });
 
     const showPantry = async (getPantry: () => unknown) => {
-      await renderSignedIn(<RecipesScreen />, {
+      await renderSignedIn(<Screen />, {
         'GET /recipes': () => catalogue,
         [PANTRY]: getPantry,
       });
@@ -272,7 +287,9 @@ describe('RecipesScreen', () => {
     const recipeNames = () =>
       screen
         .getAllByRole('button')
-        .map((button) => (button.props.accessibilityLabel as string).split(',')[0]);
+        .map((button) => button.props.accessibilityLabel as string)
+        .filter((label) => label.includes(','))
+        .map((label) => label.split(',')[0]);
 
     it('groups the recipes by how well they use the pantry', async () => {
       await showPantry(() => pantryRecipes);

@@ -20,6 +20,8 @@ const recipeSummarySchema = z.object({
   // Some processed ingredient may carry allergens that are not listed.
   allergensUncertain: z.boolean(),
   rating: ratingSchema,
+  // Estimated for one serving; null when some ingredient lacks the data.
+  caloriesPerServing: z.number().nullable(),
 });
 
 // Only the recipes apt for the user's restrictions; `hiddenCount` says how
@@ -157,9 +159,17 @@ export type PantryRecipes = z.infer<typeof pantryRecipesSchema>;
 export type Recommendations = z.infer<typeof recommendationsSchema>;
 export type RecommendedRecipe = Recommendations['recipes'][number];
 
-/** The recipes apt for the user, by name. */
-export async function getRecipeCatalogue(request: AuthorizedRequest): Promise<RecipeCatalogue> {
-  return recipeCatalogueSchema.parse(await request('/recipes'));
+const withQuery = (path: string, query: string) => (query ? `${path}?${query}` : path);
+
+/**
+ * The recipes apt for the user, by name. `query` (from toQuery) narrows them
+ * down with a search and filters, and may sort them otherwise.
+ */
+export async function getRecipeCatalogue(
+  request: AuthorizedRequest,
+  query = '',
+): Promise<RecipeCatalogue> {
+  return recipeCatalogueSchema.parse(await request(withQuery('/recipes', query)));
 }
 
 /**
@@ -169,9 +179,11 @@ export async function getRecipeCatalogue(request: AuthorizedRequest): Promise<Re
 export async function getPantryRecipes(
   request: AuthorizedRequest,
   today: string,
+  query = '',
 ): Promise<PantryRecipes> {
+  const day = `today=${encodeURIComponent(today)}`;
   return pantryRecipesSchema.parse(
-    await request(`/recipes/pantry?today=${encodeURIComponent(today)}`),
+    await request(`/recipes/pantry?${query ? `${day}&${query}` : day}`),
   );
 }
 

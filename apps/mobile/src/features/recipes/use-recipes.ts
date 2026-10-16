@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import * as recipesApi from './recipes-api';
 
@@ -9,24 +9,28 @@ import { today } from '@/features/inventory/expiry';
 // everything under this key (use-dietary-restrictions.ts).
 export const recipesQueryKey = ['recipes'] as const;
 
-export function useRecipeCatalogue() {
+/** The apt recipes; `query` (from toQuery) searches, filters and sorts them. */
+export function useRecipeCatalogue(query = '') {
   const { request } = useSession();
   return useQuery({
-    queryKey: recipesQueryKey,
-    queryFn: () => recipesApi.getRecipeCatalogue(request),
+    queryKey: [...recipesQueryKey, 'catalogue', query],
+    queryFn: () => recipesApi.getRecipeCatalogue(request, query),
+    // Keeps the previous list on screen while a new search loads.
+    placeholderData: keepPreviousData,
   });
 }
 
 // Depends on the pantry too: changing it invalidates this key (use-inventory.ts).
 export const pantryRecipesQueryKey = [...recipesQueryKey, 'pantry'] as const;
 
-/** The recipes against the pantry, for the device's day. */
-export function usePantryRecipes() {
+/** The recipes against the pantry, for the device's day, with the same `query`. */
+export function usePantryRecipes(query = '') {
   const { request } = useSession();
   const day = today();
   return useQuery({
-    queryKey: [...pantryRecipesQueryKey, day],
-    queryFn: () => recipesApi.getPantryRecipes(request, day),
+    queryKey: [...pantryRecipesQueryKey, day, query],
+    queryFn: () => recipesApi.getPantryRecipes(request, day, query),
+    placeholderData: keepPreviousData,
   });
 }
 

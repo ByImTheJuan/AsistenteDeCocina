@@ -8,6 +8,7 @@ const summary = {
   mainIngredients: [{ id: 'ing_patata', name: 'Patata' }],
   allergensUncertain: false,
   rating: null,
+  caloriesPerServing: 678,
 };
 
 const detail = {
