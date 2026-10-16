@@ -1,6 +1,9 @@
-import { screen, userEvent } from '@testing-library/react-native';
+import { screen, userEvent, waitFor } from '@testing-library/react-native';
+import { useEffect } from 'react';
 
 import type { PantryRecipe, PantryRecipes, RecipeCatalogue, RecipeSummary } from './recipes-api';
+import { noFilters, type RecipeFilters } from './recipe-filters';
+import { RecipeFiltersProvider, useRecipeFilters } from './recipe-filters-context';
 import { RecipesScreen } from './recipes-screen';
 
 import { renderSignedIn } from '@/features/account/account-test-utils';
@@ -19,6 +22,23 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+// In the app the tab's layout provides the search and filters. A test can
+// start from some filters, as if chosen in the filters screen.
+function Screen({ filters }: { filters?: RecipeFilters }) {
+  return (
+    <RecipeFiltersProvider>
+      {filters && <ApplyFilters filters={filters} />}
+      <RecipesScreen />
+    </RecipeFiltersProvider>
+  );
+}
+
+function ApplyFilters({ filters }: { filters: RecipeFilters }) {
+  const { setFilters } = useRecipeFilters();
+  useEffect(() => setFilters(filters), [filters, setFilters]);
+  return null;
+}
+
 const tortilla: RecipeSummary = {
   id: 'rec_tortilla_patatas',
   name: 'Tortilla de patatas',
@@ -31,6 +51,7 @@ const tortilla: RecipeSummary = {
   ],
   allergensUncertain: false,
   rating: null,
+  caloriesPerServing: 678,
 };
 const gazpacho: RecipeSummary = {
   id: 'rec_gazpacho',
@@ -40,6 +61,7 @@ const gazpacho: RecipeSummary = {
   mainIngredients: [{ id: 'ing_tomate', name: 'Tomate' }],
   allergensUncertain: true,
   rating: { average: 4.5, count: 12 },
+  caloriesPerServing: null,
 };
 const catalogue: RecipeCatalogue = { recipes: [gazpacho, tortilla], hiddenCount: 0 };
 
@@ -120,7 +142,7 @@ const pantryRecipes: PantryRecipes = {
 describe('RecipesScreen', () => {
   const user = userEvent.setup();
   const renderScreen = (getCatalogue: () => unknown) =>
-    renderSignedIn(<RecipesScreen />, { 'GET /recipes': getCatalogue });
+    renderSignedIn(<Screen />, { 'GET /recipes': getCatalogue });
 
   beforeEach(() => {
     mockPush.mockClear();
@@ -153,11 +175,11 @@ describe('RecipesScreen', () => {
 
     expect(
       await screen.findByRole('button', {
-        name: 'Tortilla de patatas, 45 min, Patata, huevo y cebolla, Sin valoraciones',
+        name: 'Tortilla de patatas, 45 min, 678 kcal por ración, Patata, huevo y cebolla, Sin valoraciones',
       }),
     ).toBeOnTheScreen();
     expect(screen.getByText('Patata, huevo y cebolla')).toBeOnTheScreen();
-    expect(screen.getByText('45 min · Sin valoraciones')).toBeOnTheScreen();
+    expect(screen.getByText('45 min · 678 kcal · Sin valoraciones')).toBeOnTheScreen();
   });
 
   it('shows the rating when a recipe has one', async () => {
@@ -172,7 +194,10 @@ describe('RecipesScreen', () => {
     await screen.findByText('Tortilla de patatas');
     const names = screen
       .getAllByRole('button')
-      .map((button) => (button.props.accessibilityLabel as string).split(',')[0]);
+      .map((button) => button.props.accessibilityLabel as string)
+      // Recipe rows: name, time, …; not the filter buttons.
+      .filter((label) => label.includes(','))
+      .map((label) => label.split(',')[0]);
     expect(names).toEqual(['Gazpacho andaluz', 'Tortilla de patatas']);
   });
 
@@ -261,7 +286,7 @@ describe('RecipesScreen', () => {
     });
 
     const showPantry = async (getPantry: () => unknown) => {
-      await renderSignedIn(<RecipesScreen />, {
+      await renderSignedIn(<Screen />, {
         'GET /recipes': () => catalogue,
         [PANTRY]: getPantry,
       });
@@ -272,7 +297,9 @@ describe('RecipesScreen', () => {
     const recipeNames = () =>
       screen
         .getAllByRole('button')
-        .map((button) => (button.props.accessibilityLabel as string).split(',')[0]);
+        .map((button) => button.props.accessibilityLabel as string)
+        .filter((label) => label.includes(','))
+        .map((label) => label.split(',')[0]);
 
     it('groups the recipes by how well they use the pantry', async () => {
       await showPantry(() => pantryRecipes);
@@ -359,6 +386,133 @@ describe('RecipesScreen', () => {
           'Ocultamos 1 receta que no es apta según tus alergias e intolerancias.',
         ),
       ).toBeOnTheScreen();
+    });
+  });
+
+  describe('search and filters', () => {
+    const vegan: RecipeFilters = { ...noFilters, diet: 'VEGAN', sort: 'TIME' };
+
+    it('searches by what is typed, once typing stops', async () => {
+      const { sentTo } = await renderSignedIn(<Screen />, {
+        'GET /recipes': () => catalogue,
+        'GET /recipes?search=papa': () => ({ recipes: [tortilla], hiddenCount: 0 }),
+      });
+      await screen.findByText('Gazpacho andaluz');
+
+      await user.type(screen.getByLabelText('Buscar recetas'), 'papa');
+
+      // The previous list stays until the results arrive.
+      await waitFor(() => expect(screen.queryByText('Gazpacho andaluz')).toBeNull());
+      expect(screen.getByText('Tortilla de patatas')).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Quitar filtros' })).toBeOnTheScreen();
+      // Not one request per letter.
+      expect(sentTo('GET /recipes?search=p')).toHaveLength(0);
+    });
+
+    it('opens the filters screen', async () => {
+      await renderScreen(() => catalogue);
+      await screen.findByText('Gazpacho andaluz');
+
+      await user.press(screen.getByRole('button', { name: 'Filtros' }));
+
+      expect(mockPush).toHaveBeenCalledWith('/recipes/filters');
+    });
+
+    it('sums up the filters in use and asks the API with them', async () => {
+      await renderSignedIn(<Screen filters={vegan} />, {
+        'GET /recipes?diet=VEGAN&sort=TIME': () => ({ recipes: [gazpacho], hiddenCount: 0 }),
+      });
+
+      expect(await screen.findByText('Gazpacho andaluz')).toBeOnTheScreen();
+      expect(screen.getByText('Filtros: Vegana · Menos tiempo')).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Filtros (2)' })).toBeOnTheScreen();
+    });
+
+    it('goes back to every apt recipe when the filters are cleared', async () => {
+      await renderSignedIn(<Screen filters={vegan} />, {
+        'GET /recipes': () => catalogue,
+        'GET /recipes?diet=VEGAN&sort=TIME': () => ({ recipes: [gazpacho], hiddenCount: 0 }),
+      });
+      await screen.findByText('Filtros: Vegana · Menos tiempo');
+
+      await user.press(screen.getByRole('button', { name: 'Quitar filtros' }));
+
+      expect(await screen.findByText('Tortilla de patatas')).toBeOnTheScreen();
+      expect(screen.queryByText(/^Filtros:/)).toBeNull();
+      expect(screen.getByRole('button', { name: 'Filtros' })).toBeOnTheScreen();
+    });
+
+    it('says when nothing matches and offers to clear the search and filters', async () => {
+      await renderSignedIn(<Screen filters={vegan} />, {
+        'GET /recipes': () => catalogue,
+        'GET /recipes?diet=VEGAN&sort=TIME': () => ({ recipes: [], hiddenCount: 0 }),
+      });
+
+      expect(await screen.findByText('No hay recetas que coincidan')).toBeOnTheScreen();
+      const clearButtons = screen.getAllByRole('button', { name: 'Quitar filtros' });
+      await user.press(clearButtons[clearButtons.length - 1]);
+
+      expect(await screen.findByText('Tortilla de patatas')).toBeOnTheScreen();
+    });
+
+    it('still explains when every recipe clashes with the restrictions, without filters', async () => {
+      await renderScreen(() => ({ recipes: [], hiddenCount: 24 }));
+
+      expect(await screen.findByText('No hay recetas aptas para ti')).toBeOnTheScreen();
+      expect(screen.queryByText('No hay recetas que coincidan')).toBeNull();
+    });
+
+    describe('with the pantry', () => {
+      beforeEach(() => {
+        jest.useFakeTimers({
+          now: new Date(2026, 9, 16, 10),
+          doNotFake: [
+            'hrtime',
+            'nextTick',
+            'performance',
+            'queueMicrotask',
+            'requestAnimationFrame',
+            'cancelAnimationFrame',
+            'requestIdleCallback',
+            'cancelIdleCallback',
+            'setImmediate',
+            'clearImmediate',
+            'setInterval',
+            'clearInterval',
+            'setTimeout',
+            'clearTimeout',
+          ],
+        });
+      });
+
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
+      it('applies the same filters', async () => {
+        await renderSignedIn(<Screen filters={vegan} />, {
+          'GET /recipes?diet=VEGAN&sort=TIME': () => catalogue,
+          [`${PANTRY}&diet=VEGAN&sort=TIME`]: () => pantryRecipes,
+        });
+        await screen.findByText('Tortilla de patatas');
+
+        await user.press(screen.getByRole('radio', { name: /Con mi despensa/ }));
+
+        expect(await screen.findByText('Puedes prepararlas')).toBeOnTheScreen();
+        expect(screen.getByText('Filtros: Vegana · Menos tiempo')).toBeOnTheScreen();
+      });
+
+      it('says when nothing matches instead of suggesting to add food', async () => {
+        await renderSignedIn(<Screen filters={vegan} />, {
+          'GET /recipes?diet=VEGAN&sort=TIME': () => catalogue,
+          [`${PANTRY}&diet=VEGAN&sort=TIME`]: () => ({ ...pantryRecipes, recipes: [] }),
+        });
+        await screen.findByText('Tortilla de patatas');
+
+        await user.press(screen.getByRole('radio', { name: /Con mi despensa/ }));
+
+        expect(await screen.findByText('No hay recetas que coincidan')).toBeOnTheScreen();
+      });
     });
   });
 });

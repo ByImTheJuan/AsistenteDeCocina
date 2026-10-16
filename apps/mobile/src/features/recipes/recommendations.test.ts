@@ -14,6 +14,7 @@ function recipe(overrides: Partial<RecommendedRecipe> = {}): RecommendedRecipe {
     mainIngredients: [],
     allergensUncertain: false,
     rating: null,
+    caloriesPerServing: 520,
     description: 'La de siempre.',
     servings: 4,
     likedIngredients: [],

@@ -31,6 +31,7 @@ function recipe(id: string, name: string, overrides: Partial<RecommendedRecipe> 
     mainIngredients: [],
     allergensUncertain: false,
     rating: null,
+    caloriesPerServing: 520,
     description: `Descripción de ${name}.`,
     servings: 4,
     likedIngredients: [],

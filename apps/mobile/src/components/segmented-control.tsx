@@ -14,8 +14,10 @@ type SegmentedControlProps<Value extends string> = {
 
 /**
  * A few mutually exclusive ways to see the same content ("Ubicación",
- * "Fecha"). The chosen option is raised on a white surface, bold and with a
- * check, so colour is not the only cue.
+ * "Fecha"), or a few exclusive choices such as a filter. The chosen option is
+ * raised on a white surface, bold and with a check, so colour is not the only
+ * cue. Options share a row while each fits its minimum width; the rest go to
+ * the next row.
  */
 export function SegmentedControl<Value extends string>({
   label,
@@ -68,12 +70,16 @@ const styles = StyleSheet.create({
   },
   track: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.xs,
     padding: Spacing.xs,
     borderRadius: Radius.md,
   },
   option: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 0,
+    // Two options per row on a phone; more on wider screens.
+    minWidth: 120,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,

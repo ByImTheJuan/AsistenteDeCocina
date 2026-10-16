@@ -22,6 +22,8 @@ import {
   PantryRecipesQuery,
   PantryRecipesResponse,
   RecipeCatalogueResponse,
+  RecipeFiltersQuery,
+  TodayQuery,
   RecipeDetailResponse,
   RecommendationsResponse,
 } from './recipes.dto.js';
@@ -43,13 +45,17 @@ export class RecipesController {
   @ApiOperation({
     summary: 'List the recipe catalogue',
     description:
-      'Recipes with no allergen or ingredient the user has restricted, by name, and how many were left out.',
+      'Recipes with no allergen or ingredient the user has restricted, by name, and how many were left out. The search and filters narrow them down.',
   })
   @ApiOkResponse({ type: RecipeCatalogueResponse })
+  @ApiBadRequestResponse({ description: 'A filter has an invalid value' })
   async catalogue(
     @CurrentUser() current: AuthenticatedUser,
+    @Query() filters: RecipeFiltersQuery,
   ): Promise<RecipeCatalogueResponse> {
-    return RecipeCatalogueResponse.from(await this.recipes.catalogue(current));
+    return RecipeCatalogueResponse.from(
+      await this.recipes.catalogue(current, filters),
+    );
   }
 
   // Declared before `:id`, which would otherwise take "pantry" as an id.
@@ -60,13 +66,15 @@ export class RecipesController {
       'The apt recipes with what each one takes from home, what is missing or not enough, and what has to be checked. Quantities are compared only between units of the same kind.',
   })
   @ApiOkResponse({ type: PantryRecipesResponse })
-  @ApiBadRequestResponse({ description: '`today` is not a valid YYYY-MM-DD' })
+  @ApiBadRequestResponse({
+    description: '`today` is not a valid YYYY-MM-DD, or a filter is invalid',
+  })
   async pantry(
     @CurrentUser() current: AuthenticatedUser,
-    @Query() query: PantryRecipesQuery,
+    @Query() { today, ...filters }: PantryRecipesQuery,
   ): Promise<PantryRecipesResponse> {
     return PantryRecipesResponse.from(
-      await this.recipes.pantry(current, query.today),
+      await this.recipes.pantry(current, today, filters),
     );
   }
 
@@ -81,7 +89,7 @@ export class RecipesController {
   @ApiBadRequestResponse({ description: '`today` is not a valid YYYY-MM-DD' })
   async recommendations(
     @CurrentUser() current: AuthenticatedUser,
-    @Query() query: PantryRecipesQuery,
+    @Query() query: TodayQuery,
   ): Promise<RecommendationsResponse> {
     return RecommendationsResponse.from(
       await this.recipes.recommendations(current, query.today),
