@@ -46,14 +46,19 @@ type Handler = () => unknown;
 describe('ProfileScreen', () => {
   const user = userEvent.setup();
 
-  const renderProfile = (routes: Record<string, Handler> = {}) =>
-    renderSignedIn(<ProfileScreen />, {
+  const renderProfile = async (routes: Record<string, Handler> = {}) => {
+    const rendered = await renderSignedIn(<ProfileScreen />, {
       'GET /food-preferences': () => noPreferences,
       'GET /dietary-restrictions': () => noRestrictions,
       'GET /nutrition-goals': () => noGoals,
       'GET /account': () => passwordAccount,
       ...routes,
     });
+    // The account loads on its own; waiting for it keeps it from updating the
+    // screen after a test has finished.
+    await screen.findByRole('button', { name: /^Cuenta: / });
+    return rendered;
+  };
 
   beforeEach(() => {
     mockPush.mockClear();

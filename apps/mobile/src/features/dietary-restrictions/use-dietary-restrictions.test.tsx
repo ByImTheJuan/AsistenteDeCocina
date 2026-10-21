@@ -21,7 +21,7 @@ function SaveEgg() {
 }
 
 describe('useSaveDietaryRestrictions', () => {
-  it('asks again for the recipes, which depend on the restrictions', async () => {
+  it('asks again for the recipes and the meal plan, which depend on the restrictions', async () => {
     const user = userEvent.setup();
     const { queryClient } = await renderSignedIn(<SaveEgg />, {
       'PUT /dietary-restrictions': () => ({
@@ -35,5 +35,6 @@ describe('useSaveDietaryRestrictions', () => {
     await user.press(screen.getByRole('button', { name: 'Guardar' }));
 
     await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['recipes'] }));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['meal-plan'] });
   });
 });
