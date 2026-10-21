@@ -23,6 +23,11 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Icon sf="book" md="menu_book" />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="plan">
+        <NativeTabs.Trigger.Label>Plan</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="inventory">
         <NativeTabs.Trigger.Label>Mi despensa</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="refrigerator" md="kitchen" />

@@ -4,6 +4,7 @@ import * as dietaryRestrictionsApi from './dietary-restrictions-api';
 import type { DietaryRestrictionsDraft } from './dietary-restrictions-api';
 
 import { useSession } from '@/features/auth/session-provider';
+import { mealPlanQueryKey } from '@/features/meal-plan/use-meal-plan';
 import { recipesQueryKey } from '@/features/recipes/use-recipes';
 
 export const dietaryRestrictionsQueryKey = ['dietary-restrictions'] as const;
@@ -28,6 +29,8 @@ export function useSaveDietaryRestrictions() {
     onSuccess: (saved) => {
       queryClient.setQueryData(dietaryRestrictionsQueryKey, saved);
       void queryClient.invalidateQueries({ queryKey: recipesQueryKey });
+      // The plan says which planned recipes now clash with them.
+      void queryClient.invalidateQueries({ queryKey: mealPlanQueryKey });
     },
   });
 }
