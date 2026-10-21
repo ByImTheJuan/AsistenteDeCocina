@@ -10,7 +10,7 @@ const ratingSchema = z.object({ average: z.number(), count: z.number() }).nullab
 
 const ingredientNameSchema = z.object({ id: z.string(), name: z.string() });
 
-const recipeSummarySchema = z.object({
+export const recipeSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
   imageUrl: z.string().nullable(),

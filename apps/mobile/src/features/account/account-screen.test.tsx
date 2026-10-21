@@ -86,9 +86,9 @@ describe('AccountScreen', () => {
     });
 
     it.each([
-      ['Cambiar contraseña', '/account/password'],
-      ['Quitar contraseña', '/account/remove-method?method=password'],
-      ['Desvincular Google', '/account/remove-method?method=google'],
+      ['Cambiar contraseña', '/profile/account/password'],
+      ['Quitar contraseña', '/profile/account/remove-method?method=password'],
+      ['Desvincular Google', '/profile/account/remove-method?method=google'],
     ])('opens the right form when "%s" is pressed', async (name, href) => {
       await renderSignedIn(<AccountScreen />, { 'GET /account': () => linkedAccount });
 
@@ -102,7 +102,7 @@ describe('AccountScreen', () => {
 
       await user.press(await screen.findByRole('button', { name: 'Añadir contraseña' }));
 
-      expect(mockPush).toHaveBeenCalledWith('/account/password');
+      expect(mockPush).toHaveBeenCalledWith('/profile/account/password');
     });
 
     it('explains why the only method cannot be removed', async () => {

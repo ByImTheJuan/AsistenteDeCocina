@@ -13,7 +13,7 @@ import { Card } from '@/components/card';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { requestGoogleIdToken } from '@/features/auth/google-sign-in';
 import { useSession } from '@/features/auth/session-provider';
 
@@ -61,7 +61,7 @@ export function AccountScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <SafeAreaView style={styles.content}>
+        <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.content}>
           <ThemedText type="title">Cuenta</ThemedText>
 
           <Section title="Tus datos">
@@ -80,7 +80,7 @@ export function AccountScreen() {
             <ThemedText type="small" themeColor="textSecondary">
               Borra tu cuenta y todos tus datos de forma definitiva.
             </ThemedText>
-            <Link href="/account/delete" accessibilityRole="link">
+            <Link href="/profile/account/delete" accessibilityRole="link">
               <ThemedText type="smallBold" themeColor="error">
                 Eliminar mi cuenta
               </ThemedText>
@@ -119,11 +119,14 @@ function SignInMethods({ account }: { account: Account }) {
     <Section title="Métodos de acceso">
       <Method name="Contraseña" status={password ? 'Configurada' : 'No configurada'}>
         <ActionButton
-          href="/account/password"
+          href="/profile/account/password"
           label={password ? 'Cambiar contraseña' : 'Añadir contraseña'}
         />
         {password && google && (
-          <ActionButton href="/account/remove-method?method=password" label="Quitar contraseña" />
+          <ActionButton
+            href="/profile/account/remove-method?method=password"
+            label="Quitar contraseña"
+          />
         )}
       </Method>
 
@@ -137,7 +140,10 @@ function SignInMethods({ account }: { account: Account }) {
           />
         )}
         {google && password && (
-          <ActionButton href="/account/remove-method?method=google" label="Desvincular Google" />
+          <ActionButton
+            href="/profile/account/remove-method?method=google"
+            label="Desvincular Google"
+          />
         )}
         {linkError && <Notice tone="error">{linkError}</Notice>}
       </Method>
@@ -236,8 +242,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     gap: Spacing.lg,
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
-    paddingBottom: BottomTabInset + Spacing.xl,
+    paddingVertical: Spacing.xl,
     maxWidth: MaxContentWidth,
   },
   section: {

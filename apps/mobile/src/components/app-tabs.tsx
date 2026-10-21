@@ -23,6 +23,11 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Icon sf="book" md="menu_book" />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="plan">
+        <NativeTabs.Trigger.Label>Plan</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="inventory">
         <NativeTabs.Trigger.Label>Mi despensa</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="refrigerator" md="kitchen" />
@@ -31,11 +36,6 @@ export default function AppTabs() {
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="fork.knife" md="restaurant" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="account">
-        <NativeTabs.Trigger.Label>Cuenta</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="person.crop.circle" md="account_circle" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

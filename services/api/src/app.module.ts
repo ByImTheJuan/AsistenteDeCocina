@@ -8,6 +8,7 @@ import { FoodPreferencesModule } from './food-preferences/food-preferences.modul
 import { HealthModule } from './health/health.module.js';
 import { IngredientsModule } from './ingredients/ingredients.module.js';
 import { InventoryModule } from './inventory/inventory.module.js';
+import { MealPlanModule } from './meal-plan/meal-plan.module.js';
 import { NutritionGoalsModule } from './nutrition-goals/nutrition-goals.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { RecipesModule } from './recipes/recipes.module.js';
@@ -25,6 +26,7 @@ import { RecipesModule } from './recipes/recipes.module.js';
     NutritionGoalsModule,
     InventoryModule,
     RecipesModule,
+    MealPlanModule,
   ],
 })
 export class AppModule {}

@@ -7,6 +7,7 @@ import { Card } from '@/components/card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useAccount } from '@/features/account/use-account';
 import { summarizeRestrictions } from '@/features/dietary-restrictions/labels';
 import { useDietaryRestrictions } from '@/features/dietary-restrictions/use-dietary-restrictions';
 import type { FoodPreferences } from '@/features/food-preferences/food-preferences-api';
@@ -37,11 +38,12 @@ function summaryOf<Data>(
   return query.isPending ? 'Cargando…' : 'No se han podido cargar';
 }
 
-/** Menu of what the user tells the app about how they eat. */
+/** Menu of what the user tells the app about how they eat, and their account. */
 export function ProfileScreen() {
   const preferences = useFoodPreferences();
   const restrictions = useDietaryRestrictions();
   const goals = useNutritionGoals();
+  const account = useAccount();
 
   return (
     <ThemedView style={styles.container}>
@@ -75,6 +77,16 @@ export function ProfileScreen() {
               title="Objetivos nutricionales"
               summary={summaryOf(goals, summarizeGoals)}
               href="/profile/nutrition-goals"
+            />
+          </View>
+
+          {/* Apart from how the user eats: their data, sign-in and session. */}
+          <View style={styles.entries}>
+            <Entry
+              icon={{ ios: 'person.crop.circle', android: 'account_circle', web: 'account_circle' }}
+              title="Cuenta"
+              summary={summaryOf(account, ({ email }) => email)}
+              href="/profile/account"
             />
           </View>
         </SafeAreaView>

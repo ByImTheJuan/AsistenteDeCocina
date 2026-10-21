@@ -26,7 +26,7 @@ import type { RecipeSafety } from './recipe-safety.js';
 import { recipeNotFound } from './recipes.errors.js';
 
 // Synonyms too, so the search finds 'papa' in a recipe with potato.
-const withIngredients = {
+export const withIngredients = {
   ingredients: {
     orderBy: { position: 'asc' },
     include: { ingredient: { include: { ...withAllergens, aliases: true } } },
@@ -38,13 +38,34 @@ const withDetail = {
   steps: { orderBy: { position: 'asc' } },
 } satisfies Prisma.RecipeInclude;
 
-export type RecipeWithIngredients = Prisma.RecipeGetPayload<{
+type RecipeWithIngredientRows = Prisma.RecipeGetPayload<{
   include: typeof withIngredients;
-}> & {
+}>;
+
+export type RecipeWithIngredients = RecipeWithIngredientRows & {
   safety: RecipeSafety;
   /** Estimated; null when some ingredient lacks the data. */
   caloriesPerServing: number | null;
 };
+
+/**
+ * A recipe read with `withIngredients`, with what the user's restrictions say
+ * about it and its estimated calories per serving.
+ */
+export function rateRecipe(
+  recipe: RecipeWithIngredientRows,
+  restrictions: DietaryRestrictions,
+): RecipeWithIngredients {
+  return {
+    ...recipe,
+    safety: recipeSafety(
+      recipe.ingredients.map(({ ingredient }) => ingredient),
+      restrictions,
+    ),
+    caloriesPerServing: recipeNutrition(recipe.ingredients, recipe.servings)
+      .perServing.calories,
+  };
+}
 
 export type RecipeDetail = Prisma.RecipeGetPayload<{
   include: typeof withDetail;
@@ -210,15 +231,7 @@ export class RecipesService {
       include: withIngredients,
       orderBy: { name: 'asc' },
     });
-    const rated = recipes.map((recipe) => ({
-      ...recipe,
-      safety: recipeSafety(
-        recipe.ingredients.map(({ ingredient }) => ingredient),
-        restrictions,
-      ),
-      caloriesPerServing: recipeNutrition(recipe.ingredients, recipe.servings)
-        .perServing.calories,
-    }));
+    const rated = recipes.map((recipe) => rateRecipe(recipe, restrictions));
     const apt = rated.filter(({ safety }) => !hasConflicts(safety));
     const found = apt.filter((recipe) => matchesFilters(recipe, filters));
     return {

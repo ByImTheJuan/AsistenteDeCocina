@@ -85,8 +85,8 @@ async function renderApp() {
       // screen stands in for its home screen.
       '(app)/_layout': () => <Slot />,
       '(app)/index': AccountScreen,
-      '(app)/account/password': PasswordScreen,
-      '(app)/account/delete': DeleteAccountScreen,
+      '(app)/profile/account/password': PasswordScreen,
+      '(app)/profile/account/delete': DeleteAccountScreen,
     },
     { initialUrl: '/' },
   );

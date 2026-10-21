@@ -2,7 +2,7 @@ import { screen, userEvent } from '@testing-library/react-native';
 
 import { ProfileScreen } from './profile-screen';
 
-import { renderSignedIn } from '@/features/account/account-test-utils';
+import { passwordAccount, renderSignedIn } from '@/features/account/account-test-utils';
 import { NetworkError } from '@/lib/api-client';
 import type { Unit } from '@/features/units/units';
 
@@ -46,13 +46,19 @@ type Handler = () => unknown;
 describe('ProfileScreen', () => {
   const user = userEvent.setup();
 
-  const renderProfile = (routes: Record<string, Handler> = {}) =>
-    renderSignedIn(<ProfileScreen />, {
+  const renderProfile = async (routes: Record<string, Handler> = {}) => {
+    const rendered = await renderSignedIn(<ProfileScreen />, {
       'GET /food-preferences': () => noPreferences,
       'GET /dietary-restrictions': () => noRestrictions,
       'GET /nutrition-goals': () => noGoals,
+      'GET /account': () => passwordAccount,
       ...routes,
     });
+    // The account loads on its own; waiting for it keeps it from updating the
+    // screen after a test has finished.
+    await screen.findByRole('button', { name: /^Cuenta: / });
+    return rendered;
+  };
 
   beforeEach(() => {
     mockPush.mockClear();
@@ -180,6 +186,24 @@ describe('ProfileScreen', () => {
       );
 
       expect(mockPush).toHaveBeenCalledWith('/profile/nutrition-goals');
+    });
+  });
+
+  describe('account', () => {
+    it('shows the email of the account', async () => {
+      await renderProfile();
+
+      expect(
+        await screen.findByRole('button', { name: 'Cuenta: ana@example.com' }),
+      ).toBeOnTheScreen();
+    });
+
+    it('opens it', async () => {
+      await renderProfile();
+
+      await user.press(await screen.findByRole('button', { name: 'Cuenta: ana@example.com' }));
+
+      expect(mockPush).toHaveBeenCalledWith('/profile/account');
     });
   });
 

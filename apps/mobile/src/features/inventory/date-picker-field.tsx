@@ -14,6 +14,9 @@ type DatePickerFieldProps = {
   /** A calendar day ("2026-10-20"), or null without a date. */
   value: string | null;
   onChange(day: string | null): void;
+  label?: string;
+  /** False when a date is required: it cannot be removed. */
+  clearable?: boolean;
 };
 
 /**
@@ -21,7 +24,12 @@ type DatePickerFieldProps = {
  * change or remove it. The calendar is the platform's own: a dialog on
  * Android and an inline calendar, in a sheet, on iOS.
  */
-export function DatePickerField({ value, onChange }: DatePickerFieldProps) {
+export function DatePickerField({
+  value,
+  onChange,
+  label = 'Fecha',
+  clearable = true,
+}: DatePickerFieldProps) {
   const [picking, setPicking] = useState(false);
   const on = today();
 
@@ -45,7 +53,7 @@ export function DatePickerField({ value, onChange }: DatePickerFieldProps) {
 
   return (
     <View style={styles.field}>
-      <ThemedText type="label">Fecha</ThemedText>
+      <ThemedText type="label">{label}</ThemedText>
       <ThemedText
         type={value ? 'defaultBold' : 'default'}
         themeColor={value ? 'textPrimary' : 'textSecondary'}>
@@ -59,7 +67,7 @@ export function DatePickerField({ value, onChange }: DatePickerFieldProps) {
             onPress={open}
           />
         </View>
-        {value && (
+        {value && clearable && (
           <View style={styles.action}>
             <PrimaryButton
               label="Quitar fecha"
@@ -72,6 +80,7 @@ export function DatePickerField({ value, onChange }: DatePickerFieldProps) {
 
       {picking && (
         <CalendarSheet
+          title={label}
           initial={fromCalendarDay(value ?? on)}
           onDone={(date) => {
             setPicking(false);
@@ -85,10 +94,12 @@ export function DatePickerField({ value, onChange }: DatePickerFieldProps) {
 }
 
 function CalendarSheet({
+  title,
   initial,
   onDone,
   onCancel,
 }: {
+  title: string;
   initial: Date;
   onDone(date: Date): void;
   onCancel(): void;
@@ -106,7 +117,7 @@ function CalendarSheet({
         <Pressable accessible={false} style={styles.sheet}>
           <Card style={styles.calendar}>
             <ThemedText type="heading" accessibilityRole="header">
-              Fecha
+              {title}
             </ThemedText>
             <DateTimePicker
               value={draft}
