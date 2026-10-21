@@ -12,6 +12,7 @@ import {
   Validate,
   ValidateIf,
   ValidatorConstraint,
+  type ValidationArguments,
   type ValidatorConstraintInterface,
 } from 'class-validator';
 import {
@@ -69,8 +70,9 @@ const locationProperty = {
   description: 'Where the food is kept. Null when the user does not say.',
 };
 
+// Also for the days of the meal plan.
 @ValidatorConstraint({ name: 'dateInRange' })
-class DateInRange implements ValidatorConstraintInterface {
+export class DateInRange implements ValidatorConstraintInterface {
   validate(value: unknown): boolean {
     return (
       typeof value === 'string' &&
@@ -79,8 +81,8 @@ class DateInRange implements ValidatorConstraintInterface {
     );
   }
 
-  defaultMessage(): string {
-    return `expiresOn must be between ${DATE_RANGE.min} and ${DATE_RANGE.max}`;
+  defaultMessage({ property }: ValidationArguments): string {
+    return `${property} must be between ${DATE_RANGE.min} and ${DATE_RANGE.max}`;
   }
 }
 
