@@ -2,7 +2,7 @@ import { screen, userEvent } from '@testing-library/react-native';
 
 import { ProfileScreen } from './profile-screen';
 
-import { renderSignedIn } from '@/features/account/account-test-utils';
+import { passwordAccount, renderSignedIn } from '@/features/account/account-test-utils';
 import { NetworkError } from '@/lib/api-client';
 import type { Unit } from '@/features/units/units';
 
@@ -51,6 +51,7 @@ describe('ProfileScreen', () => {
       'GET /food-preferences': () => noPreferences,
       'GET /dietary-restrictions': () => noRestrictions,
       'GET /nutrition-goals': () => noGoals,
+      'GET /account': () => passwordAccount,
       ...routes,
     });
 
@@ -180,6 +181,24 @@ describe('ProfileScreen', () => {
       );
 
       expect(mockPush).toHaveBeenCalledWith('/profile/nutrition-goals');
+    });
+  });
+
+  describe('account', () => {
+    it('shows the email of the account', async () => {
+      await renderProfile();
+
+      expect(
+        await screen.findByRole('button', { name: 'Cuenta: ana@example.com' }),
+      ).toBeOnTheScreen();
+    });
+
+    it('opens it', async () => {
+      await renderProfile();
+
+      await user.press(await screen.findByRole('button', { name: 'Cuenta: ana@example.com' }));
+
+      expect(mockPush).toHaveBeenCalledWith('/profile/account');
     });
   });
 

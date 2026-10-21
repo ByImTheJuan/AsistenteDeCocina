@@ -32,11 +32,6 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="fork.knife" md="restaurant" />
       </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="account">
-        <NativeTabs.Trigger.Label>Cuenta</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="person.crop.circle" md="account_circle" />
-      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
